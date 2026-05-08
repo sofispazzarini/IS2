@@ -1,13 +1,156 @@
+{% load static %}
+
 <!doctype html>
-<html lang="es">
+<html lang="es" class="h-full">
+
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}IS2{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}
+            SIRCA
+        {% endblock %}
+    </title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+
+    <!-- Lucide -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- CSS propio -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    {% block extra_css %}
+    {% endblock %}
 </head>
-<body>
+
+<body class="h-full font-body bg-white text-gray-800 overflow-auto">
+
+    <!-- NAVBAR -->
+
+    <nav class="fixed top-0 left-0 w-full z-40 bg-white/95 backdrop-blur-sm border-b border-bordo-100">
+
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+
+            <div class="flex items-center gap-3">
+
+                <div class="w-10 h-10 rounded-full bg-bordo-700 flex items-center justify-center">
+
+                    <svg width="22" height="22" viewBox="0 0 24 24"
+                         fill="none" stroke="white" stroke-width="2">
+
+                        <path d="M18 20a6 6 0 0 0-12 0"/>
+                        <circle cx="12" cy="10" r="4"/>
+
+                    </svg>
+
+                </div>
+
+                <a href="{% url 'home' %}"
+                   class="font-heading text-xl font-bold text-bordo-700">
+
+                    SIRCA
+
+                </a>
+
+            </div>
+
+            <div class="hidden md:flex items-center gap-8">
+
+                <a href="{% url 'home' %}"
+                   class="nav-link font-medium text-gray-600 hover:text-bordo-700">
+
+                    Inicio
+
+                </a>
+
+                <a href="#servicios"
+                   class="nav-link font-medium text-gray-600 hover:text-bordo-700">
+
+                    Servicios
+
+                </a>
+
+                <a href="#contacto"
+                   class="nav-link font-medium text-gray-600 hover:text-bordo-700">
+
+                    Contacto
+
+                </a>
+
+                {% if user.is_authenticated %}
+
+                    <span class="text-sm font-semibold text-bordo-700">
+                        Hola, {{ user.username }}
+                    </span>
+
+                    <a href="{% url 'logout' %}"
+                       class="btn-outline-bordo px-5 py-2 rounded-full text-sm font-semibold">
+
+                        Cerrar sesión
+
+                    </a>
+
+                {% else %}
+
+                    <a href="{% url 'login' %}"
+                       class="btn-bordo px-5 py-2 rounded-full text-sm font-semibold">
+
+                        Iniciar sesión
+
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <!-- CONTENIDO -->
+
     <main>
-        {% block content %}{% endblock %}
+
+        {% block content %}
+        {% endblock %}
+
     </main>
+
+    <!-- FOOTER -->
+
+    <footer class="bg-gray-900 py-12 px-6 mt-20">
+
+        <div class="max-w-6xl mx-auto text-center">
+
+            <h3 class="font-heading text-2xl text-white font-bold mb-4">
+                SIRCA
+            </h3>
+
+            <p class="text-gray-400 text-sm">
+                Sistema Integral de Rehabilitación y Control de Actividades
+            </p>
+
+        </div>
+
+    </footer>
+
+    <!-- JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+
+    <script>
+        lucide.createIcons();
+    </script>
+
+    {% block extra_js %}
+    {% endblock %}
+
 </body>
 </html>

@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Reservas | SIRCA
+{% endblock %}
+
+{% block content %}
+
+<section class="pt-32 pb-20 px-6 bg-gray-50 min-h-screen">
+
+    <div class="max-w-6xl mx-auto">
+
+        <div class="mb-12">
+
+            <h1 class="font-heading text-5xl font-bold text-bordo-700 mb-4">
+
+                Reservar turno
+
+            </h1>
+
+            <p class="text-gray-500 text-lg">
+
+                Seleccioná una actividad y elegí el horario disponible.
+
+            </p>
+
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            {% for clase in clases %}
+
+            <div class="bg-white rounded-3xl shadow-lg p-6">
+
+                <div class="mb-5">
+
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">
+
+                        {{ clase.actividad.nombre }}
+
+                    </h2>
+
+                    <p class="text-gray-500">
+
+                        Profesor:
+                        {{ clase.profesor.nombre }}
+                        {{ clase.profesor.apellido }}
+
+                    </p>
+
+                </div>
+
+                <div class="space-y-3 text-sm text-gray-600">
+
+                    <p>
+                        📅 {{ clase.fecha }}
+                    </p>
+
+                    <p>
+                        🕒 {{ clase.hora_inicio }} - {{ clase.hora_fin }}
+                    </p>
+
+                    <p>
+                        👥 Cupos:
+                        {{ clase.cupo_maximo }}
+                    </p>
+
+                    <p>
+                        📍 {{ clase.salon }}
+                    </p>
+
+                </div>
+
+                <form method="POST" class="mt-6">
+
+                    {% csrf_token %}
+
+                    <input
+                        type="hidden"
+                        name="clase_id"
+                        value="{{ clase.id }}"
+                    >
+
+                    <button
+                        type="submit"
+                        class="w-full btn-bordo py-3 rounded-xl font-semibold text-white"
+                    >
+
+                        Reservar
+
+                    </button>
+
+                </form>
+
+            </div>
+
+            {% empty %}
+
+            <div class="col-span-full text-center py-20">
+
+                <h3 class="text-2xl font-semibold text-gray-600 mb-3">
+                    No hay clases disponibles
+                </h3>
+
+                <p class="text-gray-400">
+                    Volvé a intentar más tarde.
+                </p>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}
