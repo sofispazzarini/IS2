@@ -2,6 +2,8 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from datetime import date, timedelta
 from .forms import RegistroForm
+from django.test import Client
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -158,3 +160,54 @@ class RegistroFormTestCase(TestCase):
         form = RegistroForm(data)
         self.assertFalse(form.is_valid())
         self.assertIn("Las contraseñas no coinciden", str(form.errors))
+
+
+class LoginViewTestCase(TestCase):
+    """Tests para la vista de login"""
+
+    def setUp(self):
+        self.client = Client()
+        fecha_nac = date(2006, 5, 2)
+        self.user = User.objects.create_user(
+            username="juanitorreslp@gmail.com",
+            email="juanitorreslp@gmail.com",
+            password="Estudiantes7",
+            first_name="Juan",
+            last_name="Torres",
+            dni="47032818",
+            fecha_nacimiento=fecha_nac,
+        )
+
+    def test_login_exitoso(self):
+        """Escenario I: Inicio de Sesión Exitoso"""
+        response = self.client.post(reverse('user:login'), {
+            'email': 'juanitorreslp@gmail.com',
+            'password': 'Estudiantes7'
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/')
+        # Verificar que el usuario esté logueado
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.user.pk)
+
+    def test_login_falla_usuario_no_registrado(self):
+        """Escenario II: Inicio fallido por usuario no registrado"""
+        response = self.client.post(reverse('user:login'), {
+            'email': 'juanitorreslp@gmail.com',  # mismo email pero usuario no existe? Wait, el usuario existe, pero para testear no registrado, usar otro email
+            'password': 'Estudiantes7'
+        })
+        # Este pasa porque el usuario existe. Para testear no registrado, usar email diferente.
+        response = self.client.post(reverse('user:login'), {
+            'email': 'noexiste@gmail.com',
+            'password': 'Estudiantes7'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "El correo ingresado no se encuentra registrado")
+
+    def test_login_falla_contrasena_invalida(self):
+        """Escenario III: Inicio fallido por contraseña"""
+        response = self.client.post(reverse('user:login'), {
+            'email': 'juanitorreslp@gmail.com',
+            'password': 'Estudiantes'  # contraseña incorrecta
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "La contraseña ingresada es inválida")
