@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout, get_user_model
-from .forms import RegistroForm, LoginForm
+from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from .forms import RegistroForm, LoginForm, ChangePasswordForm
 
 
 def login_view(request):
@@ -51,6 +52,28 @@ def registro(request):
         form = RegistroForm()
 
     return render(request, "user/registro.html", {"form": form})
+
+
+@login_required(login_url='user:login')
+def change_password(request):
+    if request.method == "POST":
+        form = ChangePasswordForm(request.POST)
+        if form.is_valid():
+            password = form.cleaned_data.get("password")
+            user = request.user
+            user.set_password(password)
+            user.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, "Contraseña actualizada exitosamente")
+            return redirect('core:home')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, str(error))
+    else:
+        form = ChangePasswordForm()
+
+    return render(request, 'user/change_password.html', {'form': form})
 
 
 def logout_view(request):

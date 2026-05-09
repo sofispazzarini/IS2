@@ -17,6 +17,39 @@ class LoginForm(forms.Form):
     )
 
 
+class ChangePasswordForm(forms.Form):
+    password = forms.CharField(
+        label="Contraseña",
+        required=False,
+        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Contraseña"}),
+    )
+    password_confirm = forms.CharField(
+        label="Confirmar Contraseña",
+        required=False,
+        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Confirmar Contraseña"}),
+    )
+
+    def clean_password(self):
+        password = self.cleaned_data.get("password")
+        if password:
+            if len(password) < 8 or len(password) > 20:
+                raise forms.ValidationError("La contraseña debe tener entre 8 y 20 caracteres")
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirm = cleaned_data.get("password_confirm")
+
+        if not password or not password_confirm:
+            raise forms.ValidationError("Completar contraseña")
+
+        if password != password_confirm:
+            raise forms.ValidationError("Las contraseñas no coinciden")
+
+        return cleaned_data
+
+
 class RegistroForm(forms.ModelForm):
     password = forms.CharField(
         label="Contraseña",

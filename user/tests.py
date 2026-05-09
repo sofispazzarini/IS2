@@ -189,6 +189,39 @@ class LoginViewTestCase(TestCase):
         # Verificar que el usuario esté logueado
         self.assertEqual(int(self.client.session['_auth_user_id']), self.user.pk)
 
+    def test_change_password_exitoso(self):
+        """Escenario I: Cambio de contraseña exitoso"""
+        self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
+        response = self.client.post(reverse('user:change_password'), {
+            'password': 'Taylor1989',
+            'password_confirm': 'Taylor1989',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/')
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('Taylor1989'))
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.user.pk)
+
+    def test_change_password_falla_por_contrasena_fuera_de_rango(self):
+        """Escenario II: Cambio de contraseña fallido por longitud"""
+        self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
+        response = self.client.post(reverse('user:change_password'), {
+            'password': 'Taylor',
+            'password_confirm': 'Taylor',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "La contraseña debe tener entre 8 y 20 caracteres")
+
+    def test_change_password_falla_por_campo_incompleto(self):
+        """Escenario III: Cambio de contraseña fallido por campo incompleto"""
+        self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
+        response = self.client.post(reverse('user:change_password'), {
+            'password': '',
+            'password_confirm': '',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Completar contraseña")
+
     def test_logout_redirige_a_login_y_cierra_sesion(self):
         """Escenario I: Cierre de sesión exitoso"""
         self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')

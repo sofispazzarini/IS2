@@ -91,6 +91,11 @@
                         Hola, {{ user.username }}
                     </span>
 
+                    <a href="{% url 'user:change_password' %}"
+                       class="nav-link font-medium text-gray-600 hover:text-bordo-700">
+                        Cambiar contraseña
+                    </a>
+
                     <a href="{% url 'user:logout' %}"
                        class="btn-outline-bordo px-5 py-2 rounded-full text-sm font-semibold">
 
