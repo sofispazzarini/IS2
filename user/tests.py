@@ -189,6 +189,14 @@ class LoginViewTestCase(TestCase):
         # Verificar que el usuario esté logueado
         self.assertEqual(int(self.client.session['_auth_user_id']), self.user.pk)
 
+    def test_logout_redirige_a_login_y_cierra_sesion(self):
+        """Escenario I: Cierre de sesión exitoso"""
+        self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
+        response = self.client.get(reverse('user:logout'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], reverse('user:login'))
+        self.assertNotIn('_auth_user_id', self.client.session)
+
     def test_login_falla_usuario_no_registrado(self):
         """Escenario II: Inicio fallido por usuario no registrado"""
         response = self.client.post(reverse('user:login'), {
