@@ -1,5 +1,6 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
+from django.core import mail
 from datetime import date, timedelta
 from .forms import RegistroForm
 from django.test import Client
@@ -221,6 +222,47 @@ class LoginViewTestCase(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Completar contraseña")
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_secretary_envia_contrasena_temporal(self):
+        """Escenario I: Cambio de clave exitoso por secretario"""
+        fecha_nac = date(2006, 5, 2)
+        secretario = User.objects.create_user(
+            username="secretario@sirca.com",
+            email="secretario@sirca.com",
+            password="Secretario7",
+            first_name="Sergio",
+            last_name="Perez",
+            dni="12345679",
+            fecha_nacimiento=fecha_nac,
+            rol='secretario',
+        )
+        cliente = User.objects.create_user(
+            username="cliente@sirca.com",
+            email="cliente@sirca.com",
+            password="Cliente7",
+            first_name="Ana",
+            last_name="Gomez",
+            dni="47032819",
+            fecha_nacimiento=fecha_nac,
+            rol='cliente',
+        )
+
+        self.client.login(username='secretario@sirca.com', password='Secretario7')
+        response = self.client.post(reverse('user:secretary_reset_password', kwargs={'user_id': cliente.pk}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], reverse('user:client_profile', kwargs={'user_id': cliente.pk}))
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Contraseña temporal SIRCA', mail.outbox[0].subject)
+        self.assertIn(cliente.email, mail.outbox[0].to)
+        self.assertIn('Contraseña temporal:', mail.outbox[0].body)
+
+        temp_password_line = [line for line in mail.outbox[0].body.splitlines() if 'Contraseña temporal:' in line]
+        self.assertTrue(temp_password_line)
+        temp_password = temp_password_line[0].split('Contraseña temporal:')[1].strip()
+        cliente.refresh_from_db()
+        self.assertTrue(cliente.check_password(temp_password))
 
     def test_logout_redirige_a_login_y_cierra_sesion(self):
         """Escenario I: Cierre de sesión exitoso"""

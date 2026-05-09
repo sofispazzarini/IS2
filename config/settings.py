@@ -84,3 +84,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'  # o donde quieras que vaya después de loguear
 LOGOUT_REDIRECT_URL = ('/auth/login/')
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'no-reply@sirca.local'
