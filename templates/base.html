@@ -15,6 +15,27 @@
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bordo: {
+                            100: '#f5e6e8',
+                            200: '#e6c3c8',
+                            300: '#d49ba4',
+                            400: '#c16f7d',
+                            500: '#a84556',
+                            600: '#8f3a4a',
+                            700: '#7a1d3a',
+                            800: '#641830',
+                            900: '#521428',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 
     <!-- Lucide -->
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
@@ -91,7 +112,7 @@
                         Hola, {{ user.username }}
                     </span>
 
-                    <a href="{% url 'logout' %}"
+                    <a href="#"
                        class="btn-outline-bordo px-5 py-2 rounded-full text-sm font-semibold">
 
                         Cerrar sesión
@@ -100,7 +121,7 @@
 
                 {% else %}
 
-                    <a href="{% url 'login' %}"
+                    <a href="/auth/login/"
                        class="btn-bordo px-5 py-2 rounded-full text-sm font-semibold">
 
                         Iniciar sesión

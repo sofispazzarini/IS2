@@ -3,13 +3,9 @@ from django.contrib import messages
 from .forms import RegistroForm
 
 
-
 def login_view(request):
     return render(request, 'user/login.html')
 
-
-def register_view(request):
-    return render(request, 'user/register.html')
 
 def registro(request):
     if request.method == "POST":

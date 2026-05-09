@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Registro - SIRCA{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Crear cuenta
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                ¿Ya tienes cuenta?
+                <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">
+                    Inicia sesión aquí
+                </a>
+            </p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="rounded-md p-4 {% if message.tags == 'error' %}bg-red-50 border border-red-200{% else %}bg-green-50 border border-green-200{% endif %}">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            {% if message.tags == 'error' %}
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            {% else %}
+                                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                            {% endif %}
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium {% if message.tags == 'error' %}text-red-800{% else %}text-green-800{% endif %}">
+                                {{ message }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form class="mt-8 space-y-6" method="POST" novalidate>
+            {% csrf_token %}
+
+            <div class="space-y-4">
+                <div>
+                    <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.first_name.label }}
+                    </label>
+                    <input
+                        type="text"
+                        id="{{ form.first_name.id_for_label }}"
+                        name="{{ form.first_name.name }}"
+                        value="{{ form.first_name.value|default_if_none:'' }}"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.first_name.errors %}border-red-300{% endif %}"
+                        placeholder="Ingresa tu nombre"
+                    >
+                    {% if form.first_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.last_name.label }}
+                    </label>
+                    <input
+                        type="text"
+                        id="{{ form.last_name.id_for_label }}"
+                        name="{{ form.last_name.name }}"
+                        value="{{ form.last_name.value|default_if_none:'' }}"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.last_name.errors %}border-red-300{% endif %}"
+                        placeholder="Ingresa tu apellido"
+                    >
+                    {% if form.last_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.email.label }}
+                    </label>
+                    <input
+                        type="email"
+                        id="{{ form.email.id_for_label }}"
+                        name="{{ form.email.name }}"
+                        value="{{ form.email.value|default_if_none:'' }}"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.email.errors %}border-red-300{% endif %}"
+                        placeholder="tu@email.com"
+                    >
+                    {% if form.email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.dni.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.dni.label }}
+                    </label>
+                    <input
+                        type="text"
+                        id="{{ form.dni.id_for_label }}"
+                        name="{{ form.dni.name }}"
+                        value="{{ form.dni.value|default_if_none:'' }}"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.dni.errors %}border-red-300{% endif %}"
+                        placeholder="12345678"
+                    >
+                    {% if form.dni.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.dni.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.telefono.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.telefono.label }}
+                    </label>
+                    <input
+                        type="text"
+                        id="{{ form.telefono.id_for_label }}"
+                        name="{{ form.telefono.name }}"
+                        value="{{ form.telefono.value|default_if_none:'' }}"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.telefono.errors %}border-red-300{% endif %}"
+                        placeholder="221 345 6789"
+                    >
+                    {% if form.telefono.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.telefono.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.fecha_nacimiento.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.fecha_nacimiento.label }}
+                    </label>
+                    <input
+                        type="date"
+                        id="{{ form.fecha_nacimiento.id_for_label }}"
+                        name="{{ form.fecha_nacimiento.name }}"
+                        value="{{ form.fecha_nacimiento.value|default_if_none:''|date:'Y-m-d' }}"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.fecha_nacimiento.errors %}border-red-300{% endif %}"
+                    >
+                    {% if form.fecha_nacimiento.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.fecha_nacimiento.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="id_password" class="block text-sm font-medium text-gray-700">
+                        Contraseña
+                    </label>
+                    <input
+                        type="password"
+                        id="id_password"
+                        name="password"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Mínimo 8 caracteres"
+                    >
+                </div>
+
+                <div>
+                    <label for="id_password_confirm" class="block text-sm font-medium text-gray-700">
+                        Confirmar Contraseña
+                    </label>
+                    <input
+                        type="password"
+                        id="id_password_confirm"
+                        name="password_confirm"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Repite tu contraseña"
+                    >
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <ul class="text-sm text-red-700">
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div>
+                <button
+                    type="submit"
+                    class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                    Registrarme
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
