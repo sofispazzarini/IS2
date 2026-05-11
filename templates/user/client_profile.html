@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil del cliente - SIRCA{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h1 class="text-2xl font-bold text-gray-900">Perfil de cliente</h1>
+            <p class="mt-2 text-sm text-gray-600">Gestiona la cuenta del cliente y envía una contraseña temporal.</p>
+        </div>
+
+        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Nombre</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ client.get_full_name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Correo</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ client.email }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">DNI</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ client.dni }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Teléfono</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ client.telefono }}</dd>
+                </div>
+            </dl>
+
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <form method="post" action="{% url 'user:secretary_reset_password' client.pk %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit"
+                       class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                        Cambiar contraseña temporal
+                    </button>
+                </form>
+                <a href="{% url 'user:client_list' %}"
+                   class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Volver a clientes
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

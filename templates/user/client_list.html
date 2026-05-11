@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - SIRCA{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-3xl font-extrabold text-gray-900">Lista de clientes</h1>
+                <p class="mt-2 text-sm text-gray-600">Selecciona un cliente para acceder a su perfil y generar una contraseña temporal.</p>
+            </div>
+        </div>
+
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6">
+                <h2 class="text-lg leading-6 font-medium text-gray-900">Clientes registrados</h2>
+            </div>
+            <div class="border-t border-gray-200">
+                <dl class="divide-y divide-gray-200">
+                    {% for client in clients %}
+                        <div class="px-4 py-4 sm:px-6 flex items-center justify-between">
+                            <div>
+                                <p class="text-base font-semibold text-gray-900">{{ client.get_full_name }}</p>
+                                <p class="mt-1 text-sm text-gray-500">{{ client.email }}</p>
+                            </div>
+                            <a href="{% url 'user:client_profile' client.pk %}"
+                               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                Ver perfil
+                            </a>
+                        </div>
+                    {% empty %}
+                        <div class="px-4 py-4 sm:px-6 text-sm text-gray-500">
+                            No hay clientes registrados.
+                        </div>
+                    {% endfor %}
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+.font-heading{
+    font-family:'Playfair Display', Georgia, serif;
+}
+
+.font-body{
+    font-family:'Source Sans 3', sans-serif;
+}
+
+.hero-pattern{
+    background-image:
+        radial-gradient(circle at 20% 50%, rgba(122,29,58,.06) 0%, transparent 50%);
+}
+
+.btn-bordo{
+    background:#7a1d3a;
+    color:white;
+}
+
+.btn-bordo:hover{
+    background:#5c1830;
+}
+
+.nav-link{
+    position:relative;
+}
