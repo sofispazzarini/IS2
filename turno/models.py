@@ -1,6 +1,8 @@
 import uuid
 
 from django.db import models
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from user.models import User, Profesor
 from actividad.models import Actividad
@@ -21,21 +23,41 @@ class Clase(models.Model):
     )
 
     fecha = models.DateField()
-
     hora_inicio = models.TimeField()
-
     hora_fin = models.TimeField()
-
     cupo_maximo = models.IntegerField()
-
     salon = models.CharField(max_length=100)
-
     cancelada = models.BooleanField(default=False)
-
     motivo_cancelacion = models.TextField(
         blank=True,
         null=True
     )
+
+    def clean(self):
+        if self.fecha and self.fecha < timezone.localdate():
+            raise ValidationError("no puedes crear una actividad para una fecha pasada")
+
+        salon_ocupado = Clase.objects.filter(
+            fecha=self.fecha,
+            hora_inicio=self.hora_inicio,
+            salon=self.salon
+        ).exclude(pk=self.pk)
+
+        if salon_ocupado.exists():
+            raise ValidationError(f"salon no disponible para el {self.fecha} a las {self.hora_inicio}")
+
+        profesor_ocupado = Clase.objects.filter(
+            fecha=self.fecha,
+            hora_inicio=self.hora_inicio,
+            profesor=self.profesor
+        ).exclude(pk=self.pk)
+
+        if profesor_ocupado.exists():
+            raise ValidationError(f"profesor no disponible para el {self.fecha} a las {self.hora_inicio}")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.actividad.nombre} - {self.fecha}"
