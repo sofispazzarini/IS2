@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %} Gestión de Clases | SIRCA {% endblock %}
+
+{% block content %}
+<section class="pt-32 pb-20 px-6 bg-gray-50 min-h-screen">
+    <div class="max-w-6xl mx-auto">
+        
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="font-heading text-4xl font-bold text-bordo-700">Gestión de Clases</h1>
+                <p class="text-gray-500">Panel de administración para el Secretario/Dueño</p>
+            </div>
+            <a href="{% url 'crear_clase' %}" class="bg-bordo-700 hover:bg-bordo-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                Nueva Clase
+            </a>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-6 p-4 rounded-xl {% if message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %} font-medium">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-700 uppercase text-xs">
+                        <th class="px-6 py-4 font-bold">Actividad</th>
+                        <th class="px-6 py-4 font-bold">Profesor</th>
+                        <th class="px-6 py-4 font-bold">Fecha y Hora</th>
+                        <th class="px-6 py-4 font-bold">Salón</th>
+                        <th class="px-6 py-4 font-bold">Estado</th>
+                        <th class="px-6 py-4 font-bold text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for clase in clases %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-gray-800">{{ clase.actividad.nombre }}</td>
+                        <td class="px-6 py-4 text-gray-600">{{ clase.profesor.nombre }} {{ clase.profesor.apellido }}</td>
+                        <td class="px-6 py-4 text-gray-600">
+                            <span class="block font-medium">{{ clase.fecha }}</span>
+                            <span class="text-xs text-gray-400">{{ clase.hora_inicio }} - {{ clase.hora_fin }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-600">{{ clase.salon }}</td>
+                        <td class="px-6 py-4">
+                            {% if clase.cancelada %}
+                                <span class="px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold uppercase">Cancelada</span>
+                            {% else %}
+                                <span class="px-3 py-1 rounded-full bg-green-100 text-green-600 text-xs font-bold uppercase">Activa</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex justify-center gap-4">
+                                <a href="{% url 'editar_clase' clase.pk %}" class="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1">
+                                    Editar
+                                </a>
+                                {% if not clase.cancelada %}
+                                <a href="{% url 'cancelar_clase' clase.pk %}" class="text-red-600 hover:text-red-800 font-medium text-sm flex items-center gap-1">
+                                    Cancelar
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-400">
+                            No hay clases cargadas en el sistema.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

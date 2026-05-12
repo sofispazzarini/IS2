@@ -34,8 +34,9 @@ class Clase(models.Model):
     )
 
     def clean(self):
-        if self.fecha and self.fecha < timezone.localdate():
-            raise ValidationError("no puedes crear una actividad para una fecha pasada")
+        if self._state.adding: 
+            if self.fecha and self.fecha < timezone.localdate():
+                raise ValidationError('no puedes crear una actividad para una fecha pasada')
 
         salon_ocupado = Clase.objects.filter(
             fecha=self.fecha,
