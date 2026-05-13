@@ -1,8 +1,38 @@
+from datetime import timedelta
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.contrib import messages
 from .models import Clase, Reserva, ListaEspera
+
+
+@login_required
+def mis_turnos(request):
+    """Muestra los turnos/reservas próximas del usuario."""
+    hoy = timezone.now().date()
+
+    reservas = Reserva.objects.filter(
+        usuario=request.user,
+        clase__fecha__gte=hoy
+    ).exclude(
+        estado='cancelada'
+    ).select_related('clase', 'clase__actividad', 'clase__profesor').order_by('clase__fecha', 'clase__hora_inicio')
+
+    reservas_con_info = []
+    for reserva in reservas:
+        dias_anticipacion = (reserva.clase.fecha - hoy).days
+        puede_cancelar = dias_anticipacion >= 2
+        reservas_con_info.append({
+            'reserva': reserva,
+            'puede_cancelar': puede_cancelar,
+            'dias_anticipacion': dias_anticipacion,
+        })
+
+    return render(request, 'turno/mis_turnos.html', {
+        'reservas_con_info': reservas_con_info,
+        'tiene_turnos': len(reservas_con_info) > 0,
+    })
 
 @login_required
 def lista_clases(request):
@@ -60,10 +90,6 @@ def reserva_exitosa(request, reserva_id):
     return render(request, 'turno/reserva_exitosa.html', {'reserva': reserva})
 
 
-from datetime import timedelta
-from django.utils import timezone
-from django.contrib import messages
-
 @login_required
 def cancelar_reserva(request, reserva_id):
     # Buscamos la reserva del usuario actual
@@ -80,21 +106,15 @@ def cancelar_reserva(request, reserva_id):
         return redirect('reservas')
 
     if request.method == 'POST':
-        # Escenario I y II: Cancelación exitosa
+        estado_anterior = reserva.estado
         reserva.estado = 'cancelada'
         reserva.save()
-        
-        # El cupo de la clase aumenta (porque se liberó un lugar)
-        # Nota: En Django esto es automático si contás reservas activas, 
-        # pero informamos al usuario que la disponibilidad aumentó.
-        
-        if reserva.estado == 'pendiente_pago':
-            # Escenario II: No abonada
+
+        if estado_anterior == 'pendiente_pago':
             messages.success(request, "La cancelación fue exitosa. Se aumentó la disponibilidad de cupos.")
         else:
-            # Escenario I: Abonada (ponemos el mensaje de devolución/créditos)
             messages.success(request, "La cancelación fue exitosa. ¿Deseas la devolución del dinero o acumulación de créditos?")
-            
+
         return redirect('reservas')
 
     return render(request, 'turno/confirmar_cancelacion.html', {'reserva': reserva})

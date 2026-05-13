@@ -10,6 +10,7 @@ class Pago(models.Model):
         ('efectivo', 'Efectivo'),
         ('tarjeta', 'Tarjeta'),
         ('mercado_pago', 'Mercado Pago'),
+        ('creditos', 'Créditos'),
     )
 
     ESTADOS = (

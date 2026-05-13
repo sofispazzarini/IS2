@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Turnos - SIRCA{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 pt-24">
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-8">
+            <h2 class="text-3xl font-extrabold text-gray-900">
+                Mis Turnos
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Aquí puedes ver y gestionar tus reservas próximas
+            </p>
+        </div>
+
+        {% if tiene_turnos %}
+            <div class="space-y-4">
+                {% for item in reservas_con_info %}
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    {{ item.reserva.clase.actividad.nombre }}
+                                </h3>
+                                <div class="mt-2 space-y-1 text-sm text-gray-600">
+                                    <p>
+                                        <span class="font-medium">Fecha:</span>
+                                        {{ item.reserva.clase.fecha|date:"d/m/Y" }}
+                                    </p>
+                                    <p>
+                                        <span class="font-medium">Horario:</span>
+                                        {{ item.reserva.clase.hora_inicio|time:"H:i" }} - {{ item.reserva.clase.hora_fin|time:"H:i" }}
+                                    </p>
+                                    <p>
+                                        <span class="font-medium">Profesor:</span>
+                                        {{ item.reserva.clase.profesor.nombre }} {{ item.reserva.clase.profesor.apellido }}
+                                    </p>
+                                    <p>
+                                        <span class="font-medium">Salón:</span>
+                                        {{ item.reserva.clase.salon }}
+                                    </p>
+                                    <p>
+                                        <span class="font-medium">Estado:</span>
+                                        <span class="{% if item.reserva.estado == 'confirmada' %}text-green-600{% elif item.reserva.estado == 'pendiente_pago' %}text-yellow-600{% else %}text-gray-600{% endif %}">
+                                            {{ item.reserva.get_estado_display }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 md:mt-0 md:ml-6 flex flex-col space-y-2">
+                                {% if item.reserva.estado == 'pendiente_pago' %}
+                                    <a href="{% url 'pagar_creditos' item.reserva.id %}"
+                                       class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                        Pagar con créditos
+                                    </a>
+                                    <a href="{% url 'pagar_tarjeta' item.reserva.id %}"
+                                       class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                        Pagar con tarjeta
+                                    </a>
+                                {% endif %}
+                                {% if item.puede_cancelar %}
+                                    <a href="{% url 'cancelar_reserva' item.reserva.id %}"
+                                       class="inline-flex items-center justify-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+                                        Cancelar reserva
+                                    </a>
+                                {% elif item.reserva.estado != 'pendiente_pago' %}
+                                    <span class="inline-flex items-center px-4 py-2 text-sm text-gray-500 bg-gray-100 rounded-md">
+                                        No se puede cancelar (menos de 2 días)
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-white shadow rounded-lg p-8 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <h3 class="mt-4 text-lg font-medium text-gray-900">No hay turnos próximos cargados en su cuenta</h3>
+                <p class="mt-2 text-sm text-gray-500">
+                    Puedes reservar una clase desde el listado de clases disponibles.
+                </p>
+                <div class="mt-6">
+                    <a href="{% url 'lista_clases' %}"
+                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        Ver clases disponibles
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

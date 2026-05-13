@@ -34,13 +34,17 @@
                 <form method="post" action="{% url 'user:secretary_reset_password' client.pk %}" class="inline">
                     {% csrf_token %}
                     <button type="submit"
-                       class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
-                        Cambiar contraseña temporal
+                       class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        Enviar contraseña temporal
                     </button>
                 </form>
+                <a href="{% url 'user:dar_baja_cliente' client.pk %}"
+                   class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                    Eliminar usuario
+                </a>
                 <a href="{% url 'user:client_list' %}"
                    class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    Volver a clientes
+                    Volver al panel
                 </a>
             </div>
         </div>

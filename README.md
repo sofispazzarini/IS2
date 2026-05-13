@@ -99,6 +99,31 @@ python manage.py test
 python manage.py makemigrations --check
 ```
 
+## Crear usuarios administradores
+
+Para probar funcionalidades de secretario o dueño, usar el comando `crearadmin`:
+
+```bash
+# Crear secretario
+python manage.py crearadmin secretario@test.com 12345678
+
+# Crear dueño
+python manage.py crearadmin dueno@test.com 12345678 --rol=dueno
+
+# Con datos personalizados
+python manage.py crearadmin admin@sirca.com mipassword --rol=dueno --nombre=Juan --apellido=Perez --dni=12345678
+```
+
+Si el email ya existe, el comando actualiza el rol del usuario existente.
+
+### Roles disponibles
+
+| Rol | Acceso |
+|-----|--------|
+| `cliente` | Usuario normal (default al registrarse) |
+| `secretario` | Panel de administración, gestión de clientes |
+| `dueno` | Mismo acceso que secretario + futuras funcionalidades |
+
 ## Siguientes pasos sugeridos
 
 - Crear modelos en `core/models.py`.

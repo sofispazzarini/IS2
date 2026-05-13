@@ -1,20 +1,50 @@
 {% extends "base.html" %}
 
-{% block title %}Clientes - SIRCA{% endblock %}
+{% block title %}Panel de Administración - SIRCA{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 pt-24">
     <div class="max-w-5xl mx-auto">
         <div class="flex items-center justify-between mb-6">
             <div>
-                <h1 class="text-3xl font-extrabold text-gray-900">Lista de clientes</h1>
-                <p class="mt-2 text-sm text-gray-600">Selecciona un cliente para acceder a su perfil y generar una contraseña temporal.</p>
+                <h1 class="text-3xl font-extrabold text-gray-900">Panel de Administración</h1>
+                <p class="mt-2 text-sm text-gray-600">Gestiona los clientes del sistema.</p>
             </div>
         </div>
 
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <!-- Buscador por email exacto -->
+        <div class="bg-white shadow sm:rounded-lg mb-6">
             <div class="px-4 py-5 sm:px-6">
+                <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Buscar cliente por email</h2>
+                <form action="{% url 'user:buscar_cliente' %}" method="GET" class="flex gap-4">
+                    <input type="email" name="email" placeholder="Ingrese el email exacto del cliente"
+                           class="flex-1 form-control rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <button type="submit"
+                            class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        Buscar
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Filtro de lista -->
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
                 <h2 class="text-lg leading-6 font-medium text-gray-900">Clientes registrados</h2>
+                <form method="GET" class="flex gap-2">
+                    <input type="text" name="q" value="{{ query }}" placeholder="Filtrar por email..."
+                           class="form-control rounded-md border-gray-300 shadow-sm text-sm">
+                    <button type="submit"
+                            class="px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Filtrar
+                    </button>
+                    {% if query %}
+                    <a href="{% url 'user:client_list' %}"
+                       class="px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Limpiar
+                    </a>
+                    {% endif %}
+                </form>
             </div>
             <div class="border-t border-gray-200">
                 <dl class="divide-y divide-gray-200">

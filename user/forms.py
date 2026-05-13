@@ -6,6 +6,52 @@ import re
 User = get_user_model()
 
 
+class EditarPerfilForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "telefono"]
+        widgets = {
+            "first_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nombre"}),
+            "last_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Apellido"}),
+            "telefono": forms.TextInput(attrs={"class": "form-control", "placeholder": "Teléfono"}),
+        }
+        labels = {
+            "first_name": "Nombre",
+            "last_name": "Apellido",
+            "telefono": "Teléfono",
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_first_name(self):
+        first_name = self.cleaned_data.get("first_name")
+        if not first_name or not first_name.strip():
+            raise forms.ValidationError("El campo nombre es obligatorio")
+        if not re.match(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$', first_name):
+            raise forms.ValidationError("El nombre contiene caracteres inválidos")
+        return first_name.strip()
+
+    def clean_last_name(self):
+        last_name = self.cleaned_data.get("last_name")
+        if not last_name or not last_name.strip():
+            raise forms.ValidationError("El campo apellido es obligatorio")
+        if not re.match(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$', last_name):
+            raise forms.ValidationError("El apellido contiene caracteres inválidos")
+        return last_name.strip()
+
+    def clean_telefono(self):
+        telefono = self.cleaned_data.get("telefono")
+        if telefono:
+            if not re.match(r'^\d+$', telefono):
+                raise forms.ValidationError("El teléfono solo puede contener números")
+            if self.user:
+                if User.objects.filter(telefono=telefono).exclude(pk=self.user.pk).exists():
+                    raise forms.ValidationError("Este teléfono ya está registrado por otro usuario")
+        return telefono
+
+
 class LoginForm(forms.Form):
     email = forms.EmailField(
         label="Correo Electrónico",

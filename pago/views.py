@@ -1,5 +1,8 @@
+from decimal import Decimal
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from turno.models import Reserva
 from .models import Pago
 
@@ -76,3 +79,44 @@ def pagar_con_tarjeta(request, reserva_id):
         })
 
     return render(request, 'pago/pagar_tarjeta.html', {'reserva': reserva})
+
+
+@login_required
+def pagar_con_creditos(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
+    usuario = request.user
+    precio_clase = reserva.clase.actividad.precio
+
+    if request.method == 'POST':
+        if usuario.creditos >= precio_clase:
+            usuario.creditos -= precio_clase
+            usuario.save()
+
+            Pago.objects.create(
+                reserva=reserva,
+                monto=precio_clase,
+                metodo_pago='creditos',
+                estado_pago='aprobado',
+            )
+            reserva.estado = 'confirmada'
+            reserva.save()
+
+            messages.success(request, f"Pago exitoso. Se descontaron {precio_clase} créditos de tu cuenta.")
+            return redirect('reservas')
+        else:
+            return render(request, 'pago/pagar_creditos.html', {
+                'reserva': reserva,
+                'creditos_usuario': usuario.creditos,
+                'precio_clase': precio_clase,
+                'creditos_restantes': 0,
+                'error': 'No tiene suficientes créditos para esta clase'
+            })
+
+    creditos_restantes = usuario.creditos - precio_clase if usuario.creditos >= precio_clase else 0
+
+    return render(request, 'pago/pagar_creditos.html', {
+        'reserva': reserva,
+        'creditos_usuario': usuario.creditos,
+        'precio_clase': precio_clase,
+        'creditos_restantes': creditos_restantes,
+    })
