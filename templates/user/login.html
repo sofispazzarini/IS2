@@ -3,34 +3,37 @@
 {% block title %}Iniciar Sesión - SIRCA{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+<div class="hero-pattern min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 pt-28">
+    <div class="max-w-md w-full">
+        <div class="text-center mb-8">
+            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
+                Bienvenido
+            </p>
+            <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
                 Iniciar sesión
             </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
-                ¿No tienes cuenta?
-                <a href="{% url 'user:registro' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
-                    Regístrate aquí
+            <p class="mt-3 text-gray-500">
+                ¿No tenés cuenta?
+                <a href="{% url 'user:registro' %}" class="font-semibold text-bordo-700 hover:text-bordo-800">
+                    Registrate aquí
                 </a>
             </p>
         </div>
 
-        <form class="mt-8 space-y-6" method="POST" novalidate>
-            {% csrf_token %}
+        <div class="bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+            <form method="POST" novalidate class="space-y-5">
+                {% csrf_token %}
 
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="mb-4 p-3 rounded bg-red-100 text-red-700">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="rounded-xl px-4 py-3 bg-red-50 text-red-700 border border-red-200">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
 
-            <div class="space-y-4">
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
                         Correo electrónico
                     </label>
                     <input
@@ -38,13 +41,13 @@
                         id="email"
                         name="email"
                         required
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500"
                         placeholder="tu@email.com"
                     >
                 </div>
 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
                         Contraseña
                     </label>
                     <input
@@ -52,41 +55,37 @@
                         id="password"
                         name="password"
                         required
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500"
                         placeholder="Tu contraseña"
                     >
                 </div>
-            </div>
 
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <input
-                        id="remember-me"
-                        name="remember-me"
-                        type="checkbox"
-                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    >
-                    <label for="remember-me" class="ml-2 block text-sm text-gray-900">
-                        Recordarme
-                    </label>
-                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input
+                            id="remember-me"
+                            name="remember-me"
+                            type="checkbox"
+                            class="h-4 w-4 text-bordo-700 focus:ring-bordo-500 border-gray-300 rounded"
+                        >
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-700">
+                            Recordarme
+                        </label>
+                    </div>
 
-                <div class="text-sm">
-                    <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">
+                    <a href="#" class="text-sm font-medium text-bordo-700 hover:text-bordo-800">
                         ¿Olvidaste tu contraseña?
                     </a>
                 </div>
-            </div>
 
-            <div>
                 <button
                     type="submit"
-                    class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    class="w-full btn-bordo py-3 rounded-full font-semibold text-base mt-2"
                 >
                     Iniciar sesión
                 </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

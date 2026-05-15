@@ -7,8 +7,8 @@ from django.conf import settings
 from django.http import HttpResponseForbidden
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
-from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm
-from .models import HistorialUsuarioBaja
+from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, ProfesorForm
+from .models import HistorialUsuarioBaja, Profesor
 
 
 def login_view(request):
@@ -265,4 +265,90 @@ def logout_view(request):
     logout(request)
     messages.success(request, "Sesión cerrada exitosamente")
     return redirect('user:login')
+
+
+def _es_dueno(request):
+    if not request.user.is_authenticated:
+        return False
+    return getattr(request.user, 'rol', None) == 'dueno'
+
+
+@login_required(login_url='user:login')
+def admin_profesores(request):
+    """Panel de administración de profesores."""
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    profesores = Profesor.objects.all().order_by('apellido', 'nombre')
+
+    return render(request, 'user/admin_profesores.html', {
+        'profesores': profesores,
+        'es_dueno': _es_dueno(request),
+    })
+
+
+@login_required(login_url='user:login')
+def crear_profesor(request):
+    """Crear un nuevo profesor."""
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    if request.method == 'POST':
+        form = ProfesorForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profesor creado con éxito.")
+            return redirect('user:admin_profesores')
+    else:
+        form = ProfesorForm()
+
+    return render(request, 'user/crear_profesor.html', {'form': form})
+
+
+@login_required(login_url='user:login')
+def modificar_profesor(request, profesor_id):
+    """Modificar un profesor existente."""
+    if not _es_dueno(request):
+        messages.error(request, "Solo el dueño puede modificar profesores.")
+        return redirect('user:admin_profesores')
+
+    profesor = get_object_or_404(Profesor, id=profesor_id)
+
+    if request.method == 'POST':
+        form = ProfesorForm(request.POST, instance=profesor)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profesor modificado con éxito.")
+            return redirect('user:admin_profesores')
+    else:
+        form = ProfesorForm(instance=profesor)
+
+    return render(request, 'user/modificar_profesor.html', {
+        'form': form,
+        'profesor': profesor,
+    })
+
+
+@login_required(login_url='user:login')
+def eliminar_profesor(request, profesor_id):
+    """Eliminar un profesor (solo si no tiene clases asociadas)."""
+    if not _es_dueno(request):
+        messages.error(request, "Solo el dueño puede eliminar profesores.")
+        return redirect('user:admin_profesores')
+
+    profesor = get_object_or_404(Profesor, id=profesor_id)
+
+    if request.method == 'POST':
+        if profesor.clases.exists():
+            messages.error(request, "No se puede eliminar el profesor porque tiene clases asociadas.")
+            return redirect('user:admin_profesores')
+
+        profesor.delete()
+        messages.success(request, "Profesor eliminado con éxito.")
+        return redirect('user:admin_profesores')
+
+    return render(request, 'user/confirmar_eliminar_profesor.html', {
+        'profesor': profesor,
+        'tiene_clases': profesor.clases.exists(),
+    })
 

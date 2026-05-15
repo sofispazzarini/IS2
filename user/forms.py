@@ -3,7 +3,24 @@ from django.contrib.auth import get_user_model
 from datetime import date
 import re
 
+from .models import Profesor
+
 User = get_user_model()
+
+
+class ProfesorForm(forms.ModelForm):
+    class Meta:
+        model = Profesor
+        fields = ['nombre', 'apellido', 'telefono', 'email', 'especialidad', 'descripcion', 'activo']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-input'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-input'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-input'}),
+            'email': forms.EmailInput(attrs={'class': 'form-input'}),
+            'especialidad': forms.TextInput(attrs={'class': 'form-input'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+        }
 
 
 class EditarPerfilForm(forms.ModelForm):

@@ -2,51 +2,227 @@
 
 {% block title %}Perfil del cliente - SIRCA{% endblock %}
 
+{% block extra_css %}
+<style>
+    .card-hero {
+        background: #4f0f17;
+        padding: 2.5rem;
+        padding-bottom: 4rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.55);
+        margin-bottom: 0.25rem;
+    }
+    .hero-name {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #fff;
+    }
+    .avatar-wrap {
+        position: absolute;
+        right: 2.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    .avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.15);
+        border: 2px solid rgba(255,255,255,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Playfair Display', serif;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.02em;
+        backdrop-filter: blur(4px);
+    }
+    .card-body {
+        padding: 0 2.5rem 2.5rem;
+        margin-top: -1.5rem;
+        position: relative;
+    }
+    .field {
+        background: #fafaf9;
+        border: 1px solid #f0eded;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+    }
+    .field-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9ca3af;
+        margin-bottom: 0.35rem;
+    }
+    .field-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #111;
+    }
+    .card-actions {
+        padding: 1.5rem 2.5rem;
+        background: #fafaf9;
+        border-top: 1px solid #f0eded;
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .btn-action {
+        flex: 1;
+        min-width: 160px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0.75rem 1.25rem;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.18s;
+        white-space: nowrap;
+        border: 1.5px solid;
+    }
+    .btn-action-primary {
+        background: #8b1c26;
+        color: #fff;
+        border-color: #8b1c26;
+    }
+    .btn-action-primary:hover {
+        background: #6d1520;
+        border-color: #6d1520;
+    }
+    .btn-action-danger {
+        background: #fff;
+        color: #dc2626;
+        border-color: #fca5a5;
+    }
+    .btn-action-danger:hover {
+        background: #dc2626;
+        color: #fff;
+        border-color: #dc2626;
+    }
+    .btn-action-ghost {
+        background: #fff;
+        color: #6b7280;
+        border-color: #e5e7eb;
+    }
+    .btn-action-ghost:hover {
+        background: #f9fafb;
+        color: #374151;
+    }
+
+    @media (max-width: 560px) {
+        .card-hero {
+            padding: 2rem 1.5rem 3.5rem;
+        }
+        .avatar-wrap {
+            position: static;
+            transform: none;
+            margin-top: 1rem;
+        }
+        .card-body {
+            padding: 0 1.5rem 2rem;
+        }
+        .card-actions {
+            padding: 1.5rem;
+            flex-direction: column;
+        }
+        .btn-action {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-3xl mx-auto bg-white shadow sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-            <h1 class="text-2xl font-bold text-gray-900">Perfil de cliente</h1>
-            <p class="mt-2 text-sm text-gray-600">Gestiona la cuenta del cliente y envía una contraseña temporal.</p>
-        </div>
+<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28" style="background: #fafaf9;">
+    <div class="max-w-3xl mx-auto">
 
-        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-            <dl class="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Nombre</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ client.get_full_name }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Correo</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ client.email }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">DNI</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ client.dni }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Teléfono</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ client.telefono }}</dd>
-                </div>
-            </dl>
+        <header class="mb-10">
+            <p class="text-xs font-semibold tracking-widest uppercase text-bordo-600 mb-2">
+                Gestión de cliente
+            </p>
+            <h1 class="font-heading text-3xl font-bold text-gray-900">
+                Perfil de cliente
+            </h1>
+        </header>
 
-            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <form method="post" action="{% url 'user:secretary_reset_password' client.pk %}" class="inline">
+        <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-lg">
+
+            <!-- Hero strip -->
+            <div class="card-hero">
+                <p class="hero-label">Paciente</p>
+                <h2 class="hero-name">{{ client.get_full_name }}</h2>
+                <div class="avatar-wrap">
+                    <div class="avatar">
+                        {{ client.first_name|slice:":1"|upper }}{{ client.last_name|slice:":1"|upper }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fields -->
+            <div class="card-body">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="field">
+                        <p class="field-label">Nombre completo</p>
+                        <p class="field-value">{{ client.get_full_name }}</p>
+                    </div>
+                    <div class="field">
+                        <p class="field-label">Correo electrónico</p>
+                        <p class="field-value text-sm">{{ client.email }}</p>
+                    </div>
+                    <div class="field">
+                        <p class="field-label">DNI</p>
+                        <p class="field-value">{{ client.dni|default:"No especificado" }}</p>
+                    </div>
+                    <div class="field">
+                        <p class="field-label">Teléfono</p>
+                        <p class="field-value">{{ client.telefono|default:"No especificado" }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card-actions">
+                <form method="post" action="{% url 'user:secretary_reset_password' client.pk %}" style="flex:1;min-width:160px;">
                     {% csrf_token %}
-                    <button type="submit"
-                       class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                        Enviar contraseña temporal
+                    <button type="submit" class="btn-action btn-action-primary" style="width:100%;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                            <path d="m22 7-10 7L2 7"/>
+                        </svg>
+                        Contraseña temporal
                     </button>
                 </form>
-                <a href="{% url 'user:dar_baja_cliente' client.pk %}"
-                   class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                <a href="{% url 'user:dar_baja_cliente' client.pk %}" class="btn-action btn-action-danger">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                    </svg>
                     Eliminar usuario
                 </a>
-                <a href="{% url 'user:client_list' %}"
-                   class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <a href="{% url 'user:client_list' %}" class="btn-action btn-action-ghost">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5M12 5l-7 7 7 7"/>
+                    </svg>
                     Volver al panel
                 </a>
             </div>
+
         </div>
     </div>
 </div>

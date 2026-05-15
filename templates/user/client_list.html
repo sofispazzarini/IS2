@@ -3,68 +3,91 @@
 {% block title %}Panel de Administración - SIRCA{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 pt-24">
+<div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
     <div class="max-w-5xl mx-auto">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h1 class="text-3xl font-extrabold text-gray-900">Panel de Administración</h1>
-                <p class="mt-2 text-sm text-gray-600">Gestiona los clientes del sistema.</p>
+        <div class="text-center mb-8">
+            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
+                Gestión del sistema
+            </p>
+            <h1 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
+                Panel de Administración
+            </h1>
+        </div>
+
+        <!-- Navegación del panel admin -->
+        <div class="bg-white shadow-lg rounded-2xl mb-8 border border-gray-100 overflow-hidden">
+            <div class="flex border-b border-gray-200">
+                <span class="flex-1 text-center px-6 py-4 text-sm font-semibold text-bordo-700 border-b-2 border-bordo-700 bg-bordo-50">
+                    Clientes
+                </span>
+                <a href="{% url 'admin_clases' %}"
+                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                    Gestión de Clases
+                </a>
+                <a href="{% url 'actividad:admin_actividades' %}"
+                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                    Actividades
+                </a>
+                <a href="{% url 'user:admin_profesores' %}"
+                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                    Profesores
+                </a>
             </div>
         </div>
 
         <!-- Buscador por email exacto -->
-        <div class="bg-white shadow sm:rounded-lg mb-6">
-            <div class="px-4 py-5 sm:px-6">
-                <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Buscar cliente por email</h2>
-                <form action="{% url 'user:buscar_cliente' %}" method="GET" class="flex gap-4">
-                    <input type="email" name="email" placeholder="Ingrese el email exacto del cliente"
-                           class="flex-1 form-control rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <button type="submit"
-                            class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                        Buscar
-                    </button>
-                </form>
-            </div>
+        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
+            <h2 class="font-heading text-lg font-semibold text-gray-900 mb-4">Buscar cliente por email</h2>
+            <form action="{% url 'user:buscar_cliente' %}" method="GET" class="flex gap-4">
+                <input type="email" name="email" placeholder="Ingresá el email exacto del cliente"
+                       class="flex-1 px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                <button type="submit"
+                        class="btn-bordo px-6 py-3 rounded-xl font-semibold">
+                    Buscar
+                </button>
+            </form>
         </div>
 
-        <!-- Filtro de lista -->
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <h2 class="text-lg leading-6 font-medium text-gray-900">Clientes registrados</h2>
+        <!-- Lista de clientes -->
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
+            <div class="px-6 py-5 flex justify-between items-center border-b border-gray-100">
+                <h2 class="font-heading text-lg font-semibold text-gray-900">Clientes registrados</h2>
                 <form method="GET" class="flex gap-2">
                     <input type="text" name="q" value="{{ query }}" placeholder="Filtrar por email..."
-                           class="form-control rounded-md border-gray-300 shadow-sm text-sm">
+                           class="px-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
                     <button type="submit"
-                            class="px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            class="px-4 py-2 text-sm font-medium rounded-xl border-2 border-bordo-700 text-bordo-700 hover:bg-bordo-50">
                         Filtrar
                     </button>
                     {% if query %}
                     <a href="{% url 'user:client_list' %}"
-                       class="px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                       class="px-4 py-2 text-sm font-medium rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50">
                         Limpiar
                     </a>
                     {% endif %}
                 </form>
             </div>
-            <div class="border-t border-gray-200">
-                <dl class="divide-y divide-gray-200">
-                    {% for client in clients %}
-                        <div class="px-4 py-4 sm:px-6 flex items-center justify-between">
-                            <div>
-                                <p class="text-base font-semibold text-gray-900">{{ client.get_full_name }}</p>
-                                <p class="mt-1 text-sm text-gray-500">{{ client.email }}</p>
-                            </div>
-                            <a href="{% url 'user:client_profile' client.pk %}"
-                               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                                Ver perfil
-                            </a>
+
+            <div class="divide-y divide-gray-100">
+                {% for client in clients %}
+                    <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition">
+                        <div>
+                            <p class="font-semibold text-gray-900">{{ client.get_full_name }}</p>
+                            <p class="text-sm text-gray-500">{{ client.email }}</p>
                         </div>
-                    {% empty %}
-                        <div class="px-4 py-4 sm:px-6 text-sm text-gray-500">
-                            No hay clientes registrados.
-                        </div>
-                    {% endfor %}
-                </dl>
+                        <a href="{% url 'user:client_profile' client.pk %}"
+                           class="btn-bordo px-5 py-2 rounded-full text-sm font-semibold">
+                            Ver perfil
+                        </a>
+                    </div>
+                {% empty %}
+                    <div class="px-6 py-12 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        <p class="text-gray-500">No hay clientes registrados.</p>
+                    </div>
+                {% endfor %}
             </div>
         </div>
     </div>

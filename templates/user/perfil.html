@@ -3,117 +3,176 @@
 {% block title %}Mi Perfil - SIRCA{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 pt-24">
+<div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
     <div class="max-w-2xl mx-auto space-y-8">
-        <div>
-            <h2 class="text-center text-3xl font-extrabold text-gray-900">
+        <div class="text-center">
+            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
+                Tu cuenta
+            </p>
+            <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
                 Mi Perfil
             </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
-                Administra tu información personal y contraseña
-            </p>
         </div>
 
         <!-- Sección Datos Personales -->
-        <div class="bg-white shadow rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Datos Personales</h3>
-
-            <form method="POST" novalidate>
-                {% csrf_token %}
-
-                <div class="space-y-4">
-                    <div>
-                        <label for="id_first_name" class="block text-sm font-medium text-gray-700">
-                            Nombre
-                        </label>
-                        {{ perfil_form.first_name }}
-                    </div>
-
-                    <div>
-                        <label for="id_last_name" class="block text-sm font-medium text-gray-700">
-                            Apellido
-                        </label>
-                        {{ perfil_form.last_name }}
-                    </div>
-
-                    <div>
-                        <label for="id_telefono" class="block text-sm font-medium text-gray-700">
-                            Teléfono
-                        </label>
-                        {{ perfil_form.telefono }}
-                    </div>
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
+            <div class="p-6 flex items-center justify-between">
+                <div>
+                    <h3 class="font-heading text-xl font-semibold text-gray-900">Datos personales</h3>
+                    <p class="text-sm text-gray-500 mt-1">Nombre, apellido y teléfono</p>
                 </div>
+                <button
+                    type="button"
+                    onclick="toggleSection('datos-personales')"
+                    id="btn-datos-personales"
+                    class="btn-bordo px-5 py-2 rounded-full text-sm font-semibold flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                    </svg>
+                    Editar
+                </button>
+            </div>
 
-                <div class="mt-6">
-                    <button
-                        type="submit"
-                        name="guardar_perfil"
-                        class="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                        Guardar cambios
-                    </button>
-                </div>
-            </form>
+            <div id="datos-personales" class="hidden border-t border-gray-100 bg-gray-50">
+                <form method="POST" novalidate class="p-6">
+                    {% csrf_token %}
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="id_first_name" class="block text-sm font-medium text-gray-700">
+                                Nombre
+                            </label>
+                            {{ perfil_form.first_name }}
+                        </div>
+
+                        <div>
+                            <label for="id_last_name" class="block text-sm font-medium text-gray-700">
+                                Apellido
+                            </label>
+                            {{ perfil_form.last_name }}
+                        </div>
+
+                        <div>
+                            <label for="id_telefono" class="block text-sm font-medium text-gray-700">
+                                Teléfono
+                            </label>
+                            {{ perfil_form.telefono }}
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex gap-3">
+                        <button
+                            type="button"
+                            onclick="toggleSection('datos-personales')"
+                            class="flex-1 py-2 px-4 border-2 border-gray-300 text-sm font-medium rounded-full text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            name="guardar_perfil"
+                            class="flex-1 btn-bordo py-2 px-4 text-sm font-medium rounded-full"
+                        >
+                            Guardar cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <!-- Sección Cambiar Contraseña -->
-        <div class="bg-white shadow rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Cambiar Contraseña</h3>
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
+            <div class="p-6 flex items-center justify-between">
+                <div>
+                    <h3 class="font-heading text-xl font-semibold text-gray-900">Contraseña</h3>
+                    <p class="text-sm text-gray-500 mt-1">Cambiá tu contraseña de acceso</p>
+                </div>
+                <button
+                    type="button"
+                    onclick="toggleSection('cambiar-password')"
+                    id="btn-cambiar-password"
+                    class="btn-bordo px-5 py-2 rounded-full text-sm font-semibold flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    Cambiar
+                </button>
+            </div>
 
-            <form method="POST" novalidate>
-                {% csrf_token %}
+            <div id="cambiar-password" class="hidden border-t border-gray-100 bg-gray-50">
+                <form method="POST" novalidate class="p-6">
+                    {% csrf_token %}
 
-                <div class="space-y-4">
-                    <div>
-                        <label for="id_password" class="block text-sm font-medium text-gray-700">
-                            Nueva contraseña
-                        </label>
-                        {{ password_form.password }}
+                    <div class="space-y-4">
+                        <div>
+                            <label for="id_password" class="block text-sm font-medium text-gray-700">
+                                Nueva contraseña
+                            </label>
+                            {{ password_form.password }}
+                        </div>
+
+                        <div>
+                            <label for="id_password_confirm" class="block text-sm font-medium text-gray-700">
+                                Confirmar contraseña
+                            </label>
+                            {{ password_form.password_confirm }}
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="id_password_confirm" class="block text-sm font-medium text-gray-700">
-                            Confirmar contraseña
-                        </label>
-                        {{ password_form.password_confirm }}
+                    <div class="mt-6 flex gap-3">
+                        <button
+                            type="button"
+                            onclick="toggleSection('cambiar-password')"
+                            class="flex-1 py-2 px-4 border-2 border-gray-300 text-sm font-medium rounded-full text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            name="cambiar_password"
+                            class="flex-1 btn-bordo py-2 px-4 text-sm font-medium rounded-full"
+                        >
+                            Cambiar contraseña
+                        </button>
                     </div>
-                </div>
-
-                <div class="mt-6">
-                    <button
-                        type="submit"
-                        name="cambiar_password"
-                        class="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                        Cambiar contraseña
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
 
         <!-- Info adicional (solo lectura) -->
-        <div class="bg-white shadow rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Información de la cuenta</h3>
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100 p-6">
+            <h3 class="font-heading text-xl font-semibold text-gray-900 mb-4">Información de la cuenta</h3>
 
             <div class="space-y-3 text-sm">
-                <div class="flex justify-between">
-                    <span class="text-gray-500">Email:</span>
-                    <span class="text-gray-900">{{ user.email }}</span>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-500">Email</span>
+                    <span class="text-gray-900 font-medium">{{ user.email }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-500">DNI:</span>
-                    <span class="text-gray-900">{{ user.dni }}</span>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-500">DNI</span>
+                    <span class="text-gray-900 font-medium">{{ user.dni }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-500">Créditos disponibles:</span>
-                    <span class="text-gray-900 font-semibold">{{ user.creditos }}</span>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-500">Créditos disponibles</span>
+                    <span class="text-bordo-700 font-bold text-base">{{ user.creditos }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-500">Fecha de registro:</span>
-                    <span class="text-gray-900">{{ user.fecha_registro|date:"d/m/Y" }}</span>
+                <div class="flex justify-between py-2">
+                    <span class="text-gray-500">Fecha de registro</span>
+                    <span class="text-gray-900 font-medium">{{ user.fecha_registro|date:"d/m/Y" }}</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSection(id) {
+    const content = document.getElementById(id);
+    content.classList.toggle('hidden');
+}
+</script>
 {% endblock %}
