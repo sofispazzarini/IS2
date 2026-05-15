@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Clases disponibles - SIRCA{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-6 py-12 mt-16">
+
+    <h1 class="font-heading text-3xl font-bold text-bordo-700 mb-8">Clases disponibles</h1>
+
+    {% if clases %}
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {% for clase in clases %}
+                <div class="border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
+                    <h2 class="font-heading text-xl font-semibold text-bordo-700 mb-2">
+                        {{ clase.actividad.nombre }}
+                    </h2>
+                    <p class="text-gray-600 text-sm mb-1">
+                        <strong>Fecha:</strong> {{ clase.fecha }}
+                    </p>
+                    <p class="text-gray-600 text-sm mb-1">
+                        <strong>Horario:</strong> {{ clase.hora_inicio }} - {{ clase.hora_fin }}
+                    </p>
+                    <p class="text-gray-600 text-sm mb-1">
+                        <strong>Profesor:</strong> {{ clase.profesor }}
+                    </p>
+                    <p class="text-gray-600 text-sm mb-4">
+                        <strong>Salón:</strong> {{ clase.salon }}
+                    </p>
+                    <a href="{% url 'pedir_turno_detalle' clase.id %}"
+                        style="background-color: #701c28; color: white;" 
+                        class="tn-bordo px-8 py-3 rounded-full font-semibold text-base">
+                        Reservar clase
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-gray-500">No hay clases disponibles por el momento.</p>
+    {% endif %}
+
+</div>
+{% endblock %}

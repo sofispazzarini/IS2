@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Reservar clase - SIRCA{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-6 py-12 mt-16">
+
+    <h1 class="font-heading text-3xl font-bold text-bordo-700 mb-6">Reservar clase</h1>
+
+    <!-- Este es el cuadro de la clase -->
+    <div class="border border-gray-200 rounded-xl p-6 shadow-sm mb-6">
+        <h2 class="font-heading text-xl font-semibold text-bordo-700 mb-3">
+            {{ clase.actividad.nombre }}
+        </h2>
+        <p class="text-gray-600 text-sm mb-1"><strong>Fecha:</strong> {{ clase.fecha }}</p>
+        <p class="text-gray-600 text-sm mb-1"><strong>Horario:</strong> {{ clase.hora_inicio }} - {{ clase.hora_fin }}</p>
+        <p class="text-gray-600 text-sm mb-1"><strong>Profesor:</strong> {{ clase.profesor }}</p>
+        <p class="text-gray-600 text-sm"><strong>Salon:</strong> {{ clase.salon }}</p>
+
+        <!-- MOVEMOS EL FORMULARIO AQUÍ ADENTRO -->
+    <form method="post" class="mt-6">
+        {% csrf_token %}
+        <button type="submit" 
+                style="background-color: #701c28; color: white;" 
+                class="tn-bordo px-8 py-3 rounded-full font-semibold text-base">
+            Confirmar
+        </button>
+    </form>
+    </div> <!-- Aquí termina el cuadro -->
+
+    {% if error %}
+        <div class="mb-4 rounded-lg px-4 py-3 bg-red-50 text-red-700 border border-red-200">
+            {{ error }}
+        </div>
+    {% endif %}
+    
+    <a href="{% url 'lista_clases' %}"
+       class="block text-center mt-4 text-bordo-700 text-sm hover:underline">
+        Volver a clases
+    </a>
+
+</div>
+{% endblock %}
