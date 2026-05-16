@@ -1,3 +1,4 @@
+import random
 from django.core.management.base import BaseCommand
 from user.models import User
 
@@ -17,12 +18,19 @@ class Command(BaseCommand):
         )
         parser.add_argument('--nombre', type=str, default='Admin', help='Nombre')
         parser.add_argument('--apellido', type=str, default='Usuario', help='Apellido')
-        parser.add_argument('--dni', type=str, default='00000000', help='DNI')
+        parser.add_argument('--dni', type=str, default=None, help='DNI')
+
+    def _generar_dni_unico(self):
+        while True:
+            dni = f'ADMIN{random.randint(1000, 9999)}'
+            if not User.objects.filter(dni=dni).exists():
+                return dni
 
     def handle(self, *args, **options):
         email = options['email']
         password = options['password']
         rol = options['rol']
+        dni = options['dni'] or self._generar_dni_unico()
 
         if User.objects.filter(email=email).exists():
             self.stdout.write(self.style.WARNING(f'Ya existe un usuario con email {email}'))
@@ -32,13 +40,17 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'Rol actualizado a: {rol}'))
             return
 
+        if User.objects.filter(dni=dni).exists():
+            self.stdout.write(self.style.ERROR(f'Ya existe un usuario con DNI {dni}'))
+            return
+
         user = User.objects.create_user(
             username=email,
             email=email,
             password=password,
             first_name=options['nombre'],
             last_name=options['apellido'],
-            dni=options['dni'],
+            dni=dni,
             telefono='0000000000',
             rol=rol,
         )
@@ -47,5 +59,6 @@ class Command(BaseCommand):
             f'Usuario creado exitosamente:\n'
             f'  Email: {email}\n'
             f'  Rol: {rol}\n'
+            f'  DNI: {dni}\n'
             f'  Password: {password}'
         ))
