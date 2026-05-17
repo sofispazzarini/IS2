@@ -21,11 +21,26 @@ def admin_actividades(request):
         messages.error(request, "No tienes permisos para acceder a esta sección.")
         return redirect('core:home')
 
-    actividades = Actividad.objects.all().order_by('nombre')
+    estado = request.GET.get('estado', '')
+    busqueda = request.GET.get('q', '').strip()
+
+    actividades = Actividad.objects.all()
+
+    if estado == 'activas':
+        actividades = actividades.filter(activa=True)
+    elif estado == 'inactivas':
+        actividades = actividades.filter(activa=False)
+    if busqueda:
+        actividades = actividades.filter(nombre__icontains=busqueda)
+
+    actividades = actividades.order_by('nombre')
 
     return render(request, 'actividad/admin_actividades.html', {
         'actividades': actividades,
         'es_dueno': es_dueno(request.user),
+        'filtro_estado': estado,
+        'filtro_busqueda': busqueda,
+        'hay_filtros': any([estado, busqueda]),
     })
 
 

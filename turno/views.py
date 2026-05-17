@@ -10,6 +10,8 @@ from django.conf import settings
 from .models import Clase, Reserva, ListaEspera, Asistencia
 from .forms import ClaseForm
 from pago.models import Pago
+from actividad.models import Actividad
+from user.models import Profesor
 from resena.models import Resena
 from resena.forms import ResenaForm
 from django.db.models import Avg, Count, Sum, Q
@@ -143,13 +145,44 @@ def admin_clases(request):
         messages.error(request, "No tienes permisos para acceder a esta sección.")
         return redirect('core:home')
 
-    clases = Clase.objects.filter(
-        fecha__gte=timezone.now().date()
-    ).order_by('fecha', 'hora_inicio').select_related('actividad', 'profesor')
+    actividad_id = request.GET.get('actividad', '')
+    profesor_id = request.GET.get('profesor', '')
+    estado = request.GET.get('estado', '')
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    salon = request.GET.get('salon', '').strip()
+
+    clases = Clase.objects.filter(fecha__gte=timezone.now().date())
+
+    if actividad_id:
+        clases = clases.filter(actividad_id=actividad_id)
+    if profesor_id:
+        clases = clases.filter(profesor_id=profesor_id)
+    if estado == 'activas':
+        clases = clases.filter(cancelada=False)
+    elif estado == 'canceladas':
+        clases = clases.filter(cancelada=True)
+    if fecha_desde:
+        clases = clases.filter(fecha__gte=fecha_desde)
+    if fecha_hasta:
+        clases = clases.filter(fecha__lte=fecha_hasta)
+    if salon:
+        clases = clases.filter(salon__icontains=salon)
+
+    clases = clases.order_by('fecha', 'hora_inicio').select_related('actividad', 'profesor')
 
     return render(request, 'turno/admin_clases.html', {
         'clases': clases,
         'es_dueno': es_dueno(request.user),
+        'actividades': Actividad.objects.filter(activa=True).order_by('nombre'),
+        'profesores': Profesor.objects.filter(activo=True).order_by('apellido', 'nombre'),
+        'filtro_actividad': actividad_id,
+        'filtro_profesor': profesor_id,
+        'filtro_estado': estado,
+        'filtro_fecha_desde': fecha_desde,
+        'filtro_fecha_hasta': fecha_hasta,
+        'filtro_salon': salon,
+        'hay_filtros': any([actividad_id, profesor_id, estado, fecha_desde, fecha_hasta, salon]),
     })
 
 
