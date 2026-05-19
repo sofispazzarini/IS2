@@ -6,6 +6,8 @@ from django.utils import timezone
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
+from django.http import JsonResponse
+import calendar
 
 from .models import Clase, Reserva, ListaEspera, Asistencia
 from .forms import ClaseForm
@@ -54,12 +56,71 @@ def mis_turnos(request):
 
 @login_required
 def lista_clases(request):
-    """Muestra todas las clases disponibles que no han sido canceladas."""
+    """Vista de calendario para reservar clases."""
+    hoy = timezone.now().date()
+    year = int(request.GET.get('year', hoy.year))
+    month = int(request.GET.get('month', hoy.month))
+
+    actividades = Actividad.objects.filter(activa=True).order_by('nombre')
+    profesores = Profesor.objects.filter(activo=True).order_by('apellido', 'nombre')
+
+    return render(request, 'turno/calendario_clases.html', {
+        'year': year,
+        'month': month,
+        'actividades': actividades,
+        'profesores': profesores,
+    })
+
+
+@login_required
+def calendario_api(request):
+    """API que retorna clases agrupadas por día para el calendario."""
+    hoy = timezone.now().date()
+    year = int(request.GET.get('year', hoy.year))
+    month = int(request.GET.get('month', hoy.month))
+    actividad_id = request.GET.get('actividad')
+    profesor_id = request.GET.get('profesor')
+
     clases = Clase.objects.filter(
         cancelada=False,
-        fecha__gte=timezone.now().date()
-    ).order_by('fecha', 'hora_inicio')
-    return render(request, 'turno/lista_clases.html', {'clases': clases})
+        fecha__year=year,
+        fecha__month=month,
+    ).select_related('actividad', 'profesor')
+
+    if actividad_id:
+        clases = clases.filter(actividad_id=actividad_id)
+    if profesor_id:
+        clases = clases.filter(profesor_id=profesor_id)
+
+    dias = {}
+    for clase in clases:
+        fecha_str = clase.fecha.isoformat()
+        reservas_activas = clase.reservas.exclude(estado='cancelada').count()
+        cupos = clase.cupo_maximo - reservas_activas
+        es_pasada = clase.fecha < hoy
+
+        if fecha_str not in dias:
+            dias[fecha_str] = []
+        dias[fecha_str].append({
+            'id': clase.id,
+            'actividad': clase.actividad.nombre,
+            'hora_inicio': clase.hora_inicio.strftime('%H:%M'),
+            'hora_fin': clase.hora_fin.strftime('%H:%M'),
+            'profesor': f"{clase.profesor.nombre} {clase.profesor.apellido}",
+            'cupos': cupos,
+            'salon': clase.salon,
+            'precio': float(clase.actividad.precio),
+            'es_pasada': es_pasada,
+        })
+
+    for fecha in dias:
+        dias[fecha].sort(key=lambda x: x['hora_inicio'])
+
+    return JsonResponse({
+        'year': year,
+        'month': month,
+        'dias': dias,
+    })
 
 @login_required
 def pedir_turno(request, clase_id):

@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path('clases/', views.lista_clases, name='lista_clases'),
+    path('api/calendario/', views.calendario_api, name='calendario_api'),
     path('clases/<int:clase_id>/', views.ver_clase, name='ver_clase'),
     path('clases/<int:clase_id>/reservar/', views.pedir_turno, name='pedir_turno_detalle'),
     path('reservas/', views.mis_turnos, name='reservas'),
