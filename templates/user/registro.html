@@ -102,10 +102,12 @@
                         {{ form.dni.label }}
                     </label>
                     <input
-                        type="text"
+                        type="tel"
                         id="{{ form.dni.id_for_label }}"
                         name="{{ form.dni.name }}"
                         value="{{ form.dni.value|default_if_none:'' }}"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.dni.errors %}border-red-300{% endif %}"
                         placeholder="12345678"
                     >
@@ -119,10 +121,12 @@
                         {{ form.telefono.label }}
                     </label>
                     <input
-                        type="text"
+                        type="tel"
                         id="{{ form.telefono.id_for_label }}"
                         name="{{ form.telefono.name }}"
                         value="{{ form.telefono.value|default_if_none:'' }}"
+                        inputmode="numeric"
+                        pattern="[0-9 ]*"
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.telefono.errors %}border-red-300{% endif %}"
                         placeholder="221 345 6789"
                     >

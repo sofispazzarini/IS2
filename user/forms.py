@@ -104,9 +104,19 @@ class RegistroForm(forms.ModelForm):
 
     def clean_dni(self):
         dni = self.cleaned_data.get("dni")
+        if dni and not dni.isdigit():
+            raise forms.ValidationError("DNI debe contener solo números")
         if dni and User.objects.filter(dni=dni).exists():
             raise forms.ValidationError("DNI ya asociado a una cuenta, vuelva a intentarlo")
         return dni
+
+    def clean_telefono(self):
+        telefono = self.cleaned_data.get("telefono")
+        if telefono:
+            telefono_sin_espacios = telefono.replace(" ", "")
+            if not telefono_sin_espacios.isdigit():
+                raise forms.ValidationError("Teléfono debe contener solo números")
+        return telefono
 
     def clean_password(self):
         password = self.cleaned_data.get("password")

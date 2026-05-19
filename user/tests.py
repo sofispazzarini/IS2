@@ -106,6 +106,42 @@ class RegistroFormTestCase(TestCase):
         self.assertIn("dni", form.errors)
         self.assertIn("DNI ya asociado a una cuenta", str(form.errors["dni"]))
 
+    def test_registro_falla_por_dni_no_numerico(self):
+        """Escenario VI: Registro fallido por DNI con letras"""
+        fecha_nac = date(2006, 5, 2)
+        data = {
+            "first_name": "Juan Ignacio",
+            "last_name": "Torres",
+            "email": "juanitorres@gmail.com",
+            "dni": "ABC12345",
+            "telefono": "2213456789",
+            "fecha_nacimiento": fecha_nac,
+            "password": "juani123torres",
+            "password_confirm": "juani123torres",
+        }
+        form = RegistroForm(data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("dni", form.errors)
+        self.assertIn("DNI debe contener solo números", str(form.errors["dni"]))
+
+    def test_registro_falla_por_telefono_no_numerico(self):
+        """Escenario VII: Registro fallido por teléfono con letras"""
+        fecha_nac = date(2006, 5, 2)
+        data = {
+            "first_name": "Juan Ignacio",
+            "last_name": "Torres",
+            "email": "juanitorres@gmail.com",
+            "dni": "47032818",
+            "telefono": "221-ABC-7890",
+            "fecha_nacimiento": fecha_nac,
+            "password": "juani123torres",
+            "password_confirm": "juani123torres",
+        }
+        form = RegistroForm(data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("telefono", form.errors)
+        self.assertIn("Teléfono debe contener solo números", str(form.errors["telefono"]))
+
     def test_registro_falla_por_contrasena_corta(self):
         """Escenario V: Registro fallido por contraseña fuera de rango"""
         fecha_nac = date(2006, 5, 2)
