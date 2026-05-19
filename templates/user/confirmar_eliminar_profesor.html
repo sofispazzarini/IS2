@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Profesor - SIRCA{% endblock %}
+
+{% block content %}
+<div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
+    <div class="max-w-lg mx-auto">
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
+            <div class="p-8 text-center border-b border-gray-100">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+                    <svg class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h2 class="font-heading text-2xl font-bold text-gray-900 mb-2">
+                    Eliminar Profesor
+                </h2>
+                <p class="text-gray-500">
+                    ¿Estás seguro de que querés eliminar este profesor?
+                </p>
+            </div>
+
+            <div class="p-6 bg-gray-50">
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500">Nombre:</span>
+                        <span class="font-medium text-gray-900">{{ profesor.nombre }} {{ profesor.apellido }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500">Email:</span>
+                        <span class="text-gray-900">{{ profesor.email }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500">Especialidad:</span>
+                        <span class="text-gray-900">{{ profesor.especialidad }}</span>
+                    </div>
+                </div>
+
+                {% if tiene_clases %}
+                    <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                        <p class="text-yellow-800 text-sm">
+                            <strong>Atención:</strong> Este profesor tiene clases asociadas y no puede ser eliminado.
+                            Primero debés reasignar o cancelar las clases relacionadas.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <form method="post" class="p-6">
+                {% csrf_token %}
+                <div class="flex gap-3">
+                    <a href="{% url 'user:admin_profesores' %}"
+                       class="flex-1 text-center py-3 rounded-full font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50">
+                        Volver
+                    </a>
+                    {% if tiene_clases %}
+                        <button type="button" disabled
+                                class="flex-1 py-3 rounded-full font-semibold bg-gray-300 text-gray-500 cursor-not-allowed">
+                            No se puede eliminar
+                        </button>
+                    {% else %}
+                        <button type="submit"
+                                class="flex-1 py-3 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700">
+                            Sí, eliminar profesor
+                        </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

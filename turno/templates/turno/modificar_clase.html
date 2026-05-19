@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Modificar Clase - SIRCA{% endblock %}
+
+{% block content %}
+<div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
+    <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-8">
+            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
+                Gestión de clases
+            </p>
+            <h1 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
+                Modificar clase
+            </h1>
+            <p class="text-gray-500 mt-2">{{ clase.actividad.nombre }} - {{ clase.fecha|date:"d/m/Y" }}</p>
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="mb-6 rounded-xl px-4 py-3 bg-red-50 text-red-700 border border-red-200">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+            <form method="post" class="space-y-5">
+                {% csrf_token %}
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Actividad</label>
+                    <select name="actividad" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                        {% for actividad in form.fields.actividad.queryset %}
+                            <option value="{{ actividad.id }}" {% if form.actividad.value == actividad.id or clase.actividad_id == actividad.id %}selected{% endif %}>
+                                {{ actividad.nombre }} - ${{ actividad.precio }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.actividad.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.actividad.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Profesor</label>
+                    <select name="profesor" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                        {% for profesor in form.fields.profesor.queryset %}
+                            <option value="{{ profesor.id }}" {% if form.profesor.value == profesor.id or clase.profesor_id == profesor.id %}selected{% endif %}>
+                                {{ profesor.nombre }} {{ profesor.apellido }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.profesor.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.profesor.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
+                    <input type="date" name="fecha" value="{{ clase.fecha|date:'Y-m-d' }}" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                    {% if form.fecha.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.fecha.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Hora inicio</label>
+                        <input type="time" name="hora_inicio" value="{{ clase.hora_inicio|time:'H:i' }}" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                        {% if form.hora_inicio.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.hora_inicio.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Hora fin</label>
+                        <input type="time" name="hora_fin" value="{{ clase.hora_fin|time:'H:i' }}" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                        {% if form.hora_fin.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.hora_fin.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Salón</label>
+                    <input type="text" name="salon" value="{{ clase.salon }}" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                    {% if form.salon.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.salon.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cupo máximo</label>
+                    <input type="number" name="cupo_maximo" value="{{ clase.cupo_maximo }}" required min="1"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                    {% if form.cupo_maximo.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.cupo_maximo.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button type="submit"
+                            class="flex-1 btn-bordo py-3 rounded-full font-semibold">
+                        Guardar cambios
+                    </button>
+                    <a href="{% url 'admin_clases' %}"
+                       class="flex-1 py-3 rounded-full font-semibold text-center border-2 border-gray-300 text-gray-700 hover:bg-gray-50">
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

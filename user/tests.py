@@ -310,17 +310,13 @@ class LoginViewTestCase(TestCase):
 
     def test_login_falla_usuario_no_registrado(self):
         """Escenario II: Inicio fallido por usuario no registrado"""
-        response = self.client.post(reverse('user:login'), {
-            'email': 'juanitorreslp@gmail.com',  # mismo email pero usuario no existe? Wait, el usuario existe, pero para testear no registrado, usar otro email
-            'password': 'Estudiantes7'
-        })
-        # Este pasa porque el usuario existe. Para testear no registrado, usar email diferente.
-        response = self.client.post(reverse('user:login'), {
+        client = Client()
+        response = client.post(reverse('user:login'), {
             'email': 'noexiste@gmail.com',
             'password': 'Estudiantes7'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "El correo ingresado no se encuentra registrado")
+        self.assertContains(response, "El mail o la contraseña son incorrectos")
 
     def test_login_falla_contrasena_invalida(self):
         """Escenario III: Inicio fallido por contraseña"""
@@ -329,4 +325,11 @@ class LoginViewTestCase(TestCase):
             'password': 'Estudiantes'  # contraseña incorrecta
         })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "La contraseña ingresada es inválida")
+        self.assertContains(response, "El mail o la contraseña son incorrectos")
+
+    def test_login_redirige_home_si_ya_esta_logueado(self):
+        """Si el usuario ya está autenticado, no debe mostrar login"""
+        self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
+        response = self.client.get(reverse('user:login'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], reverse('core:home'))
