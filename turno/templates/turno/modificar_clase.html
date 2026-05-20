@@ -87,10 +87,10 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Cupo máximo</label>
-                    <input type="number" name="cupo_maximo" value="{{ clase.cupo_maximo }}" required min="1"
+                    <input type="number" name="cupo_maximo" value="{{ clase.cupo_maximo }}" required
                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
                     {% if form.cupo_maximo.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.cupo_maximo.errors.0 }}</p>
+                        <p class="mt-1 text-sm text-red-600 font-semibold">{{ form.cupo_maximo.errors.0 }}</p>
                     {% endif %}
                 </div>
 

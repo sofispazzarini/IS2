@@ -72,11 +72,14 @@
                             Recordarme
                         </label>
                     </div>
-                    <div class="text-sm text-right mb-4">
-    <a href="{% url 'user:recuperar_contrasena' %}" class="text-sm font-medium text-bordo-700 hover:text-bordo-800">
-        ¿Olvidaste tu contraseña?
-    </a>
-</div>
+                </div>
+
+                <div class="text-center pt-1">
+                    <a href="{% url 'user:recuperar_contrasena' %}" 
+                        class="text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
                 <button
                     type="submit"
                     class="w-full btn-bordo py-3 rounded-full font-semibold text-base mt-2"

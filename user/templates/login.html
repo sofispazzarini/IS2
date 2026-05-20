@@ -51,11 +51,12 @@ Iniciar Sesión | SIRCA
                 >
                 
             </div>
-            <div class="text-sm text-right mb-4">
-    <a href="{% url 'user:recuperar_contrasena' %}" class="text-sm font-medium text-bordo-700 hover:text-bordo-800">
-        ¿Olvidaste tu contraseña?
-    </a>
-</div>
+            <div class="text-center mt-3 mb-6">
+                <a href="{% url 'user:recuperar_contrasena' %}" 
+                   class="text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">
+                    ¿Olvidaste tu contraseña?
+                </a>
+            </div>
             <button
                 type="submit"
                 class="w-full btn-bordo py-3 rounded-xl font-semibold text-white"

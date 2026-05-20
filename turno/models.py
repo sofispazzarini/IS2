@@ -36,7 +36,7 @@ class Clase(models.Model):
     def clean(self):
         if self._state.adding: 
             if self.fecha and self.fecha < timezone.localdate():
-                raise ValidationError('no puedes crear una actividad para una fecha pasada')
+                raise ValidationError('No puedes crear una actividad para una fecha pasada')
 
         salon_ocupado = Clase.objects.filter(
             fecha=self.fecha,
@@ -44,17 +44,11 @@ class Clase(models.Model):
             salon=self.salon
         ).exclude(pk=self.pk)
 
-        if salon_ocupado.exists():
-            raise ValidationError(f"salon no disponible para el {self.fecha} a las {self.hora_inicio}")
-
         profesor_ocupado = Clase.objects.filter(
             fecha=self.fecha,
             hora_inicio=self.hora_inicio,
             profesor=self.profesor
         ).exclude(pk=self.pk)
-
-        if profesor_ocupado.exists():
-            raise ValidationError(f"profesor no disponible para el {self.fecha} a las {self.hora_inicio}")
 
     def save(self, *args, **kwargs):
         self.full_clean()
