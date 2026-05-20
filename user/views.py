@@ -8,7 +8,7 @@ from django.http import HttpResponseForbidden
 from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
-from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, ProfesorForm
+from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm
 from .models import HistorialUsuarioBaja, Profesor
 
 
@@ -109,6 +109,25 @@ def client_profile(request, user_id):
 
     client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
     return render(request, 'user/client_profile.html', {'client': client})
+
+
+@login_required(login_url='user:login')
+def editar_cliente(request, user_id):
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
+
+    if request.method == 'POST':
+        form = EditarClienteForm(request.POST, instance=client, client=client)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Datos del cliente actualizados correctamente.')
+            return redirect('user:client_profile', user_id=client.pk)
+    else:
+        form = EditarClienteForm(instance=client, client=client)
+
+    return render(request, 'user/editar_cliente.html', {'form': form, 'client': client})
 
 
 @login_required(login_url='user:login')

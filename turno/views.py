@@ -430,7 +430,9 @@ def detalle_clase(request, clase_id):
         id=clase_id
     )
 
-    reservas = Reserva.objects.filter(clase=clase).select_related('usuario').order_by('-fecha_reserva')
+    todas_reservas = Reserva.objects.filter(clase=clase).select_related('usuario').order_by('-fecha_reserva')
+    reservas_activas = todas_reservas.exclude(estado='cancelada')
+    reservas_canceladas = todas_reservas.filter(estado='cancelada')
 
     pagos = Pago.objects.filter(reserva__clase=clase).select_related('reserva__usuario').order_by('-fecha_pago')
 
@@ -438,7 +440,7 @@ def detalle_clase(request, clase_id):
 
     promedio_resenas = Resena.objects.filter(actividad=clase.actividad).aggregate(promedio=Avg('puntuacion'))['promedio']
 
-    stats = reservas.aggregate(
+    stats = todas_reservas.aggregate(
         total=Count('id'),
         confirmadas=Count('id', filter=Q(estado='confirmada')),
         pendientes=Count('id', filter=Q(estado='pendiente_pago')),
@@ -452,7 +454,8 @@ def detalle_clase(request, clase_id):
 
     return render(request, 'turno/detalle_clase.html', {
         'clase': clase,
-        'reservas': reservas,
+        'reservas_activas': reservas_activas,
+        'reservas_canceladas': reservas_canceladas,
         'pagos': pagos,
         'resenas': resenas,
         'promedio_resenas': promedio_resenas,

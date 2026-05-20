@@ -1,5 +1,6 @@
 from django import forms
 from django.utils import timezone
+from datetime import timedelta, datetime
 
 from .models import Clase
 from user.models import Profesor
@@ -9,11 +10,10 @@ from actividad.models import Actividad
 class ClaseForm(forms.ModelForm):
     class Meta:
         model = Clase
-        fields = ['actividad', 'profesor', 'fecha', 'hora_inicio', 'hora_fin', 'cupo_maximo', 'salon']
+        fields = ['actividad', 'profesor', 'fecha', 'hora_inicio', 'cupo_maximo', 'salon']
         widgets = {
             'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-input'}),
             'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-input'}),
-            'hora_fin': forms.TimeInput(attrs={'type': 'time', 'class': 'form-input'}),
             'cupo_maximo': forms.NumberInput(attrs={'class': 'form-input', 'min': 1}),
             'salon': forms.TextInput(attrs={'class': 'form-input'}),
         }
@@ -29,19 +29,21 @@ class ClaseForm(forms.ModelForm):
     def clean_fecha(self):
         fecha = self.cleaned_data.get('fecha')
         if fecha and fecha < timezone.now().date():
-            raise forms.ValidationError("No puedes crear una actividad para una fecha pasada.")
+            raise forms.ValidationError("No puedes crear una clase para una fecha pasada.")
         return fecha
 
     def clean(self):
         cleaned_data = super().clean()
         fecha = cleaned_data.get('fecha')
         hora_inicio = cleaned_data.get('hora_inicio')
-        hora_fin = cleaned_data.get('hora_fin')
         salon = cleaned_data.get('salon')
         profesor = cleaned_data.get('profesor')
 
         if not all([fecha, hora_inicio, salon, profesor]):
             return cleaned_data
+
+        hora_fin = (datetime.combine(fecha, hora_inicio) + timedelta(hours=1)).time()
+        cleaned_data['hora_fin'] = hora_fin
 
         clase_actual_id = self.instance.pk if self.instance else None
 
@@ -55,7 +57,7 @@ class ClaseForm(forms.ModelForm):
 
         if conflicto_salon:
             raise forms.ValidationError(
-                f"Salón no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%S')} hs."
+                f"Salón no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
 
         conflicto_profesor = Clase.objects.filter(
@@ -68,7 +70,16 @@ class ClaseForm(forms.ModelForm):
 
         if conflicto_profesor:
             raise forms.ValidationError(
-                f"Profesor no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%S')} hs."
+                f"Profesor no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
 
         return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        hora_fin = self.cleaned_data.get('hora_fin')
+        if hora_fin:
+            instance.hora_fin = hora_fin
+        if commit:
+            instance.save()
+        return instance

@@ -24,28 +24,17 @@
                    class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Gestión de Clases
                 </a>
+                {% if user.rol == 'dueno' %}
                 <a href="{% url 'actividad:admin_actividades' %}"
                    class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Actividades
                 </a>
+                {% endif %}
                 <a href="{% url 'user:admin_profesores' %}"
                    class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Profesores
                 </a>
             </div>
-        </div>
-
-        <!-- Buscador por email exacto -->
-        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
-            <h2 class="font-heading text-lg font-semibold text-gray-900 mb-4">Buscar cliente por email</h2>
-            <form action="{% url 'user:buscar_cliente' %}" method="GET" class="flex gap-4">
-                <input type="email" name="email" placeholder="Ingresá el email exacto del cliente"
-                       class="flex-1 px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
-                <button type="submit"
-                        class="btn-bordo px-6 py-3 rounded-xl font-semibold">
-                    Buscar
-                </button>
-            </form>
         </div>
 
         <!-- Filtros -->
