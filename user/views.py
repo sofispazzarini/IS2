@@ -364,23 +364,17 @@ def recuperar_contrasena_view(request):
     if request.method == "POST":
         email_ingresado = request.POST.get("email", "").strip()
 
-        # ESCENARIO III: Envío de mail fallido por mail no ingresado
         if not email_ingresado:
             messages.error(request, "Ingrese un correo electrónico para la recuperación.")
             return render(request, 'recuperar_contrasena.html')
-
-        # Buscamos al usuario por ese correo específico
+        
         usuarios = User.objects.filter(email=email_ingresado)
 
         if usuarios.exists():
-            # ESCENARIO I: Envío de mail exitoso al correo ingresado
             user = usuarios.first()
-            
-            # Generamos los componentes seguros del link usando uidb64
             uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
             
-            # Construimos la URL dinámica real acoplada con tu urls.py (sin 'auth/')
             link_recuperacion = f"http://127.0.0.1:8000/reset/{uidb64}/{token}/"
             
             asunto = "Restablecer Contraseña - SIRCA"
@@ -396,13 +390,12 @@ def recuperar_contrasena_view(request):
                 subject=asunto,
                 message=mensaje_texto,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email_ingresado],  # Destinatario dinámico del input HTML
+                recipient_list=[email_ingresado], 
                 fail_silently=False,
             )
             
             messages.success(request, "El sistema envía un mail de recuperación al correo ingresado.")
         else:
-            # ESCENARIO II: Envío de mail fallido por mail no registrado
             messages.error(request, "El mail ingresado no se encuentra registrado.")
 
         return render(request, 'recuperar_contrasena.html')
@@ -414,13 +407,11 @@ def recuperar_contrasena_view(request):
 def confirmar_restablecimiento_view(request, uidb64, token):
     User = get_user_model()
     try:
-        # Decodificamos el ID del usuario que viene encriptado en el link
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
 
-    # Validamos si el token es real y no expiró
     if user is not None and default_token_generator.check_token(user, token):
         validlink = True
         
@@ -429,19 +420,17 @@ def confirmar_restablecimiento_view(request, uidb64, token):
             confirmar_clave = request.POST.get("new_password2")
             
             if nueva_clave == confirmar_clave:
-                # Cambiamos la clave de forma segura en la base de datos
                 user.set_password(nueva_clave)
                 user.save()
                 
                 messages.success(request, "¡Contraseña restablecida con éxito! Ya podés iniciar sesión.")
-                # Cambiá 'user:login' por el nombre real de tu ruta de inicio de sesión
                 return redirect('user:login') 
             else:
                 messages.error(request, "Las contraseñas ingresadas no coinciden.")
     else:
         validlink = False
 
-    # Renderizamos tu HTML pasándole el estado del link
+
     return render(request, 'password_reset_confirm.html', {
         'validlink': validlink,
         'uid': uidb64,
