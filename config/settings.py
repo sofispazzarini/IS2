@@ -84,6 +84,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'  # o donde quieras que vaya después de loguear
 LOGOUT_REDIRECT_URL = ('/auth/login/')
+# Configuración para envío de correos reales mediante Gmail
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'no-reply@sirca.local'
+# Tu dirección de correo desde donde se enviarán los mensajes
+EMAIL_HOST_USER = 'jm951659@gmail.com' 
+
+# TU CONTRASEÑA DE APLICACIÓN (No es tu contraseña normal de Gmail)
+EMAIL_HOST_PASSWORD = 'uwop mvim hbvi sejc' 
+
+# El remitente que verán los usuarios
+DEFAULT_FROM_EMAIL = 'SIRCA <jm951659@gmail.com>'
