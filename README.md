@@ -49,6 +49,15 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
+## Después de hacer pull/merge
+
+Si tus compañeros actualizaron el código, corré las migraciones para sincronizar la base de datos:
+
+```bash
+pip install -r requirements.txt   # por si agregaron dependencias nuevas
+python manage.py migrate
+```
+
 ## Ejecución
 
 Levantar servidor de desarrollo:
@@ -73,13 +82,14 @@ IS2/
 │   ├── urls.py              # Enrutador principal
 │   ├── asgi.py              # Entrada ASGI
 │   └── wsgi.py              # Entrada WSGI
-├── core/                    # App inicial del dominio
-│   ├── apps.py              # Config de la app
-│   ├── urls.py              # Rutas de la app
-│   └── views.py             # Vistas (renderizan HTML)
+├── core/                    # App base (home, páginas generales)
+├── user/                    # Usuarios, roles y autenticación
+├── actividad/               # Actividades del gimnasio
+├── turno/                   # Clases, reservas, QR y asistencia
+├── pago/                    # Pagos (MercadoPago, efectivo)
+├── resena/                  # Reseñas de actividades
 ├── templates/               # Templates globales
-│   ├── base.html            # Plantilla base
-│   └── core/home.html       # Pantalla de inicio
+├── static/                  # Archivos estáticos (CSS, JS)
 ├── manage.py                # CLI de Django
 └── requirements.txt         # Dependencias Python
 ```
@@ -111,7 +121,8 @@ python manage.py crearadmin secretario@test.com 12345678
 python manage.py crearadmin dueno@test.com 12345678 --rol=dueno
 
 # Con datos personalizados
-python manage.py crearadmin admin@sirca.com mipassword --rol=dueno --nombre=Juan --apellido=Perez --dni=12345678
+python manage.py crearadmin admin@sirca.com mipassword 
+--rol=dueno --nombre=Juan --apellido=Perez --dni=12345678
 ```
 
 Si el email ya existe, el comando actualiza el rol del usuario existente.
@@ -123,6 +134,39 @@ Si el email ya existe, el comando actualiza el rol del usuario existente.
 | `cliente` | Usuario normal (default al registrarse) |
 | `secretario` | Panel de administración, gestión de clientes |
 | `dueno` | Mismo acceso que secretario + futuras funcionalidades |
+
+## Sistema de asistencia con QR
+
+El sistema genera códigos QR únicos para cada reserva que permiten registrar asistencia.
+
+### Cómo funciona
+
+1. **Cliente hace una reserva** → se genera un UUID único (`qr_uuid`)
+2. **Cliente paga** → la reserva pasa a estado "confirmada"
+3. **30 minutos antes de la clase** → el QR se habilita y aparece en "Mis Turnos"
+4. **Secretario/Dueño escanea** → el sistema valida y registra asistencia
+5. **QR usado** → se deshabilita automáticamente
+
+### Rutas importantes
+
+| Ruta | Quién la usa | Descripción |
+|------|--------------|-------------|
+| `/turnos/mis-turnos/` | Cliente | Ve sus reservas y el QR cuando está habilitado |
+| `/turnos/escanear-qr/` | Secretario/Dueño | Escanea QRs para registrar asistencia |
+
+### Reglas de negocio
+
+- El QR se habilita **30 minutos antes** de que empiece la clase
+- El QR se deshabilita cuando **termina la clase** o cuando **ya fue usado**
+- Solo usuarios con rol `secretario` o `dueno` pueden escanear QRs
+
+### Dependencia
+
+El QR usa la librería `qrcode`. Ya está en `requirements.txt`, solo hay que instalar:
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Siguientes pasos sugeridos
 

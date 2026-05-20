@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.shortcuts import render
 
 urlpatterns = [
 
@@ -12,5 +13,17 @@ urlpatterns = [
     path('actividad/', include('actividad.urls')),
     path('resena/', include('resena.urls')),
 ]
+
+
+def handler404_view(request, exception):
+    return render(request, '404.html', status=404)
+
+
+def handler500_view(request):
+    return render(request, '500.html', status=500)
+
+
+handler404 = handler404_view
+handler500 = handler500_view
 
 

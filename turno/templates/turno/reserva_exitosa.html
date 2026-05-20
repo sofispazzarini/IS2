@@ -20,9 +20,19 @@
             <p class="text-gray-600 mb-2">
                 Tu reserva para <strong class="text-gray-900">{{ reserva.clase.actividad.nombre }}</strong> está en estado pendiente.
             </p>
-            <p class="text-gray-500 mb-8">
+            <p class="text-gray-500 mb-6">
                 Fecha: <strong>{{ reserva.clase.fecha }}</strong> a las <strong>{{ reserva.clase.hora_inicio }}</strong>
             </p>
+
+            {% if qr_image %}
+            <div class="bg-gray-50 rounded-xl p-6 mb-6">
+                <p class="text-sm text-gray-600 mb-3">Tu código QR para registrar asistencia:</p>
+                <img src="{{ qr_image }}" alt="Código QR" class="mx-auto w-48 h-48">
+                <p class="text-xs text-gray-500 mt-3">
+                    Mostrá este código 30 minutos antes de la clase para registrar tu presente.
+                </p>
+            </div>
+            {% endif %}
 
             <div class="space-y-3">
                 <a href="{% url 'pagar_tarjeta' reserva.id %}"
