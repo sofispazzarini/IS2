@@ -48,24 +48,40 @@
             </form>
         </div>
 
-        <!-- Lista de clientes -->
-        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
-            <div class="px-6 py-5 flex justify-between items-center border-b border-gray-100">
-                <h2 class="font-heading text-lg font-semibold text-gray-900">Clientes registrados</h2>
-                <form method="GET" class="flex gap-2">
-                    <input type="text" name="q" value="{{ query }}" placeholder="Filtrar por email..."
-                           class="px-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
-                    <button type="submit"
-                            class="px-4 py-2 text-sm font-medium rounded-xl border-2 border-bordo-700 text-bordo-700 hover:bg-bordo-50">
+        <!-- Filtros -->
+        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
+            <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Filtros</h3>
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                    <select name="estado" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                        <option value="">Todos</option>
+                        <option value="activos" {% if filtro_estado == 'activos' %}selected{% endif %}>Activos</option>
+                        <option value="inactivos" {% if filtro_estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                    <input type="text" name="q" value="{{ filtro_busqueda }}" placeholder="Email, DNI o nombre..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                </div>
+                <div class="flex items-end gap-2">
+                    <button type="submit" class="btn-bordo px-4 py-2 rounded-xl text-sm font-semibold">
                         Filtrar
                     </button>
-                    {% if query %}
-                    <a href="{% url 'user:client_list' %}"
-                       class="px-4 py-2 text-sm font-medium rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50">
+                    {% if hay_filtros %}
+                    <a href="?" class="px-4 py-2 text-sm font-medium rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50">
                         Limpiar
                     </a>
                     {% endif %}
-                </form>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de clientes -->
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
+            <div class="px-6 py-5 border-b border-gray-100">
+                <h2 class="font-heading text-lg font-semibold text-gray-900">Clientes registrados</h2>
             </div>
 
             <div class="divide-y divide-gray-100">

@@ -77,6 +77,8 @@ class Reserva(models.Model):
         unique=True
     )
 
+    qr_usado = models.BooleanField(default=False)
+
     observaciones = models.TextField(
         blank=True,
         null=True

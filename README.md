@@ -111,7 +111,8 @@ python manage.py crearadmin secretario@test.com 12345678
 python manage.py crearadmin dueno@test.com 12345678 --rol=dueno
 
 # Con datos personalizados
-python manage.py crearadmin admin@sirca.com mipassword --rol=dueno --nombre=Juan --apellido=Perez --dni=12345678
+python manage.py crearadmin admin@sirca.com mipassword 
+--rol=dueno --nombre=Juan --apellido=Perez --dni=12345678
 ```
 
 Si el email ya existe, el comando actualiza el rol del usuario existente.
