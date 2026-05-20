@@ -1,4 +1,6 @@
 from datetime import timedelta
+import io
+import base64
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -7,9 +9,12 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 import calendar
+import qrcode
 
 from .models import Clase, Reserva, ListaEspera, Asistencia
+from .services import validar_qr
 from .forms import ClaseForm
 from pago.models import Pago
 from actividad.models import Actividad
@@ -30,7 +35,8 @@ def es_dueno(user):
 @login_required
 def mis_turnos(request):
     """Muestra los turnos/reservas próximas del usuario."""
-    hoy = timezone.now().date()
+    ahora = timezone.localtime(timezone.now())
+    hoy = ahora.date()
 
     reservas = Reserva.objects.filter(
         usuario=request.user,
@@ -43,10 +49,29 @@ def mis_turnos(request):
     for reserva in reservas:
         dias_anticipacion = (reserva.clase.fecha - hoy).days
         puede_cancelar = dias_anticipacion >= 2
+
+        # Determinar si mostrar QR (30 min antes hasta fin de clase)
+        mostrar_qr = False
+        qr_image = None
+        if reserva.estado == 'confirmada' and not reserva.qr_usado:
+            clase = reserva.clase
+            if clase.fecha == hoy:
+                from datetime import datetime, timedelta
+                hora_inicio = datetime.combine(hoy, clase.hora_inicio)
+                hora_fin = datetime.combine(hoy, clase.hora_fin)
+                ahora_dt = datetime.combine(hoy, ahora.time())
+                ventana_inicio = hora_inicio - timedelta(minutes=30)
+
+                if ventana_inicio <= ahora_dt <= hora_fin:
+                    mostrar_qr = True
+                    qr_image = generar_qr_base64(str(reserva.qr_uuid))
+
         reservas_con_info.append({
             'reserva': reserva,
             'puede_cancelar': puede_cancelar,
             'dias_anticipacion': dias_anticipacion,
+            'mostrar_qr': mostrar_qr,
+            'qr_image': qr_image,
         })
 
     return render(request, 'turno/mis_turnos.html', {
@@ -166,7 +191,54 @@ def pedir_turno(request, clase_id):
 @login_required
 def reserva_exitosa(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
-    return render(request, 'turno/reserva_exitosa.html', {'reserva': reserva})
+    qr_data = str(reserva.qr_uuid)
+    qr_image = generar_qr_base64(qr_data)
+    return render(request, 'turno/reserva_exitosa.html', {
+        'reserva': reserva,
+        'qr_image': qr_image,
+    })
+
+
+@login_required
+def detalle_reserva(request, reserva_id):
+    """Vista de detalle de reserva para el cliente con opciones de pago y QR."""
+    from datetime import datetime, timedelta
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related('clase', 'clase__actividad', 'clase__profesor'),
+        id=reserva_id,
+        usuario=request.user
+    )
+
+    ahora = timezone.localtime(timezone.now())
+    hoy = ahora.date()
+    clase = reserva.clase
+
+    # Determinar si mostrar QR (30 min antes hasta fin de clase)
+    mostrar_qr = False
+    qr_image = None
+    if reserva.estado == 'confirmada' and not reserva.qr_usado:
+        if clase.fecha == hoy:
+            hora_inicio = datetime.combine(hoy, clase.hora_inicio)
+            hora_fin = datetime.combine(hoy, clase.hora_fin)
+            ahora_dt = datetime.combine(hoy, ahora.time())
+            ventana_inicio = hora_inicio - timedelta(minutes=30)
+
+            if ventana_inicio <= ahora_dt <= hora_fin:
+                mostrar_qr = True
+                qr_image = generar_qr_base64(str(reserva.qr_uuid))
+
+    # Determinar si puede cancelar (2 días de anticipación)
+    dias_anticipacion = (clase.fecha - hoy).days
+    puede_cancelar = dias_anticipacion >= 2
+
+    return render(request, 'turno/detalle_reserva.html', {
+        'reserva': reserva,
+        'mostrar_qr': mostrar_qr,
+        'qr_image': qr_image,
+        'puede_cancelar': puede_cancelar,
+        'dias_anticipacion': dias_anticipacion,
+    })
 
 
 @login_required
@@ -449,3 +521,101 @@ def ver_clase(request, clase_id):
         'resena_usuario': resena_usuario,
         'form': form,
     })
+
+
+def generar_qr_base64(data):
+    """Genera un código QR como imagen base64."""
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    img_base64 = base64.b64encode(buffer.getvalue()).decode()
+    return f"data:image/png;base64,{img_base64}"
+
+
+@login_required
+@require_http_methods(["POST"])
+def validar_qr_api(request):
+    """API para validar un código QR y registrar asistencia."""
+    if not es_admin(request.user):
+        return JsonResponse({
+            'exito': False,
+            'mensaje': 'No tienes permisos para registrar asistencia.'
+        }, status=403)
+
+    qr_uuid = request.POST.get('qr_uuid', '').strip()
+    if not qr_uuid:
+        return JsonResponse({
+            'exito': False,
+            'mensaje': 'No se proporcionó código QR.'
+        }, status=400)
+
+    resultado = validar_qr(qr_uuid, registrado_por=request.user)
+
+    response_data = {
+        'exito': resultado.exito,
+        'mensaje': resultado.mensaje,
+    }
+
+    if resultado.reserva:
+        response_data['reserva'] = {
+            'usuario': resultado.reserva.usuario.get_full_name() or resultado.reserva.usuario.username,
+            'clase': str(resultado.reserva.clase),
+            'estado': resultado.reserva.estado,
+        }
+
+    return JsonResponse(response_data)
+
+
+@login_required
+def escanear_qr(request):
+    """Vista para que admins escaneen códigos QR."""
+    if not es_admin(request.user):
+        messages.error(request, "No tienes permisos para acceder a esta sección.")
+        return redirect('core:home')
+
+    resultado = None
+    if request.method == 'POST':
+        qr_uuid = request.POST.get('qr_uuid', '').strip()
+        if qr_uuid:
+            resultado = validar_qr(qr_uuid, registrado_por=request.user)
+
+    return render(request, 'turno/escanear_qr.html', {
+        'resultado': resultado,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def registrar_pago_efectivo(request, reserva_id):
+    """Registra un pago en efectivo para una reserva (solo admin)."""
+    if not es_admin(request.user):
+        messages.error(request, "No tienes permisos para registrar pagos.")
+        return redirect('core:home')
+
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+
+    if reserva.estado != 'pendiente_pago':
+        messages.warning(request, "Esta reserva ya fue pagada o está cancelada.")
+        return redirect('detalle_clase', clase_id=reserva.clase.id)
+
+    # Crear el pago
+    from pago.models import Pago
+    Pago.objects.create(
+        reserva=reserva,
+        monto=reserva.clase.actividad.precio,
+        metodo_pago='efectivo',
+        estado_pago='aprobado',
+        registrado_por=request.user
+    )
+
+    # Actualizar estado de la reserva
+    reserva.estado = 'confirmada'
+    reserva.save()
+
+    messages.success(request, f"Pago en efectivo registrado para {reserva.usuario.get_full_name() or reserva.usuario.username}.")
+    return redirect('detalle_clase', clase_id=reserva.clase.id)

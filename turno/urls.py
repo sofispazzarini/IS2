@@ -7,6 +7,7 @@ urlpatterns = [
     path('clases/<int:clase_id>/', views.ver_clase, name='ver_clase'),
     path('clases/<int:clase_id>/reservar/', views.pedir_turno, name='pedir_turno_detalle'),
     path('reservas/', views.mis_turnos, name='reservas'),
+    path('reservas/<int:reserva_id>/', views.detalle_reserva, name='detalle_reserva'),
     path('reservas/<int:reserva_id>/exitosa/', views.reserva_exitosa, name='reserva_exitosa'),
     path('reservas/cancelar/<int:reserva_id>/', views.cancelar_reserva, name='cancelar_reserva'),
 
@@ -16,4 +17,9 @@ urlpatterns = [
     path('admin/clases/<int:clase_id>/modificar/', views.modificar_clase, name='modificar_clase'),
     path('admin/clases/<int:clase_id>/cancelar/', views.cancelar_clase, name='cancelar_clase'),
     path('admin/clases/<int:clase_id>/detalle/', views.detalle_clase, name='detalle_clase'),
+
+    # QR y asistencia
+    path('api/qr/validar/', views.validar_qr_api, name='validar_qr_api'),
+    path('admin/escanear-qr/', views.escanear_qr, name='escanear_qr'),
+    path('admin/reserva/<int:reserva_id>/pago-efectivo/', views.registrar_pago_efectivo, name='registrar_pago_efectivo'),
 ]
