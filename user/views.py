@@ -209,14 +209,14 @@ def buscar_cliente(request):
 @login_required(login_url='user:login')
 def change_password(request):
     if request.method == "POST":
-        form = ChangePasswordForm(request.POST)
+        form = ChangePasswordForm(request.POST, user=request.user)
         if form.is_valid():
             password = form.cleaned_data.get("password")
             user = request.user
             user.set_password(password)
             user.save()
             update_session_auth_hash(request, user)
-            messages.success(request, "Contraseña actualizada exitosamente")
+            messages.success(request, "Cambio de contraseña exitoso")
             return redirect('core:home')
         else:
             for field, errors in form.errors.items():
@@ -271,13 +271,13 @@ def perfil_view(request):
                             messages.error(request, str(error))
 
         elif 'cambiar_password' in request.POST:
-            password_form = ChangePasswordForm(request.POST)
+            password_form = ChangePasswordForm(request.POST, user=request.user)
             if password_form.is_valid():
                 password = password_form.cleaned_data.get("password")
                 user.set_password(password)
                 user.save()
                 update_session_auth_hash(request, user)
-                messages.success(request, "Contraseña actualizada exitosamente")
+                messages.success(request, "Cambio de contraseña exitoso")
                 return redirect('user:perfil')
             else:
                 for field, errors in password_form.errors.items():

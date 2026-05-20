@@ -230,6 +230,7 @@ class LoginViewTestCase(TestCase):
         """Escenario I: Cambio de contraseña exitoso"""
         self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
         response = self.client.post(reverse('user:change_password'), {
+            'current_password': 'Estudiantes7',
             'password': 'Taylor1989',
             'password_confirm': 'Taylor1989',
         })
@@ -243,21 +244,33 @@ class LoginViewTestCase(TestCase):
         """Escenario II: Cambio de contraseña fallido por longitud"""
         self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
         response = self.client.post(reverse('user:change_password'), {
+            'current_password': 'Estudiantes7',
             'password': 'Taylor',
             'password_confirm': 'Taylor',
         })
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "La contraseña debe tener entre 8 y 20 caracteres")
-
-    def test_change_password_falla_por_campo_incompleto(self):
-        """Escenario III: Cambio de contraseña fallido por campo incompleto"""
+    def test_change_password_falla_por_contrasena_actual_incorrecta(self):
+        """Escenario III: Cambio fallido por contraseña actual incorrecta"""
         self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
         response = self.client.post(reverse('user:change_password'), {
-            'password': '',
-            'password_confirm': '',
+            'current_password': '87654321',
+            'password': 'Taylor1989',
+            'password_confirm': 'Taylor1989',
         })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Completar contraseña")
+        self.assertContains(response, "La contraseña actual es incorrecta")
+
+    def test_change_password_falla_por_contrasenas_no_coinciden(self):
+        """Escenario IV: Cambio fallido por contraseñas que no coinciden"""
+        self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
+        response = self.client.post(reverse('user:change_password'), {
+            'current_password': 'Estudiantes7',
+            'password': 'Taylor1989',
+            'password_confirm': 'Taylor1898',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Las contraseñas no coinciden")
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
     def test_secretary_envia_contrasena_temporal(self):

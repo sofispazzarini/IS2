@@ -137,6 +137,11 @@ class LoginForm(forms.Form):
 
 
 class ChangePasswordForm(forms.Form):
+    current_password = forms.CharField(
+        label="Contraseña actual",
+        required=False,
+        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Contraseña actual"}),
+    )
     password = forms.CharField(
         label="Contraseña",
         required=False,
@@ -148,11 +153,24 @@ class ChangePasswordForm(forms.Form):
         widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Confirmar Contraseña"}),
     )
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_current_password(self):
+        current = self.cleaned_data.get('current_password')
+        if not current:
+            raise forms.ValidationError("Completar contraseña")
+        if self.user and not self.user.check_password(current):
+            raise forms.ValidationError("La contraseña actual es incorrecta")
+        return current
+
     def clean_password(self):
         password = self.cleaned_data.get("password")
-        if password:
-            if len(password) < 8 or len(password) > 20:
-                raise forms.ValidationError("La contraseña debe tener entre 8 y 20 caracteres")
+        if not password:
+            raise forms.ValidationError("Completar contraseña")
+        if len(password) < 8 or len(password) > 20:
+            raise forms.ValidationError("La contraseña debe tener entre 8 y 20 caracteres")
         return password
 
     def clean(self):
