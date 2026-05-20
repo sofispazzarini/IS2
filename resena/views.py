@@ -74,6 +74,8 @@ def editar_resena(request, resena_id):
             for error in errors:
                 messages.error(request, error)
     
+    if resena.clase:
+        return redirect('ver_clase', clase_id=resena.clase.id)
     return redirect('core:home')
 
 
@@ -90,6 +92,9 @@ def eliminar_resena(request, resena_id):
         messages.error(request, 'No tienes permiso para eliminar esta reseña.')
         return redirect('core:home')
     
+    clase = resena.clase
     resena.delete()
     messages.success(request, 'Reseña eliminada exitosamente.')
+    if clase:
+        return redirect('ver_clase', clase_id=clase.id)
     return redirect('core:home')

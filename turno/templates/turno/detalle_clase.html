@@ -26,7 +26,7 @@
                 </div>
 
                 {% if not clase.cancelada and es_dueno %}
-                <div class="flex gap-3">
+                <div class="flex gap-3 flex-wrap">
                     <a href="{% url 'modificar_clase' clase.id %}"
                        class="px-5 py-2.5 rounded-full font-semibold border-2 border-bordo-700 text-bordo-700 hover:bg-bordo-50 transition">
                         Modificar
@@ -34,6 +34,19 @@
                     <a href="{% url 'cancelar_clase' clase.id %}"
                        class="px-5 py-2.5 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700 transition">
                         Cancelar clase
+                    </a>
+                    {% if clase_finalizada %}
+                    <a href="{% url 'lista_presentes_clase' clase.id %}"
+                       class="px-5 py-2.5 rounded-full font-semibold bg-green-600 text-white hover:bg-green-700 transition">
+                        Ver lista de presentes
+                    </a>
+                    {% endif %}
+                </div>
+                {% elif clase_finalizada %}
+                <div>
+                    <a href="{% url 'lista_presentes_clase' clase.id %}"
+                       class="inline-flex items-center px-5 py-2.5 rounded-full font-semibold bg-green-600 text-white hover:bg-green-700 transition">
+                        Ver lista de presentes
                     </a>
                 </div>
                 {% endif %}
