@@ -46,10 +46,10 @@ def admin_actividades(request):
 
 @login_required
 def crear_actividad(request):
-    """Crear una nueva actividad."""
-    if not es_admin(request.user):
-        messages.error(request, "No tienes permisos para crear actividades.")
-        return redirect('core:home')
+    """Crear una nueva actividad (solo dueño)."""
+    if not es_dueno(request.user):
+        messages.error(request, "Solo el dueño puede crear actividades.")
+        return redirect('actividad:admin_actividades')
 
     if request.method == 'POST':
         form = ActividadForm(request.POST)

@@ -37,6 +37,7 @@
 
         <div class="flex justify-between items-center mb-6">
             <h2 class="font-heading text-xl font-semibold text-gray-900">Actividades del sistema</h2>
+            {% if es_dueno %}
             <a href="{% url 'actividad:crear_actividad' %}"
                class="btn-bordo px-5 py-2.5 rounded-full font-semibold flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,6 +45,7 @@
                 </svg>
                 Crear actividad
             </a>
+            {% endif %}
         </div>
 
         <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
