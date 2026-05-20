@@ -6,18 +6,9 @@
 <div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28 pb-20">
     <div class="max-w-md mx-auto">
         <div class="text-center mb-8">
-            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
-                Unite a SIRCA
-            </p>
-            <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
-                Crear cuenta
-            </h2>
-            <p class="mt-3 text-gray-500">
-                ¿Ya tenés cuenta?
-                <a href="{% url 'user:login' %}" class="font-semibold text-bordo-700 hover:text-bordo-800">
-                    Iniciá sesión aquí
-                </a>
-            </p>
+            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">Unite a SIRCA</p>
+            <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">Crear cuenta</h2>
+            <p class="mt-3 text-gray-500">¿Ya tenés cuenta? <a href="{% url 'user:login' %}" class="font-semibold text-bordo-700 hover:text-bordo-800">Iniciá sesión aquí</a></p>
         </div>
 
         {% if messages %}
@@ -34,177 +25,123 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            Nombre
-                        </label>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
                         <input
                             type="text"
                             id="{{ form.first_name.id_for_label }}"
                             name="{{ form.first_name.name }}"
                             value="{{ form.first_name.value|default_if_none:'' }}"
+                            required
                             class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.first_name.errors %}border-red-300{% endif %}"
                             placeholder="Tu nombre"
                         >
-                        {% if form.first_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.first_name.errors %}<p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>{% endif %}
                     </div>
 
                     <div>
-                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            Apellido
-                        </label>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
                         <input
                             type="text"
                             id="{{ form.last_name.id_for_label }}"
                             name="{{ form.last_name.name }}"
                             value="{{ form.last_name.value|default_if_none:'' }}"
+                            required
                             class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.last_name.errors %}border-red-300{% endif %}"
                             placeholder="Tu apellido"
                         >
-                        {% if form.last_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.last_name.errors %}<p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>{% endif %}
                     </div>
                 </div>
 
                 <div>
-                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Correo electrónico
-                    </label>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
                     <input
                         type="email"
                         id="{{ form.email.id_for_label }}"
                         name="{{ form.email.name }}"
                         value="{{ form.email.value|default_if_none:'' }}"
+                        required
                         class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.email.errors %}border-red-300{% endif %}"
                         placeholder="tu@email.com"
                     >
-                    {% if form.email.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
-                    {% endif %}
+                    {% if form.email.errors %}<p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>{% endif %}
                 </div>
 
-<<<<<<< HEAD
-                <div>
-                    <label for="{{ form.dni.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        {{ form.dni.label }}
-                    </label>
-                    <input
-                        type="tel"
-                        id="{{ form.dni.id_for_label }}"
-                        name="{{ form.dni.name }}"
-                        value="{{ form.dni.value|default_if_none:'' }}"
-                        inputmode="numeric"
-                        pattern="[0-9]*"
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.dni.errors %}border-red-300{% endif %}"
-                        placeholder="12345678"
-                    >
-                    {% if form.dni.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.dni.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="{{ form.telefono.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        {{ form.telefono.label }}
-                    </label>
-                    <input
-                        type="tel"
-                        id="{{ form.telefono.id_for_label }}"
-                        name="{{ form.telefono.name }}"
-                        value="{{ form.telefono.value|default_if_none:'' }}"
-                        inputmode="numeric"
-                        pattern="[0-9 ]*"
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if form.telefono.errors %}border-red-300{% endif %}"
-                        placeholder="221 345 6789"
-                    >
-                    {% if form.telefono.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.telefono.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="{{ form.fecha_nacimiento.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        {{ form.fecha_nacimiento.label }}
-=======
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="{{ form.dni.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            DNI
-                        </label>
+                        <label for="{{ form.dni.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">DNI</label>
                         <input
-                            type="text"
+                            type="tel"
                             id="{{ form.dni.id_for_label }}"
                             name="{{ form.dni.name }}"
                             value="{{ form.dni.value|default_if_none:'' }}"
+                            required
+                            inputmode="numeric"
+                            pattern="[0-9]+"
                             class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.dni.errors %}border-red-300{% endif %}"
                             placeholder="12345678"
                         >
-                        {% if form.dni.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.dni.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.dni.errors %}<p class="mt-1 text-sm text-red-600">{{ form.dni.errors.0 }}</p>{% endif %}
                     </div>
 
                     <div>
-                        <label for="{{ form.telefono.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            Teléfono
-                        </label>
+                        <label for="{{ form.telefono.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
                         <input
-                            type="text"
+                            type="tel"
                             id="{{ form.telefono.id_for_label }}"
                             name="{{ form.telefono.name }}"
                             value="{{ form.telefono.value|default_if_none:'' }}"
+                            required
+                            inputmode="numeric"
+                            pattern="[0-9 ]+"
                             class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.telefono.errors %}border-red-300{% endif %}"
                             placeholder="221 345 6789"
                         >
-                        {% if form.telefono.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.telefono.errors.0 }}</p>
-                        {% endif %}
+                        {% if form.telefono.errors %}<p class="mt-1 text-sm text-red-600">{{ form.telefono.errors.0 }}</p>{% endif %}
                     </div>
                 </div>
 
                 <div>
-                    <label for="{{ form.fecha_nacimiento.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Fecha de nacimiento
->>>>>>> 8fea4c39e377ee5c8777f7126f8a6a3c47a8232d
-                    </label>
+                    <label for="{{ form.fecha_nacimiento.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Fecha de nacimiento</label>
                     <input
                         type="date"
                         id="{{ form.fecha_nacimiento.id_for_label }}"
                         name="{{ form.fecha_nacimiento.name }}"
                         value="{{ form.fecha_nacimiento.value|default_if_none:''|date:'Y-m-d' }}"
+                        required
                         class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.fecha_nacimiento.errors %}border-red-300{% endif %}"
                     >
-                    {% if form.fecha_nacimiento.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.fecha_nacimiento.errors.0 }}</p>
-                    {% endif %}
+                    {% if form.fecha_nacimiento.errors %}<p class="mt-1 text-sm text-red-600">{{ form.fecha_nacimiento.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label for="id_password" class="block text-sm font-medium text-gray-700 mb-2">
-                        Contraseña
-                    </label>
+                    <label for="id_password" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
                     <input
                         type="password"
                         id="id_password"
                         name="password"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500"
+                        required
+                        minlength="8"
+                        maxlength="20"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.password.errors %}border-red-300{% endif %}"
                         placeholder="Mínimo 8 caracteres"
                     >
+                    {% if form.password.errors %}<p class="mt-1 text-sm text-red-600">{{ form.password.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label for="id_password_confirm" class="block text-sm font-medium text-gray-700 mb-2">
-                        Confirmar contraseña
-                    </label>
+                    <label for="id_password_confirm" class="block text-sm font-medium text-gray-700 mb-2">Confirmar contraseña</label>
                     <input
                         type="password"
                         id="id_password_confirm"
                         name="password_confirm"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500"
+                        required
+                        minlength="8"
+                        maxlength="20"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.password_confirm.errors %}border-red-300{% endif %}"
                         placeholder="Repetí tu contraseña"
                     >
+                    {% if form.password_confirm.errors %}<p class="mt-1 text-sm text-red-600">{{ form.password_confirm.errors.0 }}</p>{% endif %}
                 </div>
 
                 {% if form.non_field_errors %}
@@ -217,12 +154,7 @@
                     </div>
                 {% endif %}
 
-                <button
-                    type="submit"
-                    class="w-full btn-bordo py-3 rounded-full font-semibold text-base mt-2"
-                >
-                    Registrarme
-                </button>
+                <button type="submit" class="w-full btn-bordo py-3 rounded-full font-semibold text-base mt-2">Registrarme</button>
             </form>
         </div>
     </div>
