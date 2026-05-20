@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de Reserva - SIRCA{% endblock %}
+
+{% block content %}
+<div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
+    <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-8">
+            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
+                Detalle de tu reserva
+            </p>
+            <h1 class="font-heading text-3xl font-bold text-gray-900">
+                {{ reserva.clase.actividad.nombre }}
+            </h1>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-2xl border border-gray-100 overflow-hidden">
+            <!-- Info de la clase -->
+            <div class="p-6 border-b border-gray-100">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-bordo-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-bordo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Fecha</p>
+                            <p class="font-semibold text-gray-900">{{ reserva.clase.fecha|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-bordo-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-bordo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Horario</p>
+                            <p class="font-semibold text-gray-900">{{ reserva.clase.hora_inicio|time:"H:i" }} - {{ reserva.clase.hora_fin|time:"H:i" }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-bordo-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-bordo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Profesor</p>
+                            <p class="font-semibold text-gray-900">{{ reserva.clase.profesor.nombre }} {{ reserva.clase.profesor.apellido }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-bordo-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-bordo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Salón</p>
+                            <p class="font-semibold text-gray-900">{{ reserva.clase.salon }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estado -->
+                <div class="mt-6 flex items-center justify-between">
+                    <span class="text-sm text-gray-600">Estado de la reserva:</span>
+                    <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold
+                        {% if reserva.estado == 'confirmada' %}bg-green-100 text-green-700
+                        {% elif reserva.estado == 'pendiente_pago' %}bg-yellow-100 text-yellow-700
+                        {% elif reserva.estado == 'asistida' %}bg-blue-100 text-blue-700
+                        {% else %}bg-gray-100 text-gray-700{% endif %}">
+                        {{ reserva.get_estado_display }}
+                    </span>
+                </div>
+
+                <!-- Precio -->
+                <div class="mt-4 flex items-center justify-between">
+                    <span class="text-sm text-gray-600">Precio:</span>
+                    <span class="text-xl font-bold text-bordo-700">${{ reserva.clase.actividad.precio }}</span>
+                </div>
+            </div>
+
+            <!-- Opciones de pago (solo si está pendiente) -->
+            {% if reserva.estado == 'pendiente_pago' %}
+            <div class="p-6 bg-yellow-50 border-b border-yellow-100">
+                <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Opciones de pago</h3>
+                <div class="space-y-3">
+                    <a href="{% url 'pagar_tarjeta' reserva.id %}"
+                       class="flex items-center justify-between w-full px-4 py-3 bg-white rounded-xl border border-gray-200 hover:border-bordo-500 hover:shadow transition">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-6 h-6 text-bordo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                            <span class="font-medium text-gray-900">Pagar con tarjeta</span>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+
+                    <a href="{% url 'pagar_creditos' reserva.id %}"
+                       class="flex items-center justify-between w-full px-4 py-3 bg-white rounded-xl border border-gray-200 hover:border-bordo-500 hover:shadow transition">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-6 h-6 text-bordo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="font-medium text-gray-900">Pagar con créditos</span>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+
+                    <div class="flex items-center justify-between w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            <div>
+                                <span class="font-medium text-gray-900">Pagar en efectivo</span>
+                                <p class="text-xs text-gray-500">Abonás directamente en la sede</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Código QR (solo si está confirmada y dentro de la ventana) -->
+            {% if reserva.estado == 'confirmada' %}
+            <div class="p-6 {% if mostrar_qr %}bg-green-50{% else %}bg-blue-50{% endif %}">
+                {% if mostrar_qr and qr_image %}
+                    <div class="text-center">
+                        <h3 class="font-heading text-lg font-semibold text-green-800 mb-2">Tu código QR</h3>
+                        <p class="text-sm text-green-600 mb-4">Mostrá este código para registrar tu asistencia</p>
+                        <div class="bg-white rounded-xl p-4 inline-block shadow-sm">
+                            <img src="{{ qr_image }}" alt="Código QR" class="w-48 h-48 mx-auto">
+                        </div>
+                        <p class="text-xs text-green-600 mt-4">Válido hasta que termine la clase</p>
+                    </div>
+                {% elif reserva.qr_usado %}
+                    <div class="text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-blue-100 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <p class="text-blue-700 font-medium">Ya registraste tu asistencia</p>
+                    </div>
+                {% else %}
+                    <div class="text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-blue-100 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <p class="text-blue-700 font-medium">El código QR estará disponible 30 minutos antes de la clase</p>
+                    </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Estado asistida -->
+            {% if reserva.estado == 'asistida' %}
+            <div class="p-6 bg-blue-50">
+                <div class="text-center">
+                    <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-blue-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <p class="text-blue-700 font-medium">Asistencia registrada</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Acciones -->
+            <div class="p-6 bg-gray-50">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    {% if puede_cancelar and reserva.estado != 'asistida' %}
+                        <a href="{% url 'cancelar_reserva' reserva.id %}"
+                           class="flex-1 px-4 py-3 rounded-full text-sm font-semibold text-center border-2 border-red-600 text-red-600 hover:bg-red-50 transition">
+                            Cancelar reserva
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'reservas' %}"
+                       class="flex-1 px-4 py-3 rounded-full text-sm font-semibold text-center border-2 border-gray-300 text-gray-700 hover:bg-gray-100 transition">
+                        Volver a mis turnos
+                    </a>
+                </div>
+                {% if not puede_cancelar and reserva.estado == 'confirmada' %}
+                    <p class="text-xs text-gray-500 text-center mt-3">
+                        No se puede cancelar con menos de 2 días de anticipación
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

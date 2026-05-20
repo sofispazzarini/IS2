@@ -5,9 +5,10 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from django.http import HttpResponseForbidden
+from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
-from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, ProfesorForm
+from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm
 from .models import HistorialUsuarioBaja, Profesor
 from django.utils.http import urlsafe_base64_encode
 from django.utils.http import urlsafe_base64_decode
@@ -25,6 +26,8 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, "Inicio de sesión exitoso")
+                if user.rol in ('secretario', 'dueno'):
+                    return redirect('user:client_list')
                 return redirect('core:home')
             else:
                 # Verificar si el usuario existe
@@ -76,17 +79,30 @@ def client_list(request):
     if not _es_admin(request):
         return HttpResponseForbidden("Acceso denegado")
 
-    query = request.GET.get('q', '').strip()
+    busqueda = request.GET.get('q', '').strip()
+    estado = request.GET.get('estado', '')
+
     users = get_user_model().objects.filter(rol='cliente')
 
-    if query:
-        users = users.filter(email__icontains=query)
+    if estado == 'activos':
+        users = users.filter(activo=True)
+    elif estado == 'inactivos':
+        users = users.filter(activo=False)
+    if busqueda:
+        users = users.filter(
+            Q(email__icontains=busqueda) |
+            Q(dni__icontains=busqueda) |
+            Q(first_name__icontains=busqueda) |
+            Q(last_name__icontains=busqueda)
+        )
 
     users = users.order_by('first_name', 'last_name')
 
     return render(request, 'user/client_list.html', {
         'clients': users,
-        'query': query,
+        'filtro_busqueda': busqueda,
+        'filtro_estado': estado,
+        'hay_filtros': any([busqueda, estado]),
     })
 
 
@@ -97,6 +113,25 @@ def client_profile(request, user_id):
 
     client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
     return render(request, 'user/client_profile.html', {'client': client})
+
+
+@login_required(login_url='user:login')
+def editar_cliente(request, user_id):
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
+
+    if request.method == 'POST':
+        form = EditarClienteForm(request.POST, instance=client, client=client)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Datos del cliente actualizados correctamente.')
+            return redirect('user:client_profile', user_id=client.pk)
+    else:
+        form = EditarClienteForm(instance=client, client=client)
+
+    return render(request, 'user/editar_cliente.html', {'form': form, 'client': client})
 
 
 @login_required(login_url='user:login')
@@ -283,11 +318,36 @@ def admin_profesores(request):
     if not _es_admin(request):
         return HttpResponseForbidden("Acceso denegado")
 
-    profesores = Profesor.objects.all().order_by('apellido', 'nombre')
+    activo = request.GET.get('activo', '')
+    especialidad = request.GET.get('especialidad', '')
+    busqueda = request.GET.get('q', '').strip()
+
+    profesores = Profesor.objects.all()
+
+    if activo == 'activos':
+        profesores = profesores.filter(activo=True)
+    elif activo == 'inactivos':
+        profesores = profesores.filter(activo=False)
+    if especialidad:
+        profesores = profesores.filter(especialidad=especialidad)
+    if busqueda:
+        profesores = profesores.filter(
+            Q(nombre__icontains=busqueda) |
+            Q(apellido__icontains=busqueda) |
+            Q(email__icontains=busqueda)
+        )
+
+    profesores = profesores.order_by('apellido', 'nombre')
+    especialidades = Profesor.objects.values_list('especialidad', flat=True).distinct().order_by('especialidad')
 
     return render(request, 'user/admin_profesores.html', {
         'profesores': profesores,
         'es_dueno': _es_dueno(request),
+        'especialidades': especialidades,
+        'filtro_activo': activo,
+        'filtro_especialidad': especialidad,
+        'filtro_busqueda': busqueda,
+        'hay_filtros': any([activo, especialidad, busqueda]),
     })
 
 

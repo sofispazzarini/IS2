@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Editar cliente - SIRCA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .form-header {
+        background: #4f0f17;
+        padding: 1.5rem 2rem;
+    }
+    .form-body {
+        padding: 2rem;
+    }
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+    }
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: #8b1c26;
+        box-shadow: 0 0 0 3px rgba(139, 28, 38, 0.1);
+    }
+    .btn-submit {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0.75rem 1.5rem;
+        background: #8b1c26;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-submit:hover {
+        background: #6d1520;
+    }
+    .btn-cancel {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0.75rem 1.5rem;
+        background: #fff;
+        color: #6b7280;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .btn-cancel:hover {
+        background: #f9fafb;
+        color: #374151;
+    }
+    .error-list {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .error-list li {
+        color: #dc2626;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28" style="background: #fafaf9;">
+    <div class="max-w-xl mx-auto">
+
+        <header class="mb-8">
+            <a href="{% url 'user:client_profile' client.pk %}" class="inline-flex items-center text-bordo-700 hover:text-bordo-800 font-medium mb-4">
+                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Volver al perfil
+            </a>
+            <p class="text-xs font-semibold tracking-widest uppercase text-bordo-600 mb-2">
+                Gestión de cliente
+            </p>
+            <h1 class="font-heading text-3xl font-bold text-gray-900">
+                Editar datos de {{ client.get_full_name }}
+            </h1>
+        </header>
+
+        <div class="form-card">
+            <div class="form-header">
+                <h2 class="text-white font-heading text-lg font-semibold">Información del cliente</h2>
+            </div>
+
+            <div class="form-body">
+                {% if form.errors %}
+                <ul class="error-list">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label class="form-label" for="id_first_name">Nombre</label>
+                            <input type="text" name="first_name" id="id_first_name" class="form-input" value="{{ form.first_name.value|default:'' }}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="id_last_name">Apellido</label>
+                            <input type="text" name="last_name" id="id_last_name" class="form-input" value="{{ form.last_name.value|default:'' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label class="form-label" for="id_dni">DNI</label>
+                            <input type="text" name="dni" id="id_dni" class="form-input" value="{{ form.dni.value|default:'' }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="id_telefono">Teléfono</label>
+                            <input type="text" name="telefono" id="id_telefono" class="form-input" value="{{ form.telefono.value|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 mt-6">
+                        <button type="submit" class="btn-submit">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                <polyline points="7 3 7 8 15 8"/>
+                            </svg>
+                            Guardar cambios
+                        </button>
+                        <a href="{% url 'user:client_profile' client.pk %}" class="btn-cancel">
+                            Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

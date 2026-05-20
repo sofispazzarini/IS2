@@ -23,3 +23,28 @@
 .nav-link{
     position:relative;
 }
+
+/* Calendario */
+.text-bordo-700 {
+    color: #7a1d3a;
+}
+
+.bg-bordo-100 {
+    background-color: #fde8ec;
+}
+
+.bg-bordo-500 {
+    background-color: #7a1d3a;
+}
+
+.text-bordo-500 {
+    color: #7a1d3a;
+}
+
+.focus\:ring-bordo-500:focus {
+    --tw-ring-color: #7a1d3a;
+}
+
+.focus\:border-bordo-500:focus {
+    border-color: #7a1d3a;
+}
