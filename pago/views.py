@@ -235,16 +235,49 @@ def webhook_mercadopago(request):
 @login_required
 def pago_exito(request):
     external_reference = request.GET.get('external_reference')
+    payment_id = request.GET.get('payment_id')
+
+    pago_confirmado = False
+
     if external_reference:
         try:
             pago = Pago.objects.get(id=external_reference)
             pago.estado_pago = 'aprobado'
+            pago.payment_id = payment_id
             pago.save()
             pago.reserva.estado = 'confirmada'
             pago.reserva.save()
+            pago_confirmado = True
         except Pago.DoesNotExist:
             pass
-    messages.success(request, "¡Pago exitoso! Tu reserva ha sido confirmada.")
+
+    if not pago_confirmado and payment_id:
+        pago = Pago.objects.filter(
+            reserva__usuario=request.user,
+            estado_pago='pendiente',
+            metodo_pago='mercado_pago'
+        ).order_by('-fecha_pago').first()
+
+        if pago:
+            try:
+                payment_response = sdk.payment().get(payment_id)
+                if payment_response.get('status') in [200, 201]:
+                    payment_data = payment_response.get('response', {})
+                    if payment_data.get('status') == 'approved':
+                        pago.estado_pago = 'aprobado'
+                        pago.payment_id = payment_id
+                        pago.save()
+                        pago.reserva.estado = 'confirmada'
+                        pago.reserva.save()
+                        pago_confirmado = True
+            except Exception:
+                pass
+
+    if pago_confirmado:
+        messages.success(request, "¡Pago exitoso! Tu reserva ha sido confirmada.")
+    else:
+        messages.warning(request, "No pudimos confirmar el pago automáticamente. Si pagaste, la confirmación llegará en unos minutos.")
+
     return redirect('reservas')
 
 
