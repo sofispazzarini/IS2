@@ -1,12 +1,20 @@
-from pathlib import Path
+import os
+from dotenv import load_dotenv
 
+from pathlib import Path
+load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "django-insecure-cambiar-esta-clave-en-produccion"
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.ngrok-free.dev', '.ngrok.io']
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.dev',
+    'https://*.ngrok.io',
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -87,3 +95,6 @@ LOGOUT_REDIRECT_URL = ('/auth/login/')
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'no-reply@sirca.local'
+
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
+NGROK_URL = os.getenv("NGROK_URL", "http://127.0.0.1:8000")
