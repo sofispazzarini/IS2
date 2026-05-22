@@ -1,6 +1,9 @@
+
+from datetime import datetime, timedelta
 from datetime import timedelta
 import io
 import base64
+
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -436,9 +439,9 @@ def detalle_clase(request, clase_id):
 
     pagos = Pago.objects.filter(reserva__clase=clase).select_related('reserva__usuario').order_by('-fecha_pago')
 
-    resenas = Resena.objects.filter(actividad=clase.actividad).select_related('usuario').order_by('-fecha')[:5]
+    resenas = Resena.objects.filter(clase=clase).select_related('usuario').order_by('-fecha')[:5]
 
-    promedio_resenas = Resena.objects.filter(actividad=clase.actividad).aggregate(promedio=Avg('puntuacion'))['promedio']
+    promedio_resenas = Resena.objects.filter(clase=clase).aggregate(promedio=Avg('puntuacion'))['promedio']
 
     stats = todas_reservas.aggregate(
         total=Count('id'),
@@ -452,6 +455,12 @@ def detalle_clase(request, clase_id):
 
     total_recaudado = pagos.filter(estado_pago='aprobado').aggregate(total=Sum('monto'))['total'] or 0
 
+    ahora = timezone.localtime()
+    clase_finalizada = (ahora.date() > clase.fecha) or (
+        ahora.date() == clase.fecha and ahora.time() >= clase.hora_fin
+    )
+    clase_finalizada = clase_finalizada and not clase.cancelada
+
     return render(request, 'turno/detalle_clase.html', {
         'clase': clase,
         'reservas_activas': reservas_activas,
@@ -462,7 +471,41 @@ def detalle_clase(request, clase_id):
         'stats': stats,
         'cupos_disponibles': cupos_disponibles,
         'total_recaudado': total_recaudado,
+        'clase_finalizada': clase_finalizada,
         'es_dueno': es_dueno(request.user),
+    })
+
+
+@login_required
+def lista_presentes_clase(request, clase_id):
+    """Mostrar la lista de presentes de una clase solo para secretario/dueno."""
+    if not es_admin(request.user):
+        messages.error(request, "No tienes permisos para ver la lista de presentes.")
+        return redirect('core:home')
+
+    clase = get_object_or_404(
+        Clase.objects.select_related('actividad', 'profesor'),
+        id=clase_id
+    )
+
+    ahora = timezone.localtime()
+    clase_finalizada = (ahora.date() > clase.fecha) or (
+        ahora.date() == clase.fecha and ahora.time() >= clase.hora_fin
+    )
+    clase_finalizada = clase_finalizada and not clase.cancelada
+
+    if not clase_finalizada:
+        messages.error(request, "La lista de presentes solo está disponible para clases finalizadas.")
+        return redirect('detalle_clase', clase_id=clase.id)
+
+    presentes = Reserva.objects.filter(
+        clase=clase,
+        estado='asistida'
+    ).select_related('usuario').order_by('usuario__last_name', 'usuario__first_name')
+
+    return render(request, 'turno/lista_presentes.html', {
+        'clase': clase,
+        'presentes': presentes,
     })
 
 
@@ -475,7 +518,7 @@ def ver_clase(request, clase_id):
     )
 
     resenas = Resena.objects.filter(
-        actividad=clase.actividad
+        clase=clase
     ).select_related('usuario').order_by('-fecha')
 
     promedio_resenas = resenas.aggregate(promedio=Avg('puntuacion'))['promedio']
@@ -484,6 +527,12 @@ def ver_clase(request, clase_id):
     reservas_activas = Reserva.objects.filter(clase=clase).exclude(estado='cancelada').count()
     cupos_disponibles = clase.cupo_maximo - reservas_activas
 
+    ahora = timezone.localtime()
+    clase_finalizada = (ahora.date() > clase.fecha) or (
+        ahora.date() == clase.fecha and ahora.time() >= clase.hora_fin
+    )
+    clase_finalizada = clase_finalizada and not clase.cancelada
+
     usuario_tiene_reserva = Reserva.objects.filter(
         usuario=request.user,
         clase=clase
@@ -491,23 +540,28 @@ def ver_clase(request, clase_id):
 
     usuario_asistio = Reserva.objects.filter(
         usuario=request.user,
-        clase__actividad=clase.actividad,
+        clase=clase,
         estado='asistida'
     ).exists()
 
     resena_usuario = Resena.objects.filter(
         usuario=request.user,
-        actividad=clase.actividad
+        clase=clase
     ).first()
 
     form = ResenaForm()
 
     if request.method == 'POST' and 'crear_resena' in request.POST:
         form = ResenaForm(request.POST)
-        if form.is_valid():
+        if not usuario_asistio:
+            messages.error(request, 'Solo quienes asistieron a esta clase pueden dejar una reseña.')
+        elif not clase_finalizada:
+            messages.error(request, 'La clase debe haber finalizado antes de poder dejar la reseña.')
+        elif form.is_valid():
             resena = form.save(commit=False)
             resena.usuario = request.user
             resena.actividad = clase.actividad
+            resena.clase = clase
             resena.puntuacion = int(request.POST.get('puntuacion', 5))
             resena.save()
             messages.success(request, '¡Gracias por tu reseña!')
@@ -521,6 +575,7 @@ def ver_clase(request, clase_id):
         'cupos_disponibles': cupos_disponibles,
         'usuario_tiene_reserva': usuario_tiene_reserva,
         'usuario_asistio': usuario_asistio,
+        'clase_finalizada': clase_finalizada,
         'resena_usuario': resena_usuario,
         'form': form,
     })

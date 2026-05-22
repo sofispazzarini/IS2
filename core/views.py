@@ -6,8 +6,8 @@ from resena.forms import ResenaForm
 def home(request):
     """Vista principal con reseñas y formulario para crear reseña."""
     
-    # Traer todas las reseñas ordenadas por fecha descendente
-    resenas = Resena.objects.all().order_by('-fecha')
+    # Traer solo reseñas generales del centro ordenadas por fecha descendente
+    resenas = Resena.objects.filter(clase__isnull=True).order_by('-fecha')
     
     # Si está logueado, pasar el formulario
     form = None
