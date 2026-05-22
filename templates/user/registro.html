@@ -61,20 +61,24 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="{{ form.dni.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">DNI</label>
-                        <input
-                            type="tel"
-                            id="{{ form.dni.id_for_label }}"
-                            name="{{ form.dni.name }}"
-                            value="{{ form.dni.value|default_if_none:'' }}"
-                            required
-                            inputmode="numeric"
-                            pattern="[0-9]+"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.dni.errors %}border-red-300{% endif %}"
-                            placeholder="12345678"
-                        >
-                        {% if form.dni.errors %}<p class="mt-1 text-sm text-red-600">{{ form.dni.errors.0 }}</p>{% endif %}
-                    </div>
+                        <label for="{{ form.dni.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        DNI
+                    </label>
+                    <input
+        type="text"
+        id="{{ form.dni.id_for_label }}"
+        name="{{ form.dni.name }}"
+        value="{{ form.dni.value|default_if_none:'' }}"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        oninput="this.value = this.value.replace(/[^0-9]/g, '');"
+        class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500 {% if form.dni.errors %}border-red-300{% endif %}"
+        placeholder="12345678"
+    >
+    {% if form.dni.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.dni.errors.0 }}</p>
+    {% endif %}
+</div>
 
                     <div>
                         <label for="{{ form.telefono.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
