@@ -255,6 +255,18 @@
                                         </button>
                                     </form>
                                     {% endif %}
+                                    
+                                    {% if reserva.estado == 'confirmada' %}
+                                    <form action="{% url 'registrar_asistencia_manual' reserva.id %}" method="POST" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="px-3 py-1 text-xs font-medium rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
+                                                title="Registrar Asistencia Manual">
+                                            Registrar Asistencia
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
                                     <span class="px-3 py-1 text-xs font-medium rounded-full
                                         {% if reserva.estado == 'confirmada' %}bg-green-100 text-green-700
                                         {% elif reserva.estado == 'pendiente_pago' %}bg-yellow-100 text-yellow-700

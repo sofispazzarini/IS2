@@ -10,7 +10,11 @@ from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm
 from .models import HistorialUsuarioBaja, Profesor
-
+from django.utils.http import urlsafe_base64_encode
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_str
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -406,3 +410,83 @@ def eliminar_profesor(request, profesor_id):
         'tiene_clases': profesor.clases.exists(),
     })
 
+
+
+def recuperar_contrasena_view(request):
+    User = get_user_model()
+    
+    if request.method == "POST":
+        email_ingresado = request.POST.get("email", "").strip()
+
+        if not email_ingresado:
+            messages.error(request, "Ingrese un correo electrónico para la recuperación.")
+            return render(request, 'recuperar_contrasena.html')
+        
+        usuarios = User.objects.filter(email=email_ingresado)
+
+        if usuarios.exists():
+            user = usuarios.first()
+            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            
+            link_recuperacion = f"http://127.0.0.1:8000/reset/{uidb64}/{token}/"
+            
+            asunto = "Restablecer Contraseña - SIRCA"
+            mensaje_texto = (
+                f"Hola {user.username if hasattr(user, 'username') else 'Usuario'},\n\n"
+                f"Solicitaste restablecer tu contraseña en SIRCA. "
+                f"Ingresá al siguiente enlace para ingresar tu nueva clave:\n\n"
+                f"{link_recuperacion}\n\n"
+                f"Si no solicitaste este cambio, podés ignorar este correo de forma segura."
+            )
+            
+            send_mail(
+                subject=asunto,
+                message=mensaje_texto,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email_ingresado], 
+                fail_silently=False,
+            )
+            
+            messages.success(request, "El sistema envía un mail de recuperación al correo ingresado.")
+        else:
+            messages.error(request, "El mail ingresado no se encuentra registrado.")
+
+        return render(request, 'recuperar_contrasena.html')
+
+    return render(request, 'recuperar_contrasena.html')
+
+
+
+def confirmar_restablecimiento_view(request, uidb64, token):
+    User = get_user_model()
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        validlink = True
+        
+        if request.method == "POST":
+            nueva_clave = request.POST.get("new_password1")
+            confirmar_clave = request.POST.get("new_password2")
+            
+            if nueva_clave == confirmar_clave:
+                user.set_password(nueva_clave)
+                user.save()
+                
+                messages.success(request, "¡Contraseña restablecida con éxito! Ya podés iniciar sesión.")
+                return redirect('user:login') 
+            else:
+                messages.error(request, "Las contraseñas ingresadas no coinciden.")
+    else:
+        validlink = False
+
+
+    return render(request, 'password_reset_confirm.html', {
+        'validlink': validlink,
+        'uid': uidb64,
+        'token': token
+    })

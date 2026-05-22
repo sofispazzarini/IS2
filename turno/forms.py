@@ -83,3 +83,9 @@ class ClaseForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+    
+    def clean_cupo_maximo(self):
+        cupo = self.cleaned_data.get('cupo_maximo')
+        if cupo is not None and cupo <= 0:
+            raise forms.ValidationError("La clase debe contar como mínimo con 1 cupo.")
+        return cupo

@@ -85,6 +85,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'  # o donde quieras que vaya después de loguear
 LOGOUT_REDIRECT_URL = ('/auth/login/')
+# Configuración para envío de correos reales mediante Gmail
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
 
 # Email configuration: default to console backend for development.
 # For production you can configure the SMTP settings via environment variables.
@@ -103,3 +109,4 @@ else:
     )
 
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@sirca.local")
+
