@@ -393,25 +393,31 @@ def modificar_profesor(request, profesor_id):
 
 @login_required(login_url='user:login')
 def eliminar_profesor(request, profesor_id):
-    """Eliminar un profesor (solo si no tiene clases asociadas)."""
+    """Eliminar un profesor (solo si no tiene clases activas)."""
     if not _es_dueno(request):
         messages.error(request, "Solo el dueño puede eliminar profesores.")
         return redirect('user:admin_profesores')
 
     profesor = get_object_or_404(Profesor, id=profesor_id)
 
+    # Filtramos para ver si tiene clases que NO estén canceladas
+    tiene_clases_activas = profesor.clases.filter(cancelada=False).exists()
+
     if request.method == 'POST':
-        if profesor.clases.exists():
-            messages.error(request, "No se puede eliminar el profesor porque tiene clases asociadas.")
+        # 🛡️ Cambiamos la condición acá: solo bloquea si hay clases activas
+        if tiene_clases_activas:
+            messages.error(request, "No se puede eliminar el profesor porque tiene clases activas vigentes.")
             return redirect('user:admin_profesores')
 
+        # OJO: Si la base de datos te tira error acá al hacer el delete(), 
+        # vas a tener que ir a turno/models.py y poner on_delete=models.SET_NULL en el campo profesor de Clase.
         profesor.delete()
         messages.success(request, "Profesor eliminado con éxito.")
         return redirect('user:admin_profesores')
 
     return render(request, 'user/confirmar_eliminar_profesor.html', {
         'profesor': profesor,
-        'tiene_clases': profesor.clases.exists(),
+        'tiene_clases': tiene_clases_activas,  # Mandamos el filtro corregido al template
     })
 
 
