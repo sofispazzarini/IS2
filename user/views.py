@@ -15,7 +15,9 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
+from django.views.decorators.cache import never_cache
 
+@never_cache
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('core:home')
@@ -43,14 +45,16 @@ def login_view(request):
 
     return render(request, 'user/login.html', {'form': form})
 
-
+@never_cache
 def registro(request):
+    if request.user.is_authenticated:
+        return redirect('core:home')
     if request.method == "POST":
         form = RegistroForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Cuenta creada exitosamente")
-            return redirect("user:registro")
+            return redirect("user:login")
         else:
             for field, errors in form.errors.items():
                 for error in errors:
