@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -90,11 +91,22 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-# Tu dirección de correo desde donde se enviarán los mensajes
-EMAIL_HOST_USER = 'jm951659@gmail.com' 
 
-# TU CONTRASEÑA DE APLICACIÓN (No es tu contraseña normal de Gmail)
-EMAIL_HOST_PASSWORD = 'uwop mvim hbvi sejc' 
+# Email configuration: default to console backend for development.
+# For production you can configure the SMTP settings via environment variables.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 
-# El remitente que verán los usuarios
-DEFAULT_FROM_EMAIL = 'SIRCA <jm951659@gmail.com>'
+# If SMTP credentials are provided, prefer the SMTP backend; otherwise use console backend for dev.
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+else:
+    EMAIL_BACKEND = os.environ.get(
+        "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+    )
+
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@sirca.local")
+

@@ -15,8 +15,13 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
+from django.views.decorators.cache import never_cache
 
+@never_cache
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('core:home')
+
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -30,16 +35,7 @@ def login_view(request):
                     return redirect('user:client_list')
                 return redirect('core:home')
             else:
-                # Verificar si el usuario existe
-                try:
-                    User = get_user_model()
-                    user_exists = User.objects.filter(email=email).exists()
-                    if user_exists:
-                        messages.error(request, "La contraseña ingresada es inválida")
-                    else:
-                        messages.error(request, "El correo ingresado no se encuentra registrado")
-                except:
-                    messages.error(request, "Error en el inicio de sesión")
+                messages.error(request, "El mail o la contraseña son incorrectos")
         else:
             for field, errors in form.errors.items():
                 for error in errors:
@@ -49,14 +45,16 @@ def login_view(request):
 
     return render(request, 'user/login.html', {'form': form})
 
-
+@never_cache
 def registro(request):
+    if request.user.is_authenticated:
+        return redirect('core:home')
     if request.method == "POST":
         form = RegistroForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Cuenta creada exitosamente")
-            return redirect("user:registro")
+            return redirect("user:login")
         else:
             for field, errors in form.errors.items():
                 for error in errors:
@@ -219,14 +217,14 @@ def buscar_cliente(request):
 @login_required(login_url='user:login')
 def change_password(request):
     if request.method == "POST":
-        form = ChangePasswordForm(request.POST)
+        form = ChangePasswordForm(request.POST, user=request.user)
         if form.is_valid():
             password = form.cleaned_data.get("password")
             user = request.user
             user.set_password(password)
             user.save()
             update_session_auth_hash(request, user)
-            messages.success(request, "Contraseña actualizada exitosamente")
+            messages.success(request, "Cambio de contraseña exitoso")
             return redirect('core:home')
         else:
             for field, errors in form.errors.items():
@@ -281,13 +279,13 @@ def perfil_view(request):
                             messages.error(request, str(error))
 
         elif 'cambiar_password' in request.POST:
-            password_form = ChangePasswordForm(request.POST)
+            password_form = ChangePasswordForm(request.POST, user=request.user)
             if password_form.is_valid():
                 password = password_form.cleaned_data.get("password")
                 user.set_password(password)
                 user.save()
                 update_session_auth_hash(request, user)
-                messages.success(request, "Contraseña actualizada exitosamente")
+                messages.success(request, "Cambio de contraseña exitoso")
                 return redirect('user:perfil')
             else:
                 for field, errors in password_form.errors.items():
