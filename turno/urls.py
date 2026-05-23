@@ -22,4 +22,7 @@ urlpatterns = [
     path('api/qr/validar/', views.validar_qr_api, name='validar_qr_api'),
     path('admin/escanear-qr/', views.escanear_qr, name='escanear_qr'),
     path('admin/reserva/<int:reserva_id>/pago-efectivo/', views.registrar_pago_efectivo, name='registrar_pago_efectivo'),
+
+    # Registrar asistencia manual
+    path('admin/reserva/<int:reserva_id>/asistencia-manual/', views.registrar_asistencia_view, name='registrar_asistencia_manual'),
 ]

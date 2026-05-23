@@ -4,6 +4,8 @@ from django.db import transaction
 
 from .models import Reserva, Asistencia
 
+from django.core.exceptions import ValidationError
+
 
 class ResultadoValidacionQR:
     def __init__(self, exito, mensaje, reserva=None):
@@ -89,3 +91,17 @@ def validar_qr(qr_uuid, registrado_por=None):
 
     except Reserva.DoesNotExist:
         return ResultadoValidacionQR(False, "QR inválido: no existe reserva asociada.")
+
+def registrar_asistencia_manual(reserva_id):
+    reserva = Reserva.objects.get(id=reserva_id)
+    
+    # REGLA DE NEGOCIO: El turno debe estar registrado como “Abonado” (Confirmada)
+    if reserva.estado != 'confirmada':
+        raise ValidationError("El cliente debe abonar para registrar su asistencia.")
+    
+    # Escenario I: Registro exitoso
+    reserva.estado = 'asistida'
+    reserva.qr_usado = True  # Ya ingresó, el QR se da por usado
+    reserva.save()
+    
+    return reserva
