@@ -106,9 +106,9 @@ EMAIL_HOST_PASSWORD = 'uwop mvim hbvi sejc'
 # El remitente que verán los usuarios
 DEFAULT_FROM_EMAIL = 'SIRCA <jm951659@gmail.com>'
 
-NGROK_URL = os.getenv("NGROK_URL", "http://127.0.0.1:8000")
+#NGROK_URL = os.getenv("NGROK_URL", "http://127.0.0.1:8000")
 
-
+NGROK_URL = "https://supreme-cavalier-unchain.ngrok-free.dev"
 
 MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
 MERCADO_PAGO_PUBLIC_KEY = os.getenv("MERCADO_PAGO_PUBLIC_KEY")
