@@ -1,13 +1,20 @@
 from pathlib import Path
 import os
 
+from pathlib import Path
+load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "django-insecure-cambiar-esta-clave-en-produccion"
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.ngrok-free.dev', '.ngrok.io']
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.dev',
+    'https://*.ngrok.io',
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -91,7 +98,6 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-
 # Email configuration: default to console backend for development.
 # For production you can configure the SMTP settings via environment variables.
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
@@ -109,4 +115,3 @@ else:
     )
 
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@sirca.local")
-

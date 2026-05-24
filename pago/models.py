@@ -56,6 +56,18 @@ class Pago(models.Model):
         null=True,
         blank=True
     )
+    
+    preference_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
+    payment_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
 
     def __str__(self):
         return f"Pago #{self.id}"
