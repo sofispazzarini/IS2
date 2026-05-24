@@ -1,5 +1,5 @@
-import os
 from dotenv import load_dotenv
+import os
 from pathlib import Path
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -106,5 +106,12 @@ EMAIL_HOST_PASSWORD = 'uwop mvim hbvi sejc'
 # El remitente que verán los usuarios
 DEFAULT_FROM_EMAIL = 'SIRCA <jm951659@gmail.com>'
 
-MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 NGROK_URL = os.getenv("NGROK_URL", "http://127.0.0.1:8000")
+
+
+
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
+MERCADO_PAGO_PUBLIC_KEY = os.getenv("MERCADO_PAGO_PUBLIC_KEY")
+
+print("TOKEN:", MERCADO_PAGO_ACCESS_TOKEN)
+print("MP TOKEN =>", MERCADO_PAGO_ACCESS_TOKEN)
