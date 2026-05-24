@@ -1,11 +1,5 @@
-<<<<<<< HEAD
-from pathlib import Path
-import os
-=======
 import os
 from dotenv import load_dotenv
->>>>>>> origin/feature/development
-
 from pathlib import Path
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
