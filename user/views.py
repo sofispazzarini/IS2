@@ -16,6 +16,7 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.views.decorators.cache import never_cache
+from .forms import RestablecerContrasenaForm
 
 @never_cache
 def login_view(request):
@@ -326,13 +327,17 @@ def admin_profesores(request):
         profesores = profesores.filter(activo=True)
     elif activo == 'inactivos':
         profesores = profesores.filter(activo=False)
+        
     if especialidad:
         profesores = profesores.filter(especialidad=especialidad)
+        
     if busqueda:
+        # 🛡️ Agregamos el filtro por DNI manteniendo el nombre, apellido y email originales
         profesores = profesores.filter(
             Q(nombre__icontains=busqueda) |
             Q(apellido__icontains=busqueda) |
-            Q(email__icontains=busqueda)
+            Q(email__icontains=busqueda) |
+            Q(dni__icontains=busqueda)
         )
 
     profesores = profesores.order_by('apellido', 'nombre')
@@ -379,6 +384,11 @@ def modificar_profesor(request, profesor_id):
     if request.method == 'POST':
         form = ProfesorForm(request.POST, instance=profesor)
         if form.is_valid():
+            # 🟢 VALIDACIÓN DE CAMBIOS: Si los campos están iguales al estado original
+            if not form.has_changed():
+                messages.info(request, "No se registraron cambios en los datos del profesor.")
+                return redirect('user:admin_profesores')
+
             form.save()
             messages.success(request, "Profesor modificado con éxito.")
             return redirect('user:admin_profesores')
@@ -404,20 +414,17 @@ def eliminar_profesor(request, profesor_id):
     tiene_clases_activas = profesor.clases.filter(cancelada=False).exists()
 
     if request.method == 'POST':
-        # 🛡️ Cambiamos la condición acá: solo bloquea si hay clases activas
         if tiene_clases_activas:
             messages.error(request, "No se puede eliminar el profesor porque tiene clases activas vigentes.")
             return redirect('user:admin_profesores')
 
-        # OJO: Si la base de datos te tira error acá al hacer el delete(), 
-        # vas a tener que ir a turno/models.py y poner on_delete=models.SET_NULL en el campo profesor de Clase.
         profesor.delete()
         messages.success(request, "Profesor eliminado con éxito.")
         return redirect('user:admin_profesores')
 
     return render(request, 'user/confirmar_eliminar_profesor.html', {
         'profesor': profesor,
-        'tiene_clases': tiene_clases_activas,  # Mandamos el filtro corregido al template
+        'tiene_clases': tiene_clases_activas,
     })
 
 
@@ -458,9 +465,11 @@ def recuperar_contrasena_view(request):
                 fail_silently=False,
             )
             
-            messages.success(request, "El sistema envía un mail de recuperación al correo ingresado.")
+            # ESCENARIO I: El mail existe, mandamos el correo pero informamos de forma genérica
+            messages.success(request, "En caso de haber ingresado una dirección registrada, se enviará un email para recuperar la contraseña")
         else:
-            messages.error(request, "El mail ingresado no se encuentra registrado.")
+            # ESCENARIO II: El mail NO existe, NO mandamos nada pero informamos EXACTAMENTE LO MISMO
+            messages.success(request, "En caso de haber ingresado una dirección registrada, se enviará un email para recuperar la contraseña")
 
         return render(request, 'recuperar_contrasena.html')
 
@@ -480,23 +489,29 @@ def confirmar_restablecimiento_view(request, uidb64, token):
         validlink = True
         
         if request.method == "POST":
-            nueva_clave = request.POST.get("new_password1")
-            confirmar_clave = request.POST.get("new_password2")
+            form = RestablecerContrasenaForm(request.POST)
             
-            if nueva_clave == confirmar_clave:
+            if form.is_valid():
+                nueva_clave = form.cleaned_data.get("new_password1")
                 user.set_password(nueva_clave)
                 user.save()
                 
                 messages.success(request, "¡Contraseña restablecida con éxito! Ya podés iniciar sesión.")
                 return redirect('user:login') 
             else:
-                messages.error(request, "Las contraseñas ingresadas no coinciden.")
+                # 🟢 CORRECCIÓN: NO usamos messages.error() aquí.
+                # Al dejar que actúe form.errors, el error se renderiza únicamente
+                # abajo de los inputs correspondientes a través del contexto HTML.
+                pass
+        else:
+            form = RestablecerContrasenaForm()
     else:
         validlink = False
-
+        form = None
 
     return render(request, 'password_reset_confirm.html', {
         'validlink': validlink,
         'uid': uidb64,
-        'token': token
+        'token': token,
+        'form': form
     })

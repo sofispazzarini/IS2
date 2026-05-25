@@ -35,14 +35,10 @@
             {% endif %}
 
             <div class="space-y-3">
-                <a href="{% url 'pagar_tarjeta' reserva.id %}"
-                   class="block w-full btn-bordo py-3 rounded-full font-semibold">
-                    Pagar ahora con tarjeta
-                </a>
 
                 <a href="{% url 'pagar_con_mercadopago' reserva.id %}"
                    class="block w-full py-3 rounded-full font-semibold border-2 border-bordo-700 text-bordo-700 hover:bg-bordo-50 transition">
-                    Pagar con Mercado Pago
+                    Pagar con Mercado Pago / Tarjeta
                 </a>
 
                 <a href="{% url 'lista_clases' %}"

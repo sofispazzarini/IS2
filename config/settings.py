@@ -1,4 +1,5 @@
 from pathlib import Path
+from dotenv import load_dotenv
 import os
 
 from pathlib import Path
@@ -107,11 +108,9 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 
 # If SMTP credentials are provided, prefer the SMTP backend; otherwise use console backend for dev.
-if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-else:
-    EMAIL_BACKEND = os.environ.get(
-        "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-    )
+EMAIL_HOST_USER = 'jm951659@gmail.com' 
+EMAIL_HOST_PASSWORD = 'opjk wqid ambw gmlb'  # OJO: No es tu contraseña normal
 
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@sirca.local")
+DEFAULT_FROM_EMAIL = 'jm951659@gmail.com'
+
+MERCADO_PAGO_ACCESS_TOKEN = os.environ.get("APP_USR-4715857974084293-052416-33a6d12aef08c3138283b467bbc81062-3422206410", "TEST-1234567890-PROVISORIO")
