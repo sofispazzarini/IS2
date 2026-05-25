@@ -9,29 +9,18 @@ from django.contrib import messages
 from turno.models import Reserva
 from .models import Pago
 
-sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+#sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 print(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
-#HOLA
-def crear_pago(request):
-    preference_data = {
-        "items": [
-            {
-                "title": "Test",
-                "quantity": 1,
-                "unit_price": 100
-            }
-        ]
-    }
 
-    preference_response = sdk.preference().create(preference_data)
-    print(preference_response)
 
-    return redirect(preference_response["response"]["init_point"])
-#CHAU
 
 @login_required
 def pagar_con_mercadopago(request, reserva_id):
+    
+  
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+  
 
     reserva = get_object_or_404(
         Reserva,
@@ -63,7 +52,7 @@ def pagar_con_mercadopago(request, reserva_id):
         "external_reference": str(pago.id),
 
         "back_urls": {
-            "success": f"{settings.NGROK_URL}/pago/exito/",
+            "success": f"{settings.NGROK_URL}/pago/exito?source=mp",
             "failure": f"{settings.NGROK_URL}/pago/fallo/",
             "pending": f"{settings.NGROK_URL}/pago/pendiente/",
         },
@@ -73,7 +62,9 @@ def pagar_con_mercadopago(request, reserva_id):
         "notification_url": f"{settings.NGROK_URL}/pago/webhook/"
     }
 
-    preference_response = sdk.preference().create(preference_data)
+   # preference_response = sdk.preference().create(preference_data)
+    preference = sdk.preference()
+    preference_response = preference.create(preference_data)
     print("=== MERCADOPAGO DEBUG ===")
     print(f"Status: {preference_response.get('status')}")
     print(f"Response: {preference_response.get('response')}")
