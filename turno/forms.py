@@ -88,4 +88,6 @@ class ClaseForm(forms.ModelForm):
         cupo = self.cleaned_data.get('cupo_maximo')
         if cupo is not None and cupo <= 0:
             raise forms.ValidationError("La clase debe contar como mínimo con 1 cupo.")
+        if cupo is not None and cupo > 50:
+            raise forms.ValidationError("El cupo máximo permitido por salón es de 50 personas.")
         return cupo
