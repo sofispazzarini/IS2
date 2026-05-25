@@ -8,5 +8,4 @@ urlpatterns = [
     path('exito/', views.pago_exito, name='pago_exito'),
     path('fallo/', views.pago_fallo, name='pago_fallo'),
     path('pendiente/', views.pago_pendiente, name='pago_pendiente'),
-    path("crear-pago/", views.crear_pago, name="crear_pago"), #HOLA
 ]
