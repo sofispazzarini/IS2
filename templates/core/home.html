@@ -141,7 +141,7 @@
                 {% if user.is_authenticated and user == resena.usuario %}
                 <div class="mt-4 flex justify-end gap-4">
                     <button type="button"
-                            onclick="openEditModal({{ resena.id }}, '{{ resena.comentario|escapejs }}')"
+                            onclick="openEditModal({{ resena.id }}, &quot;{{ resena.comentario|escapejs }}&quot;)"
                             class="text-bordo-700 hover:text-bordo-900 text-sm font-medium underline">
                         Modificar
                     </button>
