@@ -13,6 +13,8 @@ sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
 @login_required
 def pagar_con_mercadopago(request, reserva_id):
+    # 1. Volvemos a instanciar el SDK acá adentro (como hizo tu compañero por seguridad)
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
     reserva = get_object_or_404(
         Reserva,
@@ -20,8 +22,9 @@ def pagar_con_mercadopago(request, reserva_id):
         usuario=request.user
     )
 
-    if reserva.estado != 'pendiente_pago':
-        messages.warning(request, "La reserva ya fue abonada.")
+    # 2. Mantenemos tu validación pero corregida al estado real ('pendiente')
+    if reserva.estado != 'pendiente':
+        messages.warning(request, "La reserva ya fue abonada o no está disponible para pagar.")
         return redirect('detalle_reserva', reserva_id=reserva.id)
 
     pago = Pago.objects.create(
@@ -40,24 +43,22 @@ def pagar_con_mercadopago(request, reserva_id):
                 "unit_price": 1000.0
             }
         ],
-
         "external_reference": str(pago.id),
-
         "back_urls": {
-            "success": f"{settings.NGROK_URL}/pago/exito/",
+            # Usamos la URL limpia que maneja tu archivo views.py
+            "success": f"{settings.NGROK_URL}/pago/exito/", 
             "failure": f"{settings.NGROK_URL}/pago/fallo/",
             "pending": f"{settings.NGROK_URL}/pago/pendiente/",
         },
-
         "auto_return": "approved",
-
         "notification_url": f"{settings.NGROK_URL}/pago/webhook/"
     }
 
+    # 3. Usamos la llamada directa que tenías vos (si falla, usás la de él en dos líneas)
     preference_response = sdk.preference().create(preference_data)
+    
     print("=== MERCADOPAGO DEBUG ===")
     print(f"Status: {preference_response.get('status')}")
-    print(f"Response: {preference_response.get('response')}")
     print("=========================")
 
     if preference_response["status"] not in [200, 201]:
@@ -66,7 +67,6 @@ def pagar_con_mercadopago(request, reserva_id):
         return redirect('detalle_reserva', reserva_id=reserva.id)
 
     preference = preference_response["response"]
-
     pago.preference_id = preference["id"]
     pago.save()
 

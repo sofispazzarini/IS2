@@ -31,6 +31,11 @@ class Resena(models.Model):
 
     fecha = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['usuario', 'actividad'], name='unique_usuario_actividad')
+        ]
+
     def __str__(self):
         if self.clase:
             return f"{self.usuario.username} - {self.clase}"

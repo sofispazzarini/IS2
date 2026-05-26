@@ -156,18 +156,19 @@ def pedir_turno(request, clase_id):
     usuario = request.user
 
     if request.method == 'POST':
-        # 1. Escenario III: Superposición de turnos
+        # 1. Escenario III: Superposición de turnos utilizando rangos de tiempo
         superposicion = Reserva.objects.filter(
             usuario=usuario,
             clase__fecha=clase.fecha,
-            clase__hora_inicio=clase.hora_inicio,
+            clase__hora_inicio__lt=clase.hora_fin,  # El inicio de la reservada es antes de que termine la nueva
+            clase__hora_fin__gt=clase.hora_inicio,   # El fin de la reservada es después de que arranque la nueva
         ).exclude(estado='cancelada').exists()
 
         if superposicion:
-            # En lugar de explotar, mandamos el error al mismo template
+            # Mandamos el error descriptivo al mismo template
             return render(request, 'turno/pedir_turno.html', {
                 'clase': clase,
-                'error': 'Error por superposición de turnos.'
+                'error': 'Ya tenés un turno reservado que se superpone con el horario de esta clase.'
             })
 
         # 2. Verificar cupo

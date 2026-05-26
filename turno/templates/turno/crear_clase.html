@@ -49,7 +49,7 @@
                         <option value="">Seleccionar profesor...</option>
                         {% for profesor in form.fields.profesor.queryset %}
                             <option value="{{ profesor.id }}" {% if form.profesor.value == profesor.id|stringformat:"i" %}selected{% endif %}>
-                                {{ profesor.nombre }} {{ profesor.apellido }}
+                                {{ profesor.nombre }} {{ profesor.apellido }} (DNI: {{ profesor.dni|default:"Sin cargar" }})
                             </option>
                         {% endfor %}
                     </select>
