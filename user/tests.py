@@ -106,6 +106,42 @@ class RegistroFormTestCase(TestCase):
         self.assertIn("dni", form.errors)
         self.assertIn("DNI ya asociado a una cuenta", str(form.errors["dni"]))
 
+    def test_registro_falla_por_dni_no_numerico(self):
+        """Escenario VI: Registro fallido por DNI con letras"""
+        fecha_nac = date(2006, 5, 2)
+        data = {
+            "first_name": "Juan Ignacio",
+            "last_name": "Torres",
+            "email": "juanitorres@gmail.com",
+            "dni": "ABC12345",
+            "telefono": "2213456789",
+            "fecha_nacimiento": fecha_nac,
+            "password": "juani123torres",
+            "password_confirm": "juani123torres",
+        }
+        form = RegistroForm(data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("dni", form.errors)
+        self.assertIn("DNI debe contener solo números", str(form.errors["dni"]))
+
+    def test_registro_falla_por_telefono_no_numerico(self):
+        """Escenario VII: Registro fallido por teléfono con letras"""
+        fecha_nac = date(2006, 5, 2)
+        data = {
+            "first_name": "Juan Ignacio",
+            "last_name": "Torres",
+            "email": "juanitorres@gmail.com",
+            "dni": "47032818",
+            "telefono": "221-ABC-7890",
+            "fecha_nacimiento": fecha_nac,
+            "password": "juani123torres",
+            "password_confirm": "juani123torres",
+        }
+        form = RegistroForm(data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("telefono", form.errors)
+        self.assertIn("Teléfono debe contener solo números", str(form.errors["telefono"]))
+
     def test_registro_falla_por_contrasena_corta(self):
         """Escenario V: Registro fallido por contraseña fuera de rango"""
         fecha_nac = date(2006, 5, 2)
@@ -194,6 +230,7 @@ class LoginViewTestCase(TestCase):
         """Escenario I: Cambio de contraseña exitoso"""
         self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
         response = self.client.post(reverse('user:change_password'), {
+            'current_password': 'Estudiantes7',
             'password': 'Taylor1989',
             'password_confirm': 'Taylor1989',
         })
@@ -207,21 +244,33 @@ class LoginViewTestCase(TestCase):
         """Escenario II: Cambio de contraseña fallido por longitud"""
         self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
         response = self.client.post(reverse('user:change_password'), {
+            'current_password': 'Estudiantes7',
             'password': 'Taylor',
             'password_confirm': 'Taylor',
         })
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "La contraseña debe tener entre 8 y 20 caracteres")
-
-    def test_change_password_falla_por_campo_incompleto(self):
-        """Escenario III: Cambio de contraseña fallido por campo incompleto"""
+    def test_change_password_falla_por_contrasena_actual_incorrecta(self):
+        """Escenario III: Cambio fallido por contraseña actual incorrecta"""
         self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
         response = self.client.post(reverse('user:change_password'), {
-            'password': '',
-            'password_confirm': '',
+            'current_password': '87654321',
+            'password': 'Taylor1989',
+            'password_confirm': 'Taylor1989',
         })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Completar contraseña")
+        self.assertContains(response, "La contraseña actual es incorrecta")
+
+    def test_change_password_falla_por_contrasenas_no_coinciden(self):
+        """Escenario IV: Cambio fallido por contraseñas que no coinciden"""
+        self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
+        response = self.client.post(reverse('user:change_password'), {
+            'current_password': 'Estudiantes7',
+            'password': 'Taylor1989',
+            'password_confirm': 'Taylor1898',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Las contraseñas no coinciden")
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
     def test_secretary_envia_contrasena_temporal(self):
@@ -274,17 +323,13 @@ class LoginViewTestCase(TestCase):
 
     def test_login_falla_usuario_no_registrado(self):
         """Escenario II: Inicio fallido por usuario no registrado"""
-        response = self.client.post(reverse('user:login'), {
-            'email': 'juanitorreslp@gmail.com',  # mismo email pero usuario no existe? Wait, el usuario existe, pero para testear no registrado, usar otro email
-            'password': 'Estudiantes7'
-        })
-        # Este pasa porque el usuario existe. Para testear no registrado, usar email diferente.
-        response = self.client.post(reverse('user:login'), {
+        client = Client()
+        response = client.post(reverse('user:login'), {
             'email': 'noexiste@gmail.com',
             'password': 'Estudiantes7'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "El correo ingresado no se encuentra registrado")
+        self.assertContains(response, "El mail o la contraseña son incorrectos")
 
     def test_login_falla_contrasena_invalida(self):
         """Escenario III: Inicio fallido por contraseña"""
@@ -293,4 +338,11 @@ class LoginViewTestCase(TestCase):
             'password': 'Estudiantes'  # contraseña incorrecta
         })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "La contraseña ingresada es inválida")
+        self.assertContains(response, "El mail o la contraseña son incorrectos")
+
+    def test_login_redirige_home_si_ya_esta_logueado(self):
+        """Si el usuario ya está autenticado, no debe mostrar login"""
+        self.client.login(username='juanitorreslp@gmail.com', password='Estudiantes7')
+        response = self.client.get(reverse('user:login'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], reverse('core:home'))

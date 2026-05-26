@@ -17,14 +17,6 @@
             </a>
         </div>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="mb-6 p-4 rounded-xl {% if message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %} font-medium">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
             <table class="w-full text-left border-collapse">
                 <thead>

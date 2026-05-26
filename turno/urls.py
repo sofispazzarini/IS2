@@ -18,6 +18,8 @@ urlpatterns = [
     path('admin/clases/<int:clase_id>/cancelar/', views.cancelar_clase, name='cancelar_clase'),
     path('admin/clases/<int:clase_id>/detalle/', views.detalle_clase, name='detalle_clase'),
 
+    path('admin/clases/<int:clase_id>/presentes/', views.lista_presentes_clase, name='lista_presentes_clase'),
+
     # QR y asistencia
     path('api/qr/validar/', views.validar_qr_api, name='validar_qr_api'),
     path('admin/escanear-qr/', views.escanear_qr, name='escanear_qr'),

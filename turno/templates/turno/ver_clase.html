@@ -177,6 +177,18 @@
                                 </div>
                             </div>
                             <p class="text-gray-600">{{ resena.comentario }}</p>
+                            {% if user.is_authenticated and user == resena.usuario %}
+                            <div class="mt-4 flex justify-end gap-3">
+                                <button type="button" onclick="openEditModal({{ resena.id }}, '{{ resena.comentario|escapejs }}')"
+                                        class="text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                                    Modificar
+                                </button>
+                                <button type="button" onclick="openDeleteModal({{ resena.id }})"
+                                        class="text-red-600 hover:text-red-800 text-sm font-medium underline">
+                                    Eliminar
+                                </button>
+                            </div>
+                            {% endif %}
                         </div>
                         {% empty %}
                         <div class="p-12 text-center">
@@ -200,7 +212,7 @@
                             <svg class="mx-auto h-10 w-10 text-green-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
-                            <p class="text-gray-600 text-sm">Ya dejaste una reseña para esta actividad</p>
+                            <p class="text-gray-600 text-sm">Ya dejaste una reseña para esta clase</p>
                             <div class="mt-3 p-3 bg-gray-50 rounded-xl">
                                 <div class="flex justify-center mb-2">
                                     {% for i in "12345" %}
@@ -216,9 +228,19 @@
                                     {% endfor %}
                                 </div>
                                 <p class="text-sm text-gray-600 italic">"{{ resena_usuario.comentario }}"</p>
+                                <div class="mt-4 flex justify-center gap-3">
+                                    <button type="button" onclick="openEditModal({{ resena_usuario.id }}, '{{ resena_usuario.comentario|escapejs }}')"
+                                            class="px-4 py-2 bg-blue-600 text-white rounded-full text-sm hover:bg-blue-700">
+                                        Modificar
+                                    </button>
+                                    <button type="button" onclick="openDeleteModal({{ resena_usuario.id }})"
+                                            class="px-4 py-2 bg-red-600 text-white rounded-full text-sm hover:bg-red-700">
+                                        Eliminar
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    {% else %}
+                    {% elif usuario_asistio and clase_finalizada %}
                         <form method="POST" class="space-y-4">
                             {% csrf_token %}
 
@@ -249,12 +271,81 @@
                                 Enviar reseña
                             </button>
                         </form>
+                    {% elif usuario_asistio and not clase_finalizada %}
+                        <div class="text-center py-8 px-4 bg-gray-50 rounded-xl">
+                            <p class="text-gray-600">La clase debe finalizar antes de que puedas dejar tu reseña.</p>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8 px-4 bg-gray-50 rounded-xl">
+                            <p class="text-gray-600">Solo las personas que asistieron a esta clase pueden dejar una reseña.</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- MODAL DE CONFIRMACIÓN PARA ELIMINAR RESEÑA -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">¿Eliminar reseña?</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    Esta acción no se puede deshacer. La reseña será eliminada permanentemente.
+                </p>
+            </div>
+            <div class="flex items-center px-4 py-3">
+                <button id="cancelDelete" class="px-4 py-2 bg-gray-300 text-gray-900 text-base font-medium rounded-md w-full mr-2 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    Cancelar
+                </button>
+                <form id="deleteForm" method="POST" action="" class="w-full ml-2">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        Confirmar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA MODIFICAR RESEÑA -->
+<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-16 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-left">
+            <div class="flex items-center gap-3">
+                <div class="h-12 w-12 rounded-full bg-bordo-100 flex items-center justify-center text-white font-bold">E</div>
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">Modificar reseña</h3>
+                    <p class="text-sm text-gray-500">Solo tú puedes editar tu reseña.</p>
+                </div>
+            </div>
+            <div class="mt-6">
+                <form id="editForm" method="POST" action="">
+                    {% csrf_token %}
+                    <label for="editComentario" class="block text-sm font-medium text-gray-700">Tu reseña</label>
+                    <textarea id="editComentario" name="comentario" rows="4" class="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-bordo-700" placeholder="Escribe tu reseña"></textarea>
+                    <div class="mt-4 flex justify-end gap-3">
+                        <button type="button" id="cancelEdit" class="px-4 py-2 bg-gray-300 text-gray-900 font-medium rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                            Confirmar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -285,6 +376,42 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     updateStars(5);
+});
+
+function openDeleteModal(resenaId) {
+    const modal = document.getElementById('deleteModal');
+    const form = document.getElementById('deleteForm');
+    form.action = `/resena/eliminar/${resenaId}/`;
+    modal.classList.remove('hidden');
+}
+
+function openEditModal(resenaId, comentario) {
+    const modal = document.getElementById('editModal');
+    const form = document.getElementById('editForm');
+    const textarea = document.getElementById('editComentario');
+    form.action = `/resena/editar/${resenaId}/`;
+    textarea.value = comentario;
+    modal.classList.remove('hidden');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
+document.getElementById('cancelDelete').addEventListener('click', function() {
+    closeModal('deleteModal');
+});
+
+document.getElementById('cancelEdit').addEventListener('click', function() {
+    closeModal('editModal');
+});
+
+['deleteModal', 'editModal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.add('hidden');
+        }
+    });
 });
 </script>
 {% endblock %}

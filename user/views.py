@@ -15,8 +15,14 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
+from django.views.decorators.cache import never_cache
+from .forms import RestablecerContrasenaForm
 
+@never_cache
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('core:home')
+
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -30,16 +36,7 @@ def login_view(request):
                     return redirect('user:client_list')
                 return redirect('core:home')
             else:
-                # Verificar si el usuario existe
-                try:
-                    User = get_user_model()
-                    user_exists = User.objects.filter(email=email).exists()
-                    if user_exists:
-                        messages.error(request, "La contraseña ingresada es inválida")
-                    else:
-                        messages.error(request, "El correo ingresado no se encuentra registrado")
-                except:
-                    messages.error(request, "Error en el inicio de sesión")
+                messages.error(request, "El mail o la contraseña son incorrectos")
         else:
             for field, errors in form.errors.items():
                 for error in errors:
@@ -49,14 +46,16 @@ def login_view(request):
 
     return render(request, 'user/login.html', {'form': form})
 
-
+@never_cache
 def registro(request):
+    if request.user.is_authenticated:
+        return redirect('core:home')
     if request.method == "POST":
         form = RegistroForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Cuenta creada exitosamente")
-            return redirect("user:registro")
+            return redirect("user:login")
         else:
             for field, errors in form.errors.items():
                 for error in errors:
@@ -219,14 +218,14 @@ def buscar_cliente(request):
 @login_required(login_url='user:login')
 def change_password(request):
     if request.method == "POST":
-        form = ChangePasswordForm(request.POST)
+        form = ChangePasswordForm(request.POST, user=request.user)
         if form.is_valid():
             password = form.cleaned_data.get("password")
             user = request.user
             user.set_password(password)
             user.save()
             update_session_auth_hash(request, user)
-            messages.success(request, "Contraseña actualizada exitosamente")
+            messages.success(request, "Cambio de contraseña exitoso")
             return redirect('core:home')
         else:
             for field, errors in form.errors.items():
@@ -281,13 +280,13 @@ def perfil_view(request):
                             messages.error(request, str(error))
 
         elif 'cambiar_password' in request.POST:
-            password_form = ChangePasswordForm(request.POST)
+            password_form = ChangePasswordForm(request.POST, user=request.user)
             if password_form.is_valid():
                 password = password_form.cleaned_data.get("password")
                 user.set_password(password)
                 user.save()
                 update_session_auth_hash(request, user)
-                messages.success(request, "Contraseña actualizada exitosamente")
+                messages.success(request, "Cambio de contraseña exitoso")
                 return redirect('user:perfil')
             else:
                 for field, errors in password_form.errors.items():
@@ -328,13 +327,17 @@ def admin_profesores(request):
         profesores = profesores.filter(activo=True)
     elif activo == 'inactivos':
         profesores = profesores.filter(activo=False)
+        
     if especialidad:
         profesores = profesores.filter(especialidad=especialidad)
+        
     if busqueda:
+        # 🛡️ Agregamos el filtro por DNI manteniendo el nombre, apellido y email originales
         profesores = profesores.filter(
             Q(nombre__icontains=busqueda) |
             Q(apellido__icontains=busqueda) |
-            Q(email__icontains=busqueda)
+            Q(email__icontains=busqueda) |
+            Q(dni__icontains=busqueda)
         )
 
     profesores = profesores.order_by('apellido', 'nombre')
@@ -381,6 +384,11 @@ def modificar_profesor(request, profesor_id):
     if request.method == 'POST':
         form = ProfesorForm(request.POST, instance=profesor)
         if form.is_valid():
+            # 🟢 VALIDACIÓN DE CAMBIOS: Si los campos están iguales al estado original
+            if not form.has_changed():
+                messages.info(request, "No se registraron cambios en los datos del profesor.")
+                return redirect('user:admin_profesores')
+
             form.save()
             messages.success(request, "Profesor modificado con éxito.")
             return redirect('user:admin_profesores')
@@ -395,16 +403,19 @@ def modificar_profesor(request, profesor_id):
 
 @login_required(login_url='user:login')
 def eliminar_profesor(request, profesor_id):
-    """Eliminar un profesor (solo si no tiene clases asociadas)."""
+    """Eliminar un profesor (solo si no tiene clases activas)."""
     if not _es_dueno(request):
         messages.error(request, "Solo el dueño puede eliminar profesores.")
         return redirect('user:admin_profesores')
 
     profesor = get_object_or_404(Profesor, id=profesor_id)
 
+    # Filtramos para ver si tiene clases que NO estén canceladas
+    tiene_clases_activas = profesor.clases.filter(cancelada=False).exists()
+
     if request.method == 'POST':
-        if profesor.clases.exists():
-            messages.error(request, "No se puede eliminar el profesor porque tiene clases asociadas.")
+        if tiene_clases_activas:
+            messages.error(request, "No se puede eliminar el profesor porque tiene clases activas vigentes.")
             return redirect('user:admin_profesores')
 
         profesor.delete()
@@ -413,7 +424,7 @@ def eliminar_profesor(request, profesor_id):
 
     return render(request, 'user/confirmar_eliminar_profesor.html', {
         'profesor': profesor,
-        'tiene_clases': profesor.clases.exists(),
+        'tiene_clases': tiene_clases_activas,
     })
 
 
@@ -454,9 +465,11 @@ def recuperar_contrasena_view(request):
                 fail_silently=False,
             )
             
-            messages.success(request, "El sistema envía un mail de recuperación al correo ingresado.")
+            # ESCENARIO I: El mail existe, mandamos el correo pero informamos de forma genérica
+            messages.success(request, "En caso de haber ingresado una dirección registrada, se enviará un email para recuperar la contraseña")
         else:
-            messages.error(request, "El mail ingresado no se encuentra registrado.")
+            # ESCENARIO II: El mail NO existe, NO mandamos nada pero informamos EXACTAMENTE LO MISMO
+            messages.success(request, "En caso de haber ingresado una dirección registrada, se enviará un email para recuperar la contraseña")
 
         return render(request, 'recuperar_contrasena.html')
 
@@ -476,23 +489,29 @@ def confirmar_restablecimiento_view(request, uidb64, token):
         validlink = True
         
         if request.method == "POST":
-            nueva_clave = request.POST.get("new_password1")
-            confirmar_clave = request.POST.get("new_password2")
+            form = RestablecerContrasenaForm(request.POST)
             
-            if nueva_clave == confirmar_clave:
+            if form.is_valid():
+                nueva_clave = form.cleaned_data.get("new_password1")
                 user.set_password(nueva_clave)
                 user.save()
                 
                 messages.success(request, "¡Contraseña restablecida con éxito! Ya podés iniciar sesión.")
                 return redirect('user:login') 
             else:
-                messages.error(request, "Las contraseñas ingresadas no coinciden.")
+                # 🟢 CORRECCIÓN: NO usamos messages.error() aquí.
+                # Al dejar que actúe form.errors, el error se renderiza únicamente
+                # abajo de los inputs correspondientes a través del contexto HTML.
+                pass
+        else:
+            form = RestablecerContrasenaForm()
     else:
         validlink = False
-
+        form = None
 
     return render(request, 'password_reset_confirm.html', {
         'validlink': validlink,
         'uid': uidb64,
-        'token': token
+        'token': token,
+        'form': form
     })

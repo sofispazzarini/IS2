@@ -48,7 +48,7 @@
                             class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
                         {% for profesor in form.fields.profesor.queryset %}
                             <option value="{{ profesor.id }}" {% if form.profesor.value == profesor.id or clase.profesor_id == profesor.id %}selected{% endif %}>
-                                {{ profesor.nombre }} {{ profesor.apellido }}
+                                {{ profesor.nombre }} {{ profesor.apellido }} (DNI: {{ profesor.dni|default:"Sin cargar" }})
                             </option>
                         {% endfor %}
                     </select>

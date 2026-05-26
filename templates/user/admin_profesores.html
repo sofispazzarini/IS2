@@ -14,7 +14,6 @@
             </h1>
         </div>
 
-        <!-- Navegación del panel admin -->
         <div class="bg-white shadow-lg rounded-2xl mb-8 border border-gray-100 overflow-hidden">
             <div class="flex border-b border-gray-200">
                 <a href="{% url 'user:client_list' %}"
@@ -70,7 +69,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
-                    <input type="text" name="q" value="{{ filtro_busqueda }}" placeholder="Nombre o email..."
+                    <input type="text" name="q" value="{{ filtro_busqueda }}" placeholder="Nombre, email o DNI..."
                            class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
                 </div>
                 <div class="flex items-end gap-2">
@@ -93,6 +92,7 @@
                     <thead>
                         <tr class="bg-gray-50 border-b border-gray-100">
                             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Nombre</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">DNI</th>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Email</th>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Teléfono</th>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Especialidad</th>
@@ -104,6 +104,7 @@
                         {% for profesor in profesores %}
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="px-6 py-4 font-medium text-gray-900">{{ profesor.nombre }} {{ profesor.apellido }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-700 font-mono">{{ profesor.dni }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-600">{{ profesor.email }}</td>
                                 <td class="px-6 py-4 text-gray-600">{{ profesor.telefono }}</td>
                                 <td class="px-6 py-4 text-gray-600">{{ profesor.especialidad }}</td>

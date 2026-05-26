@@ -75,6 +75,11 @@ def modificar_actividad(request, actividad_id):
     if request.method == 'POST':
         form = ActividadForm(request.POST, instance=actividad)
         if form.is_valid():
+            # 🟢 VALIDACIÓN: Si el formulario es válido pero no sufrió modificaciones
+            if not form.has_changed():
+                messages.info(request, "No se registraron cambios en la actividad.")
+                return redirect('actividad:admin_actividades')
+                
             form.save()
             messages.success(request, "Actividad modificada con éxito.")
             return redirect('actividad:admin_actividades')
@@ -89,16 +94,20 @@ def modificar_actividad(request, actividad_id):
 
 @login_required
 def eliminar_actividad(request, actividad_id):
-    """Eliminar una actividad (solo si no tiene clases asociadas)."""
+    """Eliminar una actividad (solo si no tiene clases activas)."""
     if not es_dueno(request.user):
         messages.error(request, "Solo el dueño puede eliminar actividades.")
         return redirect('actividad:admin_actividades')
 
     actividad = get_object_or_404(Actividad, id=actividad_id)
 
+    # 🔍 Filtramos para ver si tiene clases que NO estén canceladas
+    tiene_clases_activas = actividad.clases.filter(cancelada=False).exists()
+
     if request.method == 'POST':
-        if actividad.clases.exists():
-            messages.error(request, "No se puede eliminar la actividad porque tiene clases asociadas.")
+        # 🛡️ Cambiamos la condición acá: solo bloquea si hay clases activas vigentes
+        if tiene_clases_activas:
+            messages.error(request, "No se puede eliminar la actividad porque tiene clases activas vigentes.")
             return redirect('actividad:admin_actividades')
 
         actividad.delete()
@@ -107,5 +116,5 @@ def eliminar_actividad(request, actividad_id):
 
     return render(request, 'actividad/confirmar_eliminar_actividad.html', {
         'actividad': actividad,
-        'tiene_clases': actividad.clases.exists(),
+        'tiene_clases': tiene_clases_activas,  # Mandamos el filtro corregido al template
     })

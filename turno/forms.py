@@ -42,6 +42,16 @@ class ClaseForm(forms.ModelForm):
 
         if not all([fecha, hora_inicio, salon, profesor]):
             return cleaned_data
+        
+        # 🛡️ VALIDACIÓN UNIFICADA DE TIEMPO (FECHA Y HORA JUNTAS)
+        momento_clase = datetime.combine(fecha, hora_inicio)
+        ahora_local = timezone.localtime(timezone.now()).replace(tzinfo=None)
+
+        # Si el momento combinado de la clase ya pasó (sea ayer, o sea hoy hace una hora)
+        if momento_clase < ahora_local:
+            raise forms.ValidationError(
+                "No puedes crear una clase para una fecha ya pasada."
+            )
 
         hora_fin = (datetime.combine(fecha, hora_inicio) + timedelta(hours=1)).time()
         cleaned_data['hora_fin'] = hora_fin

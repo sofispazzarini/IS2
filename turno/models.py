@@ -11,14 +11,17 @@ from actividad.models import Actividad
 class Clase(models.Model):
 
     actividad = models.ForeignKey(
-        Actividad,
-        on_delete=models.PROTECT,
+        'actividad.Actividad', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
         related_name='clases'
     )
-
     profesor = models.ForeignKey(
-        Profesor,
-        on_delete=models.PROTECT,
+        'user.Profesor', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
         related_name='clases'
     )
 

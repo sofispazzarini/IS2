@@ -39,17 +39,12 @@ class User(AbstractUser):
 class Profesor(models.Model):
 
     nombre = models.CharField(max_length=100)
-
     apellido = models.CharField(max_length=100)
-
+    dni = models.IntegerField(unique=True, null=True, blank=True)
     telefono = models.CharField(max_length=20)
-
     email = models.EmailField()
-
     especialidad = models.CharField(max_length=100)
-
     descripcion = models.TextField(blank=True)
-
     activo = models.BooleanField(default=True)
 
     def __str__(self):

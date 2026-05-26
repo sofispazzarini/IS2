@@ -11,16 +11,60 @@ User = get_user_model()
 class ProfesorForm(forms.ModelForm):
     class Meta:
         model = Profesor
-        fields = ['nombre', 'apellido', 'telefono', 'email', 'especialidad', 'descripcion', 'activo']
+        # 🆕 Agregamos 'dni' a la lista de campos
+        fields = ['nombre', 'apellido', 'dni', 'telefono', 'email', 'especialidad', 'descripcion', 'activo']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-input'}),
             'apellido': forms.TextInput(attrs={'class': 'form-input'}),
+            # 🛡️ Blindamos el input de DNI contra signos, letras y decimales
+            'dni': forms.NumberInput(attrs={
+                'class': 'form-input', 
+                'min': '0',
+                'onkeydown': "if(['-', '+', 'e', 'E', '.', ','].includes(event.key)) event.preventDefault();"
+            }),
             'telefono': forms.TextInput(attrs={'class': 'form-input'}),
             'email': forms.EmailInput(attrs={'class': 'form-input'}),
             'especialidad': forms.TextInput(attrs={'class': 'form-input'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
         }
+        
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        
+        # 1. Si el email viene vacío (y tu modelo lo permite), no validamos nada
+        if not email:
+            return email
+            
+        # 2. Buscamos si ya existe algún profesor con este correo
+        queryset = Profesor.objects.filter(email=email)
+        
+        # 3. Regla clave: Si estamos EDITANDO, excluimos al profesor actual 
+        # para que no choque con su propio correo.
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+            
+        # 4. Si el queryset todavía tiene algún resultado, tiramos el error
+        if queryset.exists():
+            raise forms.ValidationError("Este correo electrónico ya está registrado en el sistema.")
+            
+        return email
+
+    # 🛡️ VALIDACIÓN EN EL BACKEND PARA EVITAR REPETIDOS
+    def clean_dni(self):
+        dni = self.cleaned_data.get('dni')
+        
+        # Filtramos por el DNI ingresado
+        queryset = Profesor.objects.filter(dni=dni)
+        
+        # Si ya existe la instancia (estamos modificando), nos excluimos de la búsqueda
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+            
+        if queryset.exists():
+            raise forms.ValidationError(f"Ya existe un profesor registrado con el DNI {dni}.")
+            
+        return dni
 
 
 class EditarPerfilForm(forms.ModelForm):
@@ -137,6 +181,11 @@ class LoginForm(forms.Form):
 
 
 class ChangePasswordForm(forms.Form):
+    current_password = forms.CharField(
+        label="Contraseña actual",
+        required=False,
+        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Contraseña actual"}),
+    )
     password = forms.CharField(
         label="Contraseña",
         required=False,
@@ -148,11 +197,24 @@ class ChangePasswordForm(forms.Form):
         widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Confirmar Contraseña"}),
     )
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_current_password(self):
+        current = self.cleaned_data.get('current_password')
+        if not current:
+            raise forms.ValidationError("Completar contraseña")
+        if self.user and not self.user.check_password(current):
+            raise forms.ValidationError("La contraseña actual es incorrecta")
+        return current
+
     def clean_password(self):
         password = self.cleaned_data.get("password")
-        if password:
-            if len(password) < 8 or len(password) > 20:
-                raise forms.ValidationError("La contraseña debe tener entre 8 y 20 caracteres")
+        if not password:
+            raise forms.ValidationError("Completar contraseña")
+        if len(password) < 8 or len(password) > 20:
+            raise forms.ValidationError("La contraseña debe tener entre 8 y 20 caracteres")
         return password
 
     def clean(self):
@@ -223,9 +285,19 @@ class RegistroForm(forms.ModelForm):
 
     def clean_dni(self):
         dni = self.cleaned_data.get("dni")
+        if dni and not dni.isdigit():
+            raise forms.ValidationError("DNI debe contener solo números")
         if dni and User.objects.filter(dni=dni).exists():
             raise forms.ValidationError("DNI ya asociado a una cuenta, vuelva a intentarlo")
         return dni
+
+    def clean_telefono(self):
+        telefono = self.cleaned_data.get("telefono")
+        if telefono:
+            telefono_sin_espacios = telefono.replace(" ", "")
+            if not telefono_sin_espacios.isdigit():
+                raise forms.ValidationError("Teléfono debe contener solo números")
+        return telefono
 
     def clean_password(self):
         password = self.cleaned_data.get("password")
@@ -255,3 +327,32 @@ class RegistroForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+class RestablecerContrasenaForm(forms.Form):
+    new_password1 = forms.CharField(
+        label="Nueva contraseña",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+    new_password2 = forms.CharField(
+        label="Confirmar nueva contraseña",
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+
+    def clean_new_password1(self):
+        password = self.cleaned_data.get("new_password1")
+        if password and (len(password) < 8 or len(password) > 20):
+            raise forms.ValidationError(
+                "Tu contraseña debe tener entre 8 y 20 caracteres, vuelva a intentarlo."
+            )
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("new_password1")
+        password_confirm = cleaned_data.get("new_password2")
+
+        # Cambiamos esto para que el error se clave directo en el campo "new_password2"
+        if password and password_confirm and password != password_confirm:
+            self.add_error('new_password2', "Las contraseñas no coinciden, vuelva a intentarlo")
+
+        return cleaned_data
