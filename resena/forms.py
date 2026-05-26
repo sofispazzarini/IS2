@@ -9,10 +9,12 @@ class ResenaForm(forms.ModelForm):
     PALABRAS_NO_PERMITIDAS = ['malo', 'terrible', 'horrible', 'pésimo', 'mediocre', 'estafa', 'puto', 'putos', 'pelotudo', 'pelotudos', 'put0', 'put0s', 'pu7os', 'forro', 'forros']
     
     comentario = forms.CharField(
+        max_length=60,
         widget=forms.Textarea(attrs={
             'rows': 3,
             'placeholder': 'Comparte tu experiencia (máximo 60 caracteres)',
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-bordo-700',
+            'maxlength': '60',
         }),
         label='Tu reseña',
         required=True,
