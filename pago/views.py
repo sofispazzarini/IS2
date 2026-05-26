@@ -232,3 +232,41 @@ def pago_pendiente(request):
             pass
     messages.warning(request, "Tu pago está pendiente de confirmación.")
     return redirect('reservas')
+
+
+@login_required
+def acumular_creditos(request, reserva_id):
+    if request.method != 'POST':
+        return redirect('reservas')
+
+    reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user, estado='cancelada')
+    pago = reserva.pagos.filter(estado_pago='aprobado').first()
+
+    if pago:
+        request.user.creditos += pago.monto
+        request.user.save()
+        pago.estado_pago = 'reembolsado'
+        pago.save()
+        messages.success(request, f"Se acreditaron ${pago.monto} a tu saldo de créditos.")
+    else:
+        messages.error(request, "No se encontró un pago asociado a esta reserva.")
+
+    return redirect('reservas')
+
+
+@login_required
+def solicitar_reembolso(request, reserva_id):
+    if request.method != 'POST':
+        return redirect('reservas')
+
+    reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user, estado='cancelada')
+    pago = reserva.pagos.filter(estado_pago='aprobado').first()
+
+    if pago:
+        pago.estado_pago = 'reembolsado'
+        pago.save()
+        messages.success(request, "Solicitud de devolución registrada. Nos contactaremos contigo.")
+    else:
+        messages.error(request, "No se encontró un pago asociado a esta reserva.")
+
+    return redirect('reservas')
