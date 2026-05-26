@@ -62,7 +62,7 @@ def pagar_con_mercadopago(request, reserva_id):
 
     if preference_response["status"] not in [200, 201]:
         pago.delete()
-        messages.error(request, f"Error MercadoPago: {preference_response.get('response')}")
+        messages.error(request, "No fue posible conectarse con la billetera virtual. Intente nuevamente más tarde")
         return redirect('detalle_reserva', reserva_id=reserva.id)
 
     preference = preference_response["response"]
@@ -217,7 +217,7 @@ def pago_fallo(request):
             pago.save()
         except Pago.DoesNotExist:
             pass
-    messages.error(request, "El pago fue rechazado. Intenta nuevamente.")
+    messages.error(request, "Pago rechazado")
     return redirect('reservas')
 
 

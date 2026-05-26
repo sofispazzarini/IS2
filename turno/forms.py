@@ -28,7 +28,8 @@ class ClaseForm(forms.ModelForm):
 
     def clean_fecha(self):
         fecha = self.cleaned_data.get('fecha')
-        if fecha and fecha < timezone.now().date():
+        hoy = timezone.localdate()
+        if fecha and fecha < hoy:
             raise forms.ValidationError("No puedes crear una clase para una fecha pasada.")
         return fecha
 

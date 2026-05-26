@@ -154,10 +154,12 @@
                     <span class="text-gray-500">DNI</span>
                     <span class="text-gray-900 font-medium">{{ user.dni }}</span>
                 </div>
+                {% if user.rol == 'cliente' %}
                 <div class="flex justify-between py-2 border-b border-gray-100">
                     <span class="text-gray-500">Créditos disponibles</span>
                     <span class="text-bordo-700 font-bold text-base">{{ user.creditos }}</span>
                 </div>
+                {% endif %}
                 <div class="flex justify-between py-2">
                     <span class="text-gray-500">Fecha de registro</span>
                     <span class="text-gray-900 font-medium">{{ user.fecha_registro|date:"d/m/Y" }}</span>
