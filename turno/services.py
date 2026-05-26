@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db import transaction
@@ -24,6 +25,11 @@ def validar_qr(qr_uuid, registrado_por=None):
 
     Retorna ResultadoValidacionQR con exito, mensaje y reserva.
     """
+    try:
+        uuid.UUID(str(qr_uuid))
+    except (ValueError, AttributeError):
+        return ResultadoValidacionQR(False, "QR inválido: el código no tiene un formato válido.")
+
     try:
         with transaction.atomic():
             reserva = Reserva.objects.select_related('clase', 'usuario').select_for_update().get(qr_uuid=qr_uuid)

@@ -280,10 +280,7 @@ def cancelar_reserva(request, reserva_id):
         reserva.estado = 'cancelada'
         reserva.save()
 
-        if estado_anterior == 'pendiente_pago':
-            messages.success(request, "La cancelación fue exitosa. Se aumentó la disponibilidad de cupos.")
-        else:
-            messages.success(request, "La cancelación fue exitosa. ¿Deseas la devolución del dinero o acumulación de créditos?")
+        messages.success(request, "Reserva cancelada exitosamente.")
 
         return redirect('reservas')
 
