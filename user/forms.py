@@ -28,6 +28,27 @@ class ProfesorForm(forms.ModelForm):
             'descripcion': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
         }
+        
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        
+        # 1. Si el email viene vacío (y tu modelo lo permite), no validamos nada
+        if not email:
+            return email
+            
+        # 2. Buscamos si ya existe algún profesor con este correo
+        queryset = Profesor.objects.filter(email=email)
+        
+        # 3. Regla clave: Si estamos EDITANDO, excluimos al profesor actual 
+        # para que no choque con su propio correo.
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+            
+        # 4. Si el queryset todavía tiene algún resultado, tiramos el error
+        if queryset.exists():
+            raise forms.ValidationError("Este correo electrónico ya está registrado en el sistema.")
+            
+        return email
 
     # 🛡️ VALIDACIÓN EN EL BACKEND PARA EVITAR REPETIDOS
     def clean_dni(self):
