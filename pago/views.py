@@ -9,12 +9,18 @@ from django.contrib import messages
 from turno.models import Reserva
 from .models import Pago
 
-sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+#sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+print(settings.MERCADO_PAGO_ACCESS_TOKEN)
+
+
+
 
 @login_required
 def pagar_con_mercadopago(request, reserva_id):
-    # 1. Volvemos a instanciar el SDK acá adentro (como hizo tu compañero por seguridad)
+    
+  
     sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+  
 
     reserva = get_object_or_404(
         Reserva,
@@ -40,23 +46,21 @@ def pagar_con_mercadopago(request, reserva_id):
                 "title": f"Clase de {reserva.clase.actividad.nombre}",
                 "quantity": 1,
                 "currency_id": "ARS",
-                "unit_price": float(pago.monto)
+                "unit_price": 1000.0
             }
         ],
         "external_reference": str(pago.id),
         "back_urls": {
             # Usamos la URL limpia que maneja tu archivo views.py
             "success": f"{settings.NGROK_URL}/pago/exito/", 
-            "failure": f"{settings.NGROK_URL}/pago/fallo/",
-            "pending": f"{settings.NGROK_URL}/pago/pendiente/",
-        },
+            "success": f"{settings.NGROK_URL}/pago/exito?source=mp",
         "auto_return": "approved",
-        "notification_url": f"{settings.NGROK_URL}/pago/webhook/"
+         }
     }
 
-    # 3. Usamos la llamada directa que tenías vos (si falla, usás la de él en dos líneas)
-    preference_response = sdk.preference().create(preference_data)
-    
+   # preference_response = sdk.preference().create(preference_data)
+    preference = sdk.preference()
+    preference_response = preference.create(preference_data)
     print("=== MERCADOPAGO DEBUG ===")
     print(f"Status: {preference_response.get('status')}")
     print("=========================")

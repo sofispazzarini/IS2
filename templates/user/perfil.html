@@ -52,12 +52,23 @@
                             {{ perfil_form.last_name }}
                         </div>
 
-                        <div>
-                            <label for="id_telefono" class="block text-sm font-medium text-gray-700">
-                                Teléfono
-                            </label>
-                            {{ perfil_form.telefono }}
-                        </div>
+                                                <div>
+                                                        <label for="id_telefono" class="block text-sm font-medium text-gray-700">
+                                                                Teléfono
+                                                        </label>
+                                                        {{ perfil_form.telefono }}
+                                                </div>
+                                                <script>
+                                                // Bloquea letras en el input de teléfono (por si el navegador no lo hace)
+                                                document.addEventListener('DOMContentLoaded', function() {
+                                                    var telInput = document.getElementById('id_telefono');
+                                                    if (telInput) {
+                                                        telInput.addEventListener('input', function(e) {
+                                                            this.value = this.value.replace(/[^0-9]/g, '');
+                                                        });
+                                                    }
+                                                });
+                                                </script>
                     </div>
 
                     <div class="mt-6 flex gap-3">

@@ -13,10 +13,10 @@
                     </svg>
                 </div>
                 <h2 class="font-heading text-2xl font-bold text-gray-900 mb-2">
-                    Eliminar Actividad
+                    Inactivar Actividad
                 </h2>
                 <p class="text-gray-500">
-                    ¿Estás seguro de que querés eliminar esta actividad?
+                    ¿Estás seguro de que querés marcar esta actividad como inactiva?
                 </p>
             </div>
 
@@ -53,17 +53,10 @@
                        class="flex-1 text-center py-3 rounded-full font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50">
                         Volver
                     </a>
-                    {% if tiene_clases %}
-                        <button type="button" disabled
-                                class="flex-1 py-3 rounded-full font-semibold bg-gray-300 text-gray-500 cursor-not-allowed">
-                            No se puede eliminar
-                        </button>
-                    {% else %}
-                        <button type="submit"
-                                class="flex-1 py-3 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700">
-                            Sí, eliminar actividad
-                        </button>
-                    {% endif %}
+                    <button type="submit"
+                            class="flex-1 py-3 rounded-full font-semibold bg-yellow-600 text-white hover:bg-yellow-700">
+                        Sí, marcar como inactiva
+                    </button>
                 </div>
             </form>
         </div>

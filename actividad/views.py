@@ -96,7 +96,7 @@ def modificar_actividad(request, actividad_id):
 def eliminar_actividad(request, actividad_id):
     """Eliminar una actividad (solo si no tiene clases activas)."""
     if not es_dueno(request.user):
-        messages.error(request, "Solo el dueño puede eliminar actividades.")
+        messages.error(request, "Solo el dueño puede modificar actividades.")
         return redirect('actividad:admin_actividades')
 
     actividad = get_object_or_404(Actividad, id=actividad_id)
@@ -105,13 +105,12 @@ def eliminar_actividad(request, actividad_id):
     tiene_clases_activas = actividad.clases.filter(cancelada=False).exists()
 
     if request.method == 'POST':
-        # 🛡️ Cambiamos la condición acá: solo bloquea si hay clases activas vigentes
-        if tiene_clases_activas:
-            messages.error(request, "No se puede eliminar la actividad porque tiene clases activas vigentes.")
-            return redirect('actividad:admin_actividades')
+        if not actividad.activa:
+            messages.info(request, "La actividad ya está inactiva.")
 
-        actividad.delete()
-        messages.success(request, "Actividad eliminada con éxito.")
+            return redirect('actividad:admin_actividades')
+        actividad.activa = False
+        actividad.save()
         return redirect('actividad:admin_actividades')
 
     return render(request, 'actividad/confirmar_eliminar_actividad.html', {
