@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from pathlib import Path
 <<<<<<< HEAD
 import os
@@ -7,6 +8,10 @@ from dotenv import load_dotenv
 from dotenv import load_dotenv
 import os
 >>>>>>> origin/feature/joaquin
+=======
+import os
+from dotenv import load_dotenv
+>>>>>>> origin/feature/olivia
 
 from pathlib import Path
 load_dotenv()
@@ -106,6 +111,9 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/feature/olivia
 # Tu dirección de correo desde donde se enviarán los mensajes
 EMAIL_HOST_USER = 'jm951659@gmail.com'
 
@@ -117,6 +125,7 @@ DEFAULT_FROM_EMAIL = 'SIRCA <jm951659@gmail.com>'
 
 MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 NGROK_URL = os.getenv("NGROK_URL", "http://127.0.0.1:8000")
+<<<<<<< HEAD
 NGROK_URL="https://uncurious-onscreen-manila.ngrok-free.dev"
 =======
 # Email configuration: default to console backend for development.
@@ -135,3 +144,5 @@ DEFAULT_FROM_EMAIL = 'jm951659@gmail.com'
 
 MERCADO_PAGO_ACCESS_TOKEN = os.environ.get("APP_USR-4715857974084293-052416-33a6d12aef08c3138283b467bbc81062-3422206410", "TEST-1234567890-PROVISORIO")
 >>>>>>> origin/feature/joaquin
+=======
+>>>>>>> origin/feature/olivia
