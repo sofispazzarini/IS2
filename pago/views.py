@@ -37,7 +37,7 @@ def pagar_con_mercadopago(request, reserva_id):
                 "title": f"Clase de {reserva.clase.actividad.nombre}",
                 "quantity": 1,
                 "currency_id": "ARS",
-                "unit_price": float(pago.monto)
+                "unit_price": 1000.0
             }
         ],
 

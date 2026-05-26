@@ -30,7 +30,13 @@ class EditarPerfilForm(forms.ModelForm):
         widgets = {
             "first_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nombre"}),
             "last_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Apellido"}),
-            "telefono": forms.TextInput(attrs={"class": "form-control", "placeholder": "Teléfono"}),
+            "telefono": forms.TextInput(attrs={
+                "class": "form-control", 
+                "placeholder": "Teléfono",
+                "inputmode": "numeric",
+                "pattern": "[0-9]*",
+                "oninput": "this.value=this.value.replace(/[^0-9]/g,'')"
+            }),
         }
         labels = {
             "first_name": "Nombre",
@@ -178,10 +184,12 @@ class ChangePasswordForm(forms.Form):
         password = cleaned_data.get("password")
         password_confirm = cleaned_data.get("password_confirm")
 
+        # Si falta alguno, error de campos vacíos
         if not password or not password_confirm:
-            raise forms.ValidationError("Completar contraseña")
+            raise forms.ValidationError("Completar ambos campos de contraseña")
 
-        if password != password_confirm:
+        # Si ambos están completos pero no coinciden, error de no coincidencia
+        if password and password_confirm and password != password_confirm:
             raise forms.ValidationError("Las contraseñas no coinciden")
 
         return cleaned_data
