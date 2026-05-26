@@ -94,11 +94,7 @@ def modificar_actividad(request, actividad_id):
 
 @login_required
 def eliminar_actividad(request, actividad_id):
-<<<<<<< HEAD
-    """Marcar actividad como inactiva (no eliminar)."""
-=======
     """Eliminar una actividad (solo si no tiene clases activas)."""
->>>>>>> origin/feature/joaquin
     if not es_dueno(request.user):
         messages.error(request, "Solo el dueño puede modificar actividades.")
         return redirect('actividad:admin_actividades')
@@ -109,26 +105,15 @@ def eliminar_actividad(request, actividad_id):
     tiene_clases_activas = actividad.clases.filter(cancelada=False).exists()
 
     if request.method == 'POST':
-<<<<<<< HEAD
         if not actividad.activa:
             messages.info(request, "La actividad ya está inactiva.")
-=======
-        # 🛡️ Cambiamos la condición acá: solo bloquea si hay clases activas vigentes
-        if tiene_clases_activas:
-            messages.error(request, "No se puede eliminar la actividad porque tiene clases activas vigentes.")
->>>>>>> origin/feature/joaquin
+
             return redirect('actividad:admin_actividades')
         actividad.activa = False
         actividad.save()
-        messages.success(request, "Actividad marcada como inactiva.")
         return redirect('actividad:admin_actividades')
 
     return render(request, 'actividad/confirmar_eliminar_actividad.html', {
         'actividad': actividad,
-<<<<<<< HEAD
-        'tiene_clases': actividad.clases.exists(),
-        'solo_inactivar': True,
-=======
         'tiene_clases': tiene_clases_activas,  # Mandamos el filtro corregido al template
->>>>>>> origin/feature/joaquin
     })

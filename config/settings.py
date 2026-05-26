@@ -1,30 +1,9 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-from pathlib import Path
-<<<<<<< HEAD
-import os
-import os
-from dotenv import load_dotenv
-=======
-from dotenv import load_dotenv
-import os
->>>>>>> origin/feature/joaquin
-=======
-import os
-from dotenv import load_dotenv
->>>>>>> origin/feature/olivia
-=======
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-
->>>>>>> origin/feature/ines
 
 from pathlib import Path
 load_dotenv()
-
-MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "django-insecure-cambiar-esta-clave-en-produccion"
@@ -120,27 +99,6 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> origin/feature/olivia
-# Tu dirección de correo desde donde se enviarán los mensajes
-EMAIL_HOST_USER = 'jm951659@gmail.com'
-
-# TU CONTRASEÑA DE APLICACIÓN (No es tu contraseña normal de Gmail)
-EMAIL_HOST_PASSWORD = 'uwop mvim hbvi sejc'
-
-# El remitente que verán los usuarios
-DEFAULT_FROM_EMAIL = 'SIRCA <jm951659@gmail.com>'
-
-MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
-NGROK_URL = os.getenv("NGROK_URL", "http://127.0.0.1:8000")
-<<<<<<< HEAD
-NGROK_URL="https://uncurious-onscreen-manila.ngrok-free.dev"
-=======
-=======
->>>>>>> origin/feature/ines
 # Email configuration: default to console backend for development.
 # For production you can configure the SMTP settings via environment variables.
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
@@ -150,23 +108,9 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 
 # If SMTP credentials are provided, prefer the SMTP backend; otherwise use console backend for dev.
-<<<<<<< HEAD
 EMAIL_HOST_USER = 'jm951659@gmail.com' 
 EMAIL_HOST_PASSWORD = 'opjk wqid ambw gmlb'  # OJO: No es tu contraseña normal
 
 DEFAULT_FROM_EMAIL = 'jm951659@gmail.com'
 
 MERCADO_PAGO_ACCESS_TOKEN = os.environ.get("APP_USR-4715857974084293-052416-33a6d12aef08c3138283b467bbc81062-3422206410", "TEST-1234567890-PROVISORIO")
->>>>>>> origin/feature/joaquin
-=======
->>>>>>> origin/feature/olivia
-=======
-if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-else:
-    EMAIL_BACKEND = os.environ.get(
-        "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-    )
-
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@sirca.local")
->>>>>>> origin/feature/ines
