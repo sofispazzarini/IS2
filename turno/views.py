@@ -26,6 +26,31 @@ from resena.models import Resena
 from resena.forms import ResenaForm
 from django.db.models import Avg, Count, Sum, Q
 
+from django.urls import reverse
+
+from django.http import HttpResponse
+
+def registrar_asistencia(request, qr_uuid):
+    reserva = get_object_or_404(Reserva, qr_uuid=qr_uuid)
+
+    # marcar asistencia
+    reserva.estado = "asistida"
+    reserva.save()
+
+    return HttpResponse("✔ Asistencia registrada correctamente")
+
+
+def generar_qr(request, obj_id):
+    base_url = "https://supreme-cavalier-unchain.ngrok-free.app"
+
+    url = f"{base_url}/asistencia/{obj_id}/"
+    print("URL DEL QR:", url)
+    img = qrcode.make(url)
+    img.save("qr.png")
+  
+    return HttpResponse("QR generado")
+    
+    
 
 def es_admin(user):
     return user.rol in ('secretario', 'dueno')
@@ -67,7 +92,10 @@ def mis_turnos(request):
 
                 if ventana_inicio <= ahora_dt <= hora_fin:
                     mostrar_qr = True
-                    qr_image = generar_qr_base64(str(reserva.qr_uuid))
+                    #qr_image = generar_qr_base64(str(reserva.qr_uuid))
+                    base_url = "https://supreme-cavalier-unchain.ngrok-free.dev"
+                    url = f"{base_url}/turno/asistencia/{reserva.qr_uuid}/"
+                    qr_image = generar_qr_base64(url)
 
         reservas_con_info.append({
             'reserva': reserva,
@@ -245,7 +273,12 @@ def detalle_reserva(request, reserva_id):
 
             if ventana_inicio <= ahora_dt <= hora_fin:
                 mostrar_qr = True
-                qr_image = generar_qr_base64(str(reserva.qr_uuid))
+                #qr_image = generar_qr_base64(str(reserva.qr_uuid))
+                base_url = "https://supreme-cavalier-unchain.ngrok-free.app"
+                url = f"{base_url}/turno/asistencia/{reserva.qr_uuid}/"
+                print("QR URL:", url)  # S
+
+                qr_image = generar_qr_base64(url)
 
     # Determinar si puede cancelar (2 días de anticipación)
     dias_anticipacion = (clase.fecha - hoy).days
@@ -599,6 +632,7 @@ def ver_clase(request, clase_id):
 
 def generar_qr_base64(data):
     """Genera un código QR como imagen base64."""
+    print("QR URL:", data)
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(data)
     qr.make(fit=True)
