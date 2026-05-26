@@ -246,12 +246,17 @@
                                 </div>
                                 <div class="flex items-center gap-3">
                                     {% if reserva.estado == 'pendiente_pago' %}
-                                    <form action="{% url 'registrar_pago_efectivo' reserva.id %}" method="POST" class="inline">
+                                    <form action="{% url 'registrar_pago_presencial' reserva.id %}" method="POST" class="inline flex items-center gap-1">
                                         {% csrf_token %}
+                                        <select name="metodo_pago" class="text-xs rounded border border-gray-300 py-1 px-2">
+                                            <option value="efectivo">Efectivo</option>
+                                            <option value="posnet">POSNET</option>
+                                            <option value="transferencia">Transferencia</option>
+                                        </select>
                                         <button type="submit"
                                                 class="px-3 py-1 text-xs font-medium rounded-full bg-green-600 text-white hover:bg-green-700 transition"
-                                                title="Registrar pago en efectivo">
-                                            Cobrar efectivo
+                                                title="Registrar pago presencial">
+                                            Cobrar
                                         </button>
                                     </form>
                                     {% endif %}
@@ -274,6 +279,15 @@
                                         {% else %}bg-gray-100 text-gray-700{% endif %}">
                                         {{ reserva.get_estado_display }}
                                     </span>
+                                    {% if reserva.estado == 'confirmada' or reserva.estado == 'asistida' %}
+                                        {% with pago=reserva.pagos.first %}
+                                            {% if pago %}
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600" title="Método de pago">
+                                                {{ pago.get_metodo_pago_display }}
+                                            </span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
                                     <a href="{% url 'user:client_profile' reserva.usuario.pk %}"
                                        class="text-bordo-700 hover:text-bordo-800" title="Ver perfil">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

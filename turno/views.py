@@ -85,7 +85,7 @@ def mis_turnos(request):
 @login_required
 def lista_clases(request):
     """Vista de calendario para reservar clases."""
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     year = int(request.GET.get('year', hoy.year))
     month = int(request.GET.get('month', hoy.month))
 
@@ -103,7 +103,7 @@ def lista_clases(request):
 @login_required
 def calendario_api(request):
     """API que retorna clases agrupadas por día para el calendario."""
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     year = int(request.GET.get('year', hoy.year))
     month = int(request.GET.get('month', hoy.month))
     actividad_id = request.GET.get('actividad')
@@ -156,7 +156,20 @@ def pedir_turno(request, clase_id):
     usuario = request.user
 
     if request.method == 'POST':
-        # 1. Escenario III: Superposición de turnos utilizando rangos de tiempo
+        # 0. Verificar que la clase no haya pasado
+        ahora = timezone.localtime(timezone.now())
+        if clase.fecha < ahora.date():
+            return render(request, 'turno/pedir_turno.html', {
+                'clase': clase,
+                'error': 'No se puede reservar una clase pasada.'
+            })
+        if clase.fecha == ahora.date() and clase.hora_inicio <= ahora.time():
+            return render(request, 'turno/pedir_turno.html', {
+                'clase': clase,
+                'error': 'No se puede reservar una clase cuyo horario ya pasó.'
+            })
+
+        # 1. Escenario III: Superposición de turnos
         superposicion = Reserva.objects.filter(
             usuario=usuario,
             clase__fecha=clase.fecha,
@@ -195,8 +208,10 @@ def pedir_turno(request, clase_id):
 @login_required
 def reserva_exitosa(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
-    qr_data = str(reserva.qr_uuid)
-    qr_image = generar_qr_base64(qr_data)
+    qr_image = None
+    if reserva.estado == 'confirmada':
+        qr_data = str(reserva.qr_uuid)
+        qr_image = generar_qr_base64(qr_data)
     return render(request, 'turno/reserva_exitosa.html', {
         'reserva': reserva,
         'qr_image': qr_image,
@@ -250,7 +265,7 @@ def cancelar_reserva(request, reserva_id):
     # Buscamos la reserva del usuario actual
     reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
     clase = reserva.clase
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
 
     # REGLA DE NEGOCIO: Mínimo 2 días de anticipación
     # Si la clase es el 16 y hoy es 14, la diferencia es 2 (Permitido)
@@ -289,7 +304,7 @@ def admin_clases(request):
     fecha_hasta = request.GET.get('fecha_hasta', '')
     salon = request.GET.get('salon', '').strip()
 
-    clases = Clase.objects.filter(fecha__gte=timezone.now().date())
+    clases = Clase.objects.filter(fecha__gte=timezone.localdate())
 
     if actividad_id:
         clases = clases.filter(actividad_id=actividad_id)
@@ -650,8 +665,8 @@ def escanear_qr(request):
 
 @login_required
 @require_http_methods(["POST"])
-def registrar_pago_efectivo(request, reserva_id):
-    """Registra un pago en efectivo para una reserva (solo admin)."""
+def registrar_pago_presencial(request, reserva_id):
+    """Registra un pago presencial para una reserva (solo admin)."""
     if not es_admin(request.user):
         messages.error(request, "No tienes permisos para registrar pagos.")
         return redirect('core:home')
@@ -662,12 +677,18 @@ def registrar_pago_efectivo(request, reserva_id):
         messages.warning(request, "Esta reserva ya fue pagada o está cancelada.")
         return redirect('detalle_clase', clase_id=reserva.clase.id)
 
+    metodo_pago = request.POST.get('metodo_pago', 'efectivo')
+    metodos_validos = ['efectivo', 'posnet', 'transferencia']
+    if metodo_pago not in metodos_validos:
+        messages.error(request, "Método de pago inválido.")
+        return redirect('detalle_clase', clase_id=reserva.clase.id)
+
     # Crear el pago
     from pago.models import Pago
     Pago.objects.create(
         reserva=reserva,
         monto=reserva.clase.actividad.precio,
-        metodo_pago='efectivo',
+        metodo_pago=metodo_pago,
         estado_pago='aprobado',
         registrado_por=request.user
     )
@@ -676,7 +697,8 @@ def registrar_pago_efectivo(request, reserva_id):
     reserva.estado = 'confirmada'
     reserva.save()
 
-    messages.success(request, f"Pago en efectivo registrado para {reserva.usuario.get_full_name() or reserva.usuario.username}.")
+    metodo_display = {'efectivo': 'efectivo', 'posnet': 'POSNET', 'transferencia': 'transferencia'}
+    messages.success(request, f"Pago con {metodo_display.get(metodo_pago, metodo_pago)} registrado para {reserva.usuario.get_full_name() or reserva.usuario.username}.")
     return redirect('detalle_clase', clase_id=reserva.clase.id)
 
 

@@ -26,6 +26,13 @@ class ClaseForm(forms.ModelForm):
         for field in self.fields.values():
             field.widget.attrs.setdefault('class', 'form-input')
 
+    def clean_fecha(self):
+        fecha = self.cleaned_data.get('fecha')
+        hoy = timezone.localdate()
+        if fecha and fecha < hoy:
+            raise forms.ValidationError("No puedes crear una clase para una fecha pasada.")
+        return fecha
+
     def clean(self):
         cleaned_data = super().clean()
         fecha = cleaned_data.get('fecha')
@@ -92,4 +99,6 @@ class ClaseForm(forms.ModelForm):
         cupo = self.cleaned_data.get('cupo_maximo')
         if cupo is not None and cupo <= 0:
             raise forms.ValidationError("La clase debe contar como mínimo con 1 cupo.")
+        if cupo is not None and cupo > 50:
+            raise forms.ValidationError("El cupo máximo permitido por salón es de 50 personas.")
         return cupo
