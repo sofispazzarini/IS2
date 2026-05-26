@@ -75,6 +75,11 @@ def modificar_actividad(request, actividad_id):
     if request.method == 'POST':
         form = ActividadForm(request.POST, instance=actividad)
         if form.is_valid():
+            # 🟢 VALIDACIÓN: Si el formulario es válido pero no sufrió modificaciones
+            if not form.has_changed():
+                messages.info(request, "No se registraron cambios en la actividad.")
+                return redirect('actividad:admin_actividades')
+                
             form.save()
             messages.success(request, "Actividad modificada con éxito.")
             return redirect('actividad:admin_actividades')

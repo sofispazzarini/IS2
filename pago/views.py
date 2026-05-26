@@ -17,10 +17,15 @@ print(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
 @login_required
 def pagar_con_mercadopago(request, reserva_id):
+<<<<<<< HEAD
     
   
     sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
   
+=======
+    # 1. Volvemos a instanciar el SDK acá adentro (como hizo tu compañero por seguridad)
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+>>>>>>> f30625175676a35b2de577dff305ca6c87973f0d
 
     reserva = get_object_or_404(
         Reserva,
@@ -28,8 +33,9 @@ def pagar_con_mercadopago(request, reserva_id):
         usuario=request.user
     )
 
-    if reserva.estado != 'pendiente_pago':
-        messages.warning(request, "La reserva ya fue abonada.")
+    # 2. Mantenemos tu validación pero corregida al estado real ('pendiente')
+    if reserva.estado != 'pendiente':
+        messages.warning(request, "La reserva ya fue abonada o no está disponible para pagar.")
         return redirect('detalle_reserva', reserva_id=reserva.id)
 
     pago = Pago.objects.create(
@@ -48,35 +54,40 @@ def pagar_con_mercadopago(request, reserva_id):
                 "unit_price": float(pago.monto)
             }
         ],
-
         "external_reference": str(pago.id),
-
         "back_urls": {
+<<<<<<< HEAD
             "success": f"{settings.NGROK_URL}/pago/exito?source=mp",
+=======
+            # Usamos la URL limpia que maneja tu archivo views.py
+            "success": f"{settings.NGROK_URL}/pago/exito/", 
+>>>>>>> f30625175676a35b2de577dff305ca6c87973f0d
             "failure": f"{settings.NGROK_URL}/pago/fallo/",
             "pending": f"{settings.NGROK_URL}/pago/pendiente/",
         },
-
         "auto_return": "approved",
-
         "notification_url": f"{settings.NGROK_URL}/pago/webhook/"
     }
 
+<<<<<<< HEAD
    # preference_response = sdk.preference().create(preference_data)
     preference = sdk.preference()
     preference_response = preference.create(preference_data)
+=======
+    # 3. Usamos la llamada directa que tenías vos (si falla, usás la de él en dos líneas)
+    preference_response = sdk.preference().create(preference_data)
+    
+>>>>>>> f30625175676a35b2de577dff305ca6c87973f0d
     print("=== MERCADOPAGO DEBUG ===")
     print(f"Status: {preference_response.get('status')}")
-    print(f"Response: {preference_response.get('response')}")
     print("=========================")
 
     if preference_response["status"] not in [200, 201]:
         pago.delete()
-        messages.error(request, f"Error MercadoPago: {preference_response.get('response')}")
+        messages.error(request, "No fue posible conectarse con la billetera virtual. Intente nuevamente más tarde")
         return redirect('detalle_reserva', reserva_id=reserva.id)
 
     preference = preference_response["response"]
-
     pago.preference_id = preference["id"]
     pago.save()
 
@@ -227,7 +238,7 @@ def pago_fallo(request):
             pago.save()
         except Pago.DoesNotExist:
             pass
-    messages.error(request, "El pago fue rechazado. Intenta nuevamente.")
+    messages.error(request, "Pago rechazado")
     return redirect('reservas')
 
 

@@ -11,6 +11,8 @@ class Pago(models.Model):
         ('tarjeta', 'Tarjeta'),
         ('mercado_pago', 'Mercado Pago'),
         ('creditos', 'Créditos'),
+        ('posnet', 'POSNET'),
+        ('transferencia', 'Transferencia'),
     )
 
     ESTADOS = (

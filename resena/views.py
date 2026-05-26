@@ -29,7 +29,17 @@ def crear_resena(request):
             }
         )
         
-        # Crear la reseña
+        # CHEQUEO DE LA REGLA DE NEGOCIO: ¿Ya existe una reseña de este usuario para esta actividad?
+        ya_existe = Resena.objects.filter(usuario=request.user, actividad=actividad).exists()
+        
+        if ya_existe:
+            messages.error(
+                request, 
+                'Ya has enviado una reseña anteriormente. No puedes dejar más de una.'
+            )
+            return redirect('core:home')
+        
+        # Si no existe, procedemos a crearla normalmente
         resena = form.save(commit=False)
         resena.usuario = request.user
         resena.actividad = actividad
