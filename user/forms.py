@@ -22,7 +22,11 @@ class ProfesorForm(forms.ModelForm):
                 'min': '0',
                 'onkeydown': "if(['-', '+', 'e', 'E', '.', ','].includes(event.key)) event.preventDefault();"
             }),
-            'telefono': forms.TextInput(attrs={'class': 'form-input'}),
+            'telefono': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'min': '0',
+                'onkeydown': "if(['-', '+', 'e', 'E', '.', ','].includes(event.key)) event.preventDefault();"
+            }),
             'email': forms.EmailInput(attrs={'class': 'form-input'}),
             'especialidad': forms.TextInput(attrs={'class': 'form-input'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
@@ -53,18 +57,26 @@ class ProfesorForm(forms.ModelForm):
     # 🛡️ VALIDACIÓN EN EL BACKEND PARA EVITAR REPETIDOS
     def clean_dni(self):
         dni = self.cleaned_data.get('dni')
-        
+
         # Filtramos por el DNI ingresado
         queryset = Profesor.objects.filter(dni=dni)
-        
+
         # Si ya existe la instancia (estamos modificando), nos excluimos de la búsqueda
         if self.instance and self.instance.pk:
             queryset = queryset.exclude(pk=self.instance.pk)
-            
+
         if queryset.exists():
             raise forms.ValidationError(f"Ya existe un profesor registrado con el DNI {dni}.")
-            
+
         return dni
+
+    def clean_telefono(self):
+        telefono = self.cleaned_data.get('telefono')
+        if telefono:
+            telefono_str = str(telefono).replace(" ", "")
+            if not telefono_str.isdigit():
+                raise forms.ValidationError("El teléfono solo puede contener números.")
+        return telefono
 
 
 class EditarPerfilForm(forms.ModelForm):

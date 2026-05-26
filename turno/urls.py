@@ -12,6 +12,7 @@ urlpatterns = [
     path('reservas/<int:reserva_id>/', views.detalle_reserva, name='detalle_reserva'),
     path('reservas/<int:reserva_id>/exitosa/', views.reserva_exitosa, name='reserva_exitosa'),
     path('reservas/cancelar/<int:reserva_id>/', views.cancelar_reserva, name='cancelar_reserva'),
+    path('reservas/<int:reserva_id>/opciones-reembolso/', views.opciones_reembolso, name='opciones_reembolso'),
 
     # Admin de clases
     path('admin/clases/', views.admin_clases, name='admin_clases'),
