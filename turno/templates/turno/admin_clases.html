@@ -14,7 +14,6 @@
             </h1>
         </div>
 
-        <!-- Navegación del panel admin -->
         <div class="bg-white shadow-lg rounded-2xl mb-8 border border-gray-100 overflow-hidden">
             <div class="flex border-b border-gray-200">
                 <a href="{% url 'user:client_list' %}"
@@ -139,6 +138,7 @@
                                 <td class="px-6 py-4 text-gray-600">{{ clase.profesor }}</td>
                                 <td class="px-6 py-4 text-gray-600">{{ clase.salon }}</td>
                                 <td class="px-6 py-4 text-gray-600">{{ clase.cupo_maximo }}</td>
+                                
                                 <td class="px-6 py-4">
                                     {% if clase.cancelada %}
                                         <span class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">Cancelada</span>
@@ -146,8 +146,9 @@
                                         <span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">Activa</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-3">
+                                
+                                <td class="px-6 py-4 min-w-[120px]">
+                                    <div class="flex items-center gap-3 flex-nowrap">
                                         <a href="{% url 'detalle_clase' clase.id %}"
                                            class="text-blue-600 hover:text-blue-800" title="Ver">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,7 +156,8 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                             </svg>
                                         </a>
-                                        {% if not clase.cancelada and es_dueno %}
+                                        
+                                        {% if not clase.cancelada and not clase.ya_paso and es_dueno or not clase.cancelada and not clase.ya_paso and user.rol == 'admin' or not clase.cancelada and not clase.ya_paso and user.rol == 'administrador' %}
                                             <a href="{% url 'modificar_clase' clase.id %}"
                                                class="text-bordo-700 hover:text-bordo-800" title="Modificar">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
