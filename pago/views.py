@@ -9,8 +9,7 @@ from django.contrib import messages
 from turno.models import Reserva
 from .models import Pago
 
-#sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
-print(settings.MERCADO_PAGO_ACCESS_TOKEN)
+sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
 
 
@@ -134,7 +133,7 @@ def pagar_con_mercadopago(request, reserva_id):
     pago.preference_id = preference["id"]
     pago.save()
 
-    return redirect(preference["init_point"])
+    return redirect(preference["sandbox_init_point"])
 
 @login_required
 def pagar_con_creditos(request, reserva_id):
