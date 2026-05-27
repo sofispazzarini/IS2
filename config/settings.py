@@ -1,19 +1,16 @@
 import os
-from pathlib import Path
 from dotenv import load_dotenv
+import pathlib
 load_dotenv()
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "django-insecure-cambiar-esta-clave-en-produccion"
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.ngrok-free.dev', '.ngrok.io']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.ngrok-free.dev', '.ngrok.io']
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.ngrok-free.dev',
-    'https://*.ngrok.io',
-]
+CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.dev', 'https://*.ngrok.io']
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -91,20 +88,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'  # o donde quieras que vaya después de loguear
 LOGOUT_REDIRECT_URL = ('/auth/login/')
-# Configuración para envío de correos reales mediante Gmail
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
 
-# Tu dirección de correo desde donde se enviarán los mensajes
-EMAIL_HOST_USER = 'jm951659@gmail.com'
-
-# TU CONTRASEÑA DE APLICACIÓN (No es tu contraseña normal de Gmail)
-EMAIL_HOST_PASSWORD = 'uwop mvim hbvi sejc'
-
-# El remitente que verán los usuarios
-DEFAULT_FROM_EMAIL = 'SIRCA <jm951659@gmail.com>'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'no-reply@sirca.local'
 
 MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
-NGROK_URL = os.getenv("NGROK_URL", "http://127.0.0.1:8000")
+MP_PUBLIC_KEY = os.getenv("MP_PUBLIC_KEY")
+NGROK_URL = os.getenv("NGROK_URL", "http://localhost:8000")
