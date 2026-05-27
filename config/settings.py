@@ -2,7 +2,10 @@ import os
 from dotenv import load_dotenv
 import pathlib
 load_dotenv()
-BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
+
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "django-insecure-cambiar-esta-clave-en-produccion"
 
