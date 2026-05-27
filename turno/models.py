@@ -4,6 +4,8 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
+from datetime import datetime
+
 from user.models import User, Profesor
 from actividad.models import Actividad
 
@@ -36,11 +38,36 @@ class Clase(models.Model):
         null=True
     )
 
+    @property
+    def ya_paso(self):
+        """Devuelve True si la clase ya comenzó (comparando con la hora local actual)"""
+        if not self.fecha or not self.hora_inicio:
+            return False
+        
+        # Combinamos la fecha y hora de la clase
+        fecha_hora_clase = datetime.combine(self.fecha, self.hora_inicio)
+        
+        # Obtenemos la hora local actual del servidor (asumiendo tu TIME_ZONE de Argentina)
+        ahora_local = timezone.localtime(timezone.now())
+        
+        # Hacemos que la fecha de la clase tenga la misma zona horaria local para comparar manzanas con manzanas
+        fecha_hora_clase = timezone.make_aware(fecha_hora_clase, ahora_local.tzinfo)
+            
+        # Si la hora actual es mayor o igual a la hora de inicio, ya no se puede tocar
+        return ahora_local >= fecha_hora_clase
+
     def clean(self):
+        # Validación original al crear la clase
         if self._state.adding: 
             if self.fecha and self.fecha < timezone.localdate():
                 raise ValidationError('No puedes crear una actividad para una fecha pasada')
+        
+        # NUEVA VALIDACIÓN: Si el objeto ya existe (se está modificando o cancelando) y ya pasó, bloquea la acción
+        else:
+            if self.ya_paso:
+                raise ValidationError('No puedes modificar ni cancelar una clase que ya ha finalizado.')
 
+        # Validación original de salón y profesor ocupado
         salon_ocupado = Clase.objects.filter(
             fecha=self.fecha,
             hora_inicio=self.hora_inicio,
