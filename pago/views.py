@@ -51,26 +51,16 @@ def pagar_con_mercadopago(request, reserva_id):
         "back_urls": {
             # Usamos la URL limpia que maneja tu archivo views.py
             "success": f"{settings.NGROK_URL}/pago/exito/", 
-<<<<<<< HEAD
-            "success": f"{settings.NGROK_URL}/pago/exito?source=mp",
-=======
             "failure": f"{settings.NGROK_URL}/pago/fallo/",
             "pending": f"{settings.NGROK_URL}/pago/pendiente/",
         },
->>>>>>> 67b13566c90f9e5bbc3c349bf03acd93d4da2dd5
         "auto_return": "approved",
          }
-    }
+    
 
-<<<<<<< HEAD
-   # preference_response = sdk.preference().create(preference_data)
-    preference = sdk.preference()
-    preference_response = preference.create(preference_data)
-=======
     # 3. Usamos la llamada directa que tenías vos (si falla, usás la de él en dos líneas)
     preference_response = sdk.preference().create(preference_data)
     
->>>>>>> 67b13566c90f9e5bbc3c349bf03acd93d4da2dd5
     print("=== MERCADOPAGO DEBUG ===")
     print(f"Status: {preference_response.get('status')}")
     print("=========================")

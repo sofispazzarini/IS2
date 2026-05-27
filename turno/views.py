@@ -41,7 +41,7 @@ def registrar_asistencia(request, qr_uuid):
 
 
 def generar_qr(request, obj_id):
-    base_url = "https://supreme-cavalier-unchain.ngrok-free.app"
+    base_url = "https://stubble-cytoplast-busload.ngrok-free.dev"
 
     url = f"{base_url}/asistencia/{obj_id}/"
     print("URL DEL QR:", url)
@@ -655,7 +655,7 @@ def generar_qr_base64(data):
 @login_required
 @require_http_methods(["POST"])
 def validar_qr_api(request):
-    """API para validar un código QR y registrar asistencia."""
+    """API para validar un código QR y frar asistencia."""
     if not es_admin(request.user):
         return JsonResponse({
             'exito': False,
