@@ -17,10 +17,15 @@ print(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
 @login_required
 def pagar_con_mercadopago(request, reserva_id):
+<<<<<<< HEAD
     
   
     sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
   
+=======
+    # 1. Volvemos a instanciar el SDK acá adentro (como hizo tu compañero por seguridad)
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+>>>>>>> origin/feature/ines
 
     reserva = get_object_or_404(
         Reserva,
@@ -53,14 +58,26 @@ def pagar_con_mercadopago(request, reserva_id):
         "back_urls": {
             # Usamos la URL limpia que maneja tu archivo views.py
             "success": f"{settings.NGROK_URL}/pago/exito/", 
+<<<<<<< HEAD
             "success": f"{settings.NGROK_URL}/pago/exito?source=mp",
+=======
+            "failure": f"{settings.NGROK_URL}/pago/fallo/",
+            "pending": f"{settings.NGROK_URL}/pago/pendiente/",
+        },
+>>>>>>> origin/feature/ines
         "auto_return": "approved",
          }
     }
 
+<<<<<<< HEAD
    # preference_response = sdk.preference().create(preference_data)
     preference = sdk.preference()
     preference_response = preference.create(preference_data)
+=======
+    # 3. Usamos la llamada directa que tenías vos (si falla, usás la de él en dos líneas)
+    preference_response = sdk.preference().create(preference_data)
+    
+>>>>>>> origin/feature/ines
     print("=== MERCADOPAGO DEBUG ===")
     print(f"Status: {preference_response.get('status')}")
     print("=========================")
