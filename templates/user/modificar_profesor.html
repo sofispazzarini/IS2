@@ -68,11 +68,9 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                        <input type="text" name="telefono" value="{{ profesor.telefono }}" required
+                        <input type="tel" name="telefono" id="telefono" value="{{ profesor.telefono }}" required
+                               inputmode="numeric"
                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
-                        {% if form.telefono.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.telefono.errors.0 }}</p>
-                        {% endif %}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Especialidad</label>
@@ -113,4 +111,54 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const telefonoInput = document.getElementById('telefono');
+
+    // Bloquear cualquier caracter que no sea número
+    telefonoInput.addEventListener('keypress', function(e) {
+        if (!/[0-9]/.test(e.key)) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Caracter no permitido',
+                text: 'El teléfono solo puede contener números.',
+                confirmButtonColor: '#8b1c26'
+            });
+        }
+    });
+
+    // Prevenir pegar texto con letras
+    telefonoInput.addEventListener('paste', function(e) {
+        const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+        if (!/^\d*$/.test(pastedData)) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Contenido no permitido',
+                text: 'El teléfono solo puede contener números.',
+                confirmButtonColor: '#8b1c26'
+            });
+        }
+    });
+
+    // Validación al enviar el formulario
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const telefono = telefonoInput.value;
+        if (!/^\d+$/.test(telefono)) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Teléfono inválido',
+                text: 'El teléfono solo puede contener números.',
+                confirmButtonColor: '#8b1c26'
+            });
+        }
+    });
+});
+</script>
 {% endblock %}
