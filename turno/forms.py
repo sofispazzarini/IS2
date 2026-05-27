@@ -58,6 +58,10 @@ class ClaseForm(forms.ModelForm):
 
         clase_actual_id = self.instance.pk if self.instance else None
 
+        # 📋 LISTA PARA ACUMULAR LOS ERRORES
+        errores_globales = []
+
+        # 1. Validación de Salón
         conflicto_salon = Clase.objects.filter(
             fecha=fecha,
             salon=salon,
@@ -67,10 +71,11 @@ class ClaseForm(forms.ModelForm):
         ).exclude(pk=clase_actual_id).exists()
 
         if conflicto_salon:
-            raise forms.ValidationError(
+            errores_globales.append(
                 f"Salón no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
 
+        # 2. Validación de Profesor (se ejecuta SIEMPRE, no se corta por el salón)
         conflicto_profesor = Clase.objects.filter(
             fecha=fecha,
             profesor=profesor,
@@ -80,9 +85,13 @@ class ClaseForm(forms.ModelForm):
         ).exclude(pk=clase_actual_id).exists()
 
         if conflicto_profesor:
-            raise forms.ValidationError(
+            errores_globales.append(
                 f"Profesor no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
+
+        # 🚨 SI SE JUNTÓ ALGÚN ERROR, LOS MANDAMOS TODOS DE UNA
+        if errores_globales:
+            raise forms.ValidationError(errores_globales)
 
         return cleaned_data
 

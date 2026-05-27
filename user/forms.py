@@ -242,7 +242,7 @@ class ChangePasswordForm(forms.Form):
 
         # Si falta alguno, error de campos vacíos
         if not password or not password_confirm:
-            raise forms.ValidationError("Completar ambos campos de contraseña")
+            raise forms.ValidationError("Las contraseñas no coinciden")
 
         # Si ambos están completos pero no coinciden, error de no coincidencia
         if password and password_confirm and password != password_confirm:
