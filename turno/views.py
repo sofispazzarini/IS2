@@ -93,7 +93,7 @@ def mis_turnos(request):
                 if ventana_inicio <= ahora_dt <= hora_fin:
                     mostrar_qr = True
                     #qr_image = generar_qr_base64(str(reserva.qr_uuid))
-                    base_url = "https://supreme-cavalier-unchain.ngrok-free.dev"
+                    base_url = " https://stubble-cytoplast-busload.ngrok-free.dev"
                     url = f"{base_url}/turno/asistencia/{reserva.qr_uuid}/"
                     qr_image = generar_qr_base64(url)
 
@@ -274,7 +274,7 @@ def detalle_reserva(request, reserva_id):
             if ventana_inicio <= ahora_dt <= hora_fin:
                 mostrar_qr = True
                 #qr_image = generar_qr_base64(str(reserva.qr_uuid))
-                base_url = "https://supreme-cavalier-unchain.ngrok-free.app"
+                base_url = " https://stubble-cytoplast-busload.ngrok-free.dev"
                 url = f"{base_url}/turno/asistencia/{reserva.qr_uuid}/"
                 print("QR URL:", url)  # S
 
