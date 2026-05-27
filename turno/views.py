@@ -262,32 +262,39 @@ def detalle_reserva(request, reserva_id):
 
 @login_required
 def cancelar_reserva(request, reserva_id):
-    # Buscamos la reserva del usuario actual
     reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
     clase = reserva.clase
     hoy = timezone.localdate()
 
-    # REGLA DE NEGOCIO: Mínimo 2 días de anticipación
-    # Si la clase es el 16 y hoy es 14, la diferencia es 2 (Permitido)
-    # Si la clase es el 15 y hoy es 14, la diferencia es 1 (No permitido)
     if (clase.fecha - hoy) < timedelta(days=2):
-        # Escenario III: Cancelación fallida
         messages.error(request, "Las cancelaciones con menos de dos días de anticipación no están permitidas.")
         return redirect('reservas')
 
     if request.method == 'POST':
-        estado_anterior = reserva.estado
+        era_abonada = reserva.estado == 'confirmada'
         reserva.estado = 'cancelada'
         reserva.save()
 
-        if estado_anterior == 'pendiente_pago':
-            messages.success(request, "La cancelación fue exitosa. Se aumentó la disponibilidad de cupos.")
+        if era_abonada:
+            return redirect('opciones_reembolso', reserva_id=reserva.id)
         else:
-            messages.success(request, "La cancelación fue exitosa. ¿Deseas la devolución del dinero o acumulación de créditos?")
-
-        return redirect('reservas')
+            messages.success(request, "Reserva cancelada exitosamente.")
+            return redirect('reservas')
 
     return render(request, 'turno/confirmar_cancelacion.html', {'reserva': reserva})
+
+
+@login_required
+def opciones_reembolso(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user, estado='cancelada')
+    pago = reserva.pagos.filter(estado_pago='aprobado').first()
+    monto = pago.monto if pago else reserva.clase.actividad.precio
+
+    return render(request, 'turno/opciones_reembolso.html', {
+        'reserva': reserva,
+        'pago': pago,
+        'monto': monto
+    })
 
 
 @login_required
