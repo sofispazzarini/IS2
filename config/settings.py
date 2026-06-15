@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 import pathlib
+from pathlib import Path
 load_dotenv()
 from pathlib import Path
 
@@ -95,8 +96,13 @@ LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'  # o donde quieras que vaya después de loguear
 LOGOUT_REDIRECT_URL = ('/auth/login/')
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'no-reply@sirca.local'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'jm951659@gmail.com'
+EMAIL_HOST_PASSWORD = 'gqzn rbee hxap htls'
+DEFAULT_FROM_EMAIL = 'SIRCA <no-reply@sirca.local>'
 
 #MERCADO_PAGO_ACCESS_TOKEN = os.getenv("APP_USR-4715857974084293-052416-33a6d12aef08c3138283b467bbc81062-3422206410")
 #MP_PUBLIC_KEY = os.getenv("MP_PUBLIC_KEY")
