@@ -146,7 +146,7 @@ class ValidarQRTestCase(TestCase):
         resultado = validar_qr(str(reserva.qr_uuid), registrado_por=self.admin)
 
         self.assertFalse(resultado.exito)
-        self.assertIn('deshabilitado', resultado.mensaje.lower())
+        self.assertEqual(resultado.mensaje, 'QR ya usado')
 
     @patch('turno.services.timezone.now')
     @patch('turno.services.timezone.localtime')
