@@ -9,49 +9,42 @@
         <!-- Header -->
         <div class="mb-8">
             <a href="{% url 'admin_clases' %}" class="inline-flex items-center text-bordo-700 hover:text-bordo-800 font-medium mb-4">
-                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-                Volver a clases
+    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Volver a clases
+</a>
+
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+        <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-1">
+            Detalle de clase
+        </p>
+        <h1 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
+            {{ clase.actividad.nombre }}
+        </h1>
+    </div>
+
+    <div class="flex gap-3 flex-wrap items-center">
+        {% if not clase.cancelada and es_dueno and not clase.ya_paso %}
+            <a href="{% url 'modificar_clase' clase.id %}"
+               class="px-5 py-2.5 rounded-full font-semibold border-2 border-bordo-700 text-bordo-700 hover:bg-bordo-50 transition">
+                Modificar
             </a>
+            <a href="{% url 'cancelar_clase' clase.id %}"
+               class="px-5 py-2.5 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700 transition">
+                Cancelar clase
+            </a>
+        {% endif %}
 
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-1">
-                        Detalle de clase
-                    </p>
-                    <h1 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
-                        {{ clase.actividad.nombre }}
-                    </h1>
-                </div>
-
-                {% if not clase.cancelada and es_dueno %}
-                <div class="flex gap-3 flex-wrap">
-                    <a href="{% url 'modificar_clase' clase.id %}"
-                       class="px-5 py-2.5 rounded-full font-semibold border-2 border-bordo-700 text-bordo-700 hover:bg-bordo-50 transition">
-                        Modificar
-                    </a>
-                    <a href="{% url 'cancelar_clase' clase.id %}"
-                       class="px-5 py-2.5 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700 transition">
-                        Cancelar clase
-                    </a>
-                    {% if clase_finalizada %}
-                    <a href="{% url 'lista_presentes_clase' clase.id %}"
-                       class="px-5 py-2.5 rounded-full font-semibold bg-green-600 text-white hover:bg-green-700 transition">
-                        Ver lista de presentes
-                    </a>
-                    {% endif %}
-                </div>
-                {% elif clase_finalizada %}
-                <div>
-                    <a href="{% url 'lista_presentes_clase' clase.id %}"
-                       class="inline-flex items-center px-5 py-2.5 rounded-full font-semibold bg-green-600 text-white hover:bg-green-700 transition">
-                        Ver lista de presentes
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
+        {% if es_dueno and clase_finalizada %}
+            <a href="{% url 'lista_presentes_clase' clase.id %}"
+               class="px-5 py-2.5 rounded-full font-semibold bg-green-600 text-white hover:bg-green-700 transition">
+                Ver lista de presentes
+            </a>
+        {% endif %}
+    </div>
+</div>
 
         <!-- Stats Cards -->
         <div class="grid grid-cols-2 {% if es_dueno %}md:grid-cols-5{% else %}md:grid-cols-4{% endif %} gap-4 mb-8">
