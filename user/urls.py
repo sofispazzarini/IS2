@@ -16,6 +16,7 @@ urlpatterns = [
     path('cliente/<int:user_id>/reset-password/', views.secretary_reset_password, name='secretary_reset_password'),
     path('cliente/<int:user_id>/dar-baja/', views.dar_baja_cliente, name='dar_baja_cliente'),
     path('logout/', views.logout_view, name='logout'),
+    path('mantenimiento/toggle/', views.toggle_modo_mantenimiento, name='toggle_modo_mantenimiento'),
     path('register/', views.registro, name='register'),
 
     # Profesores

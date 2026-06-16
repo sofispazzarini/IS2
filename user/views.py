@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm
 from .models import HistorialUsuarioBaja, Profesor
+from core.models import ConfiguracionSistema
 from django.utils.http import urlsafe_base64_encode
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_bytes
@@ -96,12 +97,16 @@ def client_list(request):
         )
 
     users = users.order_by('first_name', 'last_name')
+    modo_mantenimiento_activo = ConfiguracionSistema.obtener().modo_mantenimiento
+    es_dueno = getattr(request.user, 'rol', None) == 'dueno'
 
     return render(request, 'user/client_list.html', {
         'clients': users,
         'filtro_busqueda': busqueda,
         'filtro_estado': estado,
         'hay_filtros': any([busqueda, estado]),
+        'modo_mantenimiento_activo': modo_mantenimiento_activo,
+        'es_dueno': es_dueno,
     })
 
 
@@ -312,6 +317,24 @@ def _es_dueno(request):
 
 
 @login_required(login_url='user:login')
+def toggle_modo_mantenimiento(request):
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    if request.method == 'POST':
+        configuracion = ConfiguracionSistema.obtener()
+        configuracion.modo_mantenimiento = not configuracion.modo_mantenimiento
+        configuracion.save()
+
+        if configuracion.modo_mantenimiento:
+            messages.success(request, "Se ha activado el modo mantenimiento")
+        else:
+            messages.success(request, "Se ha desactivado el modo mantenimiento")
+
+    return redirect('user:client_list')
+
+
+@login_required(login_url='user:login')
 def admin_profesores(request):
     """Panel de administración de profesores."""
     if not _es_admin(request):
@@ -342,6 +365,7 @@ def admin_profesores(request):
 
     profesores = profesores.order_by('apellido', 'nombre')
     especialidades = Profesor.objects.values_list('especialidad', flat=True).distinct().order_by('especialidad')
+    modo_mantenimiento_activo = ConfiguracionSistema.obtener().modo_mantenimiento
 
     return render(request, 'user/admin_profesores.html', {
         'profesores': profesores,
@@ -351,6 +375,7 @@ def admin_profesores(request):
         'filtro_especialidad': especialidad,
         'filtro_busqueda': busqueda,
         'hay_filtros': any([activo, especialidad, busqueda]),
+        'modo_mantenimiento_activo': modo_mantenimiento_activo,
     })
 
 

@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from .forms import RegistroForm
 from django.test import Client
 from django.urls import reverse
+from core.models import ConfiguracionSistema
 
 User = get_user_model()
 
@@ -346,3 +347,65 @@ class LoginViewTestCase(TestCase):
         response = self.client.get(reverse('user:login'))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], reverse('core:home'))
+
+
+class ModoMantenimientoTestCase(TestCase):
+    def setUp(self):
+        fecha_nac = date(2006, 5, 2)
+        self.dueno = User.objects.create_user(
+            username='dueno@sirca.com',
+            email='dueno@sirca.com',
+            password='Dueno1234',
+            first_name='Juan',
+            last_name='Dueño',
+            dni='12345670',
+            fecha_nacimiento=fecha_nac,
+            rol='dueno',
+        )
+        self.cliente = User.objects.create_user(
+            username='cliente@sirca.com',
+            email='cliente@sirca.com',
+            password='Cliente1234',
+            first_name='Ana',
+            last_name='Gomez',
+            dni='47032819',
+            fecha_nacimiento=fecha_nac,
+            rol='cliente',
+        )
+
+    def test_dueno_activa_modo_mantenimiento(self):
+        self.client.login(username='dueno@sirca.com', password='Dueno1234')
+        response = self.client.post(reverse('user:toggle_modo_mantenimiento'), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Se ha activado el modo mantenimiento')
+        configuracion = ConfiguracionSistema.obtener()
+        self.assertTrue(configuracion.modo_mantenimiento)
+
+    def test_dueno_desactiva_modo_mantenimiento(self):
+        configuracion = ConfiguracionSistema.obtener()
+        configuracion.modo_mantenimiento = True
+        configuracion.save()
+
+        self.client.login(username='dueno@sirca.com', password='Dueno1234')
+        response = self.client.post(reverse('user:toggle_modo_mantenimiento'), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Se ha desactivado el modo mantenimiento')
+        configuracion.refresh_from_db()
+        self.assertFalse(configuracion.modo_mantenimiento)
+
+    def test_dueno_ve_boton_modo_mantenimiento_en_panel(self):
+        self.client.login(username='dueno@sirca.com', password='Dueno1234')
+        response = self.client.get(reverse('user:client_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Activar modo mantenimiento')
+
+    def test_modo_mantenimiento_bloquea_acceso_de_cliente(self):
+        configuracion = ConfiguracionSistema.obtener()
+        configuracion.modo_mantenimiento = True
+        configuracion.save()
+
+        self.client.login(username='cliente@sirca.com', password='Cliente1234')
+        response = self.client.get(reverse('core:home'), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Página en mantenimiento')
+        self.assertContains(response, 'Estado:')
