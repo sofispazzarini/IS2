@@ -19,10 +19,13 @@ urlpatterns = [
     path('mantenimiento/toggle/', views.toggle_modo_mantenimiento, name='toggle_modo_mantenimiento'),
     path('register/', views.registro, name='register'),
 
+    path('estadisticas/', views.estadisticas_usuario, name='estadisticas_usuario'),
+    
     # Profesores
     path('profesores/', views.admin_profesores, name='admin_profesores'),
     path('profesores/crear/', views.crear_profesor, name='crear_profesor'),
     path('profesores/<int:profesor_id>/modificar/', views.modificar_profesor, name='modificar_profesor'),
     path('profesores/<int:profesor_id>/eliminar/', views.eliminar_profesor, name='eliminar_profesor'),
+
 ]
 
