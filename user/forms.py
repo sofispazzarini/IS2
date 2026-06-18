@@ -235,7 +235,7 @@ class ChangePasswordForm(forms.Form):
         password_confirm = cleaned_data.get("password_confirm")
 
         if not password or not password_confirm:
-            raise forms.ValidationError("Completar contraseña")
+            raise forms.ValidationError("Las contraseñas no coinciden")
 
         if password != password_confirm:
             raise forms.ValidationError("Las contraseñas no coinciden")

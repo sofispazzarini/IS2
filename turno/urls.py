@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+
+
 urlpatterns = [
     path('clases/', views.lista_clases, name='lista_clases'),
     path('api/calendario/', views.calendario_api, name='calendario_api'),
@@ -25,6 +27,8 @@ urlpatterns = [
     path('api/qr/validar/', views.validar_qr_api, name='validar_qr_api'),
     path('admin/escanear-qr/', views.escanear_qr, name='escanear_qr'),
     path('admin/reserva/<int:reserva_id>/pago-presencial/', views.registrar_pago_presencial, name='registrar_pago_presencial'),
+    path('asistencia/<uuid:qr_uuid>/', views.registrar_asistencia, name='asistencia_qr'),
+
 
     # Registrar asistencia manual
     path('admin/reserva/<int:reserva_id>/asistencia-manual/', views.registrar_asistencia_view, name='registrar_asistencia_manual'),

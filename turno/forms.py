@@ -53,12 +53,24 @@ class ClaseForm(forms.ModelForm):
                 "No puedes crear una clase para una fecha ya pasada."
             )
 
+        # 🕒 VALIDACIÓN DE RANGO HORARIO (Escenario V)
+        from datetime import time
+        hora_minima = time(8, 0)
+        hora_maxima = time(19, 0)
+        
+        if not (hora_minima <= hora_inicio <= hora_maxima):
+            raise forms.ValidationError("Elegir un horario entre las 8:00 y 19:00hs")
+
         hora_fin = (datetime.combine(fecha, hora_inicio) + timedelta(hours=1)).time()
         cleaned_data['hora_fin'] = hora_fin
 
         clase_actual_id = self.instance.pk if self.instance else None
 
-        conflicto_salon = Clase.objects.filter(
+        # 📋 LISTA PARA ACUMULAR LOS ERRORES
+        errores_globales = []
+
+        # 1. Validación de Salón
+        conficto_salon = Clase.objects.filter(
             fecha=fecha,
             salon=salon,
             cancelada=False,
@@ -66,11 +78,12 @@ class ClaseForm(forms.ModelForm):
             hora_fin__gt=hora_inicio
         ).exclude(pk=clase_actual_id).exists()
 
-        if conflicto_salon:
-            raise forms.ValidationError(
+        if conficto_salon:
+            errores_globales.append(
                 f"Salón no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
 
+        # 2. Validación de Profesor
         conflicto_profesor = Clase.objects.filter(
             fecha=fecha,
             profesor=profesor,
@@ -80,9 +93,13 @@ class ClaseForm(forms.ModelForm):
         ).exclude(pk=clase_actual_id).exists()
 
         if conflicto_profesor:
-            raise forms.ValidationError(
+            errores_globales.append(
                 f"Profesor no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
+
+        # 🚨 SI SE JUNTÓ ALGÚN ERROR, LOS MANDAMOS TODOS DE UNA
+        if errores_globales:
+            raise forms.ValidationError(errores_globales)
 
         return cleaned_data
 

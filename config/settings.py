@@ -2,7 +2,10 @@ import os
 from dotenv import load_dotenv
 import pathlib
 load_dotenv()
-BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
+
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "django-insecure-cambiar-esta-clave-en-produccion"
 
@@ -91,6 +94,10 @@ LOGOUT_REDIRECT_URL = ('/auth/login/')
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'no-reply@sirca.local'
+
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv("APP_USR-4715857974084293-052416-33a6d12aef08c3138283b467bbc81062-3422206410")
+MP_PUBLIC_KEY = os.getenv("MP_PUBLIC_KEY")
+NGROK_URL = os.getenv("NGROK_URL", "http://localhost:8000")
 
 MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 MP_PUBLIC_KEY = os.getenv("MP_PUBLIC_KEY")

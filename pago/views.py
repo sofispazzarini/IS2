@@ -9,7 +9,11 @@ from django.contrib import messages
 from turno.models import Reserva
 from .models import Pago
 
-sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+#sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+print(settings.MERCADO_PAGO_ACCESS_TOKEN)
+
+
+
 
 def simular_servidor_pago(numero, codigo, titular):
     # Simulacion del servidor de pago externo
