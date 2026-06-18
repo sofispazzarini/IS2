@@ -136,6 +136,7 @@ def calendario_api(request):
     month = int(request.GET.get('month', hoy.month))
     actividad_id = request.GET.get('actividad')
     profesor_id = request.GET.get('profesor')
+    horario = request.GET.get('horario')
 
     clases = Clase.objects.filter(
         cancelada=False,
@@ -147,6 +148,8 @@ def calendario_api(request):
         clases = clases.filter(actividad_id=actividad_id)
     if profesor_id:
         clases = clases.filter(profesor_id=profesor_id)
+    if horario:
+        clases = clases.filter(hora_inicio__hour=int(horario))
 
     dias = {}
     for clase in clases:
@@ -172,10 +175,19 @@ def calendario_api(request):
     for fecha in dias:
         dias[fecha].sort(key=lambda x: x['hora_inicio'])
 
+    # Mensaje vacío cuando se filtra sin resultados
+    mensaje_vacio = None
+    if not dias:
+        if horario:
+            mensaje_vacio = "no existen actividades en el horario seleccionado"
+        elif profesor_id:
+            mensaje_vacio = "este profesor no tiene actividades programadas"
+
     return JsonResponse({
         'year': year,
         'month': month,
         'dias': dias,
+        'mensaje_vacio': mensaje_vacio,
     })
 
 @login_required
@@ -529,6 +541,7 @@ def detalle_clase(request, clase_id):
         'total_recaudado': total_recaudado,
         'clase_finalizada': clase_finalizada,
         'es_dueno': es_dueno(request.user),
+        'es_admin': es_admin(request.user),
     })
 
 

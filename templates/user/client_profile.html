@@ -199,6 +199,12 @@
 
             <!-- Actions -->
             <div class="card-actions">
+                <a href="{% url 'user:historial_pagos_cliente' client.pk %}" class="btn-action btn-action-primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    Ver historial de pagos
+                </a>
                 <a href="{% url 'user:editar_cliente' client.pk %}" class="btn-action btn-action-primary">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>

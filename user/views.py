@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm
 from .models import HistorialUsuarioBaja, Profesor
+from pago.models import Pago
 from django.utils.http import urlsafe_base64_encode
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_bytes
@@ -112,6 +113,22 @@ def client_profile(request, user_id):
 
     client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
     return render(request, 'user/client_profile.html', {'client': client})
+
+
+@login_required(login_url='user:login')
+def historial_pagos_cliente(request, user_id):
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
+    pagos = Pago.objects.filter(
+        reserva__usuario=client
+    ).select_related('reserva', 'reserva__clase', 'reserva__clase__actividad').order_by('-fecha_pago')
+
+    return render(request, 'user/historial_pagos.html', {
+        'client': client,
+        'pagos': pagos,
+    })
 
 
 @login_required(login_url='user:login')

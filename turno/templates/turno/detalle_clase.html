@@ -37,7 +37,7 @@
             </a>
         {% endif %}
 
-        {% if es_dueno and clase_finalizada %}
+        {% if es_admin and clase_finalizada %}
             <a href="{% url 'lista_presentes_clase' clase.id %}"
                class="px-5 py-2.5 rounded-full font-semibold bg-green-600 text-white hover:bg-green-700 transition">
                 Ver lista de presentes
