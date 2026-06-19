@@ -17,6 +17,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.views.decorators.cache import never_cache
 from .forms import RestablecerContrasenaForm
+from django.utils import timezone
 
 @never_cache
 def login_view(request):
@@ -113,6 +114,17 @@ def client_profile(request, user_id):
     client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
     return render(request, 'user/client_profile.html', {'client': client})
 
+@login_required(login_url='user:login')
+def historial_asistencias(request, user_id):
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+    from turno.models import Reserva
+    client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
+    asistencias = Reserva.objects.filter(usuario=client, estado='asistida').select_related('clase', 'clase__actividad', 'clase__profesor').order_by('-clase__fecha', '-clase__hora_inicio')
+    return render(request, 'user\\historial_asistencias.html', {
+        'client': client,
+        'asistencias': asistencias,
+    })
 
 @login_required(login_url='user:login')
 def editar_cliente(request, user_id):
@@ -293,9 +305,26 @@ def perfil_view(request):
                     for error in errors:
                         messages.error(request, str(error))
 
+    from turno.models import TurnoFijo, Abono
+    hoy = timezone.localdate()
+    es_ventana_pago = 1 <= hoy.day <= 20
+    tiene_turnos_fijos = False
+    abono_pagado_mes = False
+    if user.rol == 'cliente':
+        tiene_turnos_fijos = TurnoFijo.objects.filter(usuario=user, activo=True).exists()
+        abono_pagado_mes = Abono.objects.filter(
+            usuario=user,
+            mes=hoy.month,
+            anio=hoy.year,
+            estado_pago='aprobado',
+        ).exists()
+
     return render(request, 'user/perfil.html', {
         'perfil_form': perfil_form,
         'password_form': password_form,
+        'es_ventana_pago': es_ventana_pago,
+        'tiene_turnos_fijos': tiene_turnos_fijos,
+        'abono_pagado_mes': abono_pagado_mes,
     })
 
 

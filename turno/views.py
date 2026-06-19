@@ -4,7 +4,7 @@ from datetime import timedelta
 import io
 import base64
 
-
+import mercadopago
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -16,7 +16,7 @@ from django.views.decorators.http import require_http_methods
 import calendar
 import qrcode
 
-from .models import Clase, Reserva, ListaEspera, Asistencia
+from .models import Clase, Reserva, ListaEspera, Asistencia, TurnoFijo, Abono
 from .services import validar_qr
 from .forms import ClaseForm
 from pago.models import Pago
@@ -27,7 +27,7 @@ from resena.forms import ResenaForm
 from django.db.models import Avg, Count, Sum, Q
 
 from django.urls import reverse
-
+from decimal import Decimal
 from django.http import HttpResponse
 
 def registrar_asistencia(request, qr_uuid):
@@ -759,3 +759,317 @@ def registrar_asistencia_view(request, reserva_id):
             messages.error(request, e.message)
             
         return redirect('detalle_clase', clase_id=reserva.clase.id)
+
+
+
+# ─── Helpers para el abono ────────────────────────────────────────────────────
+
+def _fechas_del_mes_para_dia(dia_semana, mes, anio):
+    """Retorna todas las fechas del mes donde fecha.weekday() == dia_semana (0=Lunes, 6=Domingo)."""
+    from datetime import date, timedelta
+    primer_dia = date(anio, mes, 1)
+    total_dias = calendar.monthrange(anio, mes)[1]
+    return [
+        primer_dia + timedelta(days=d)
+        for d in range(total_dias)
+        if (primer_dia + timedelta(days=d)).weekday() == dia_semana
+    ]
+
+
+def _calcular_info_abono(usuario, mes, anio):
+    """
+    Calcula precio, descuento y clases involucradas en el abono del mes.
+    Retorna dict con toda la info, o None si el usuario no tiene turnos fijos activos.
+    """
+    from datetime import date
+
+    turnos_fijos = list(
+        TurnoFijo.objects.filter(usuario=usuario, activo=True).select_related('actividad')
+    )
+    if not turnos_fijos:
+        return None
+
+    next_month = mes + 1 if mes < 12 else 1
+    next_year = anio if mes < 12 else anio + 1
+
+    clases_por_turno = {}
+    monto_total = Decimal('0')
+
+    for turno in turnos_fijos:
+        # Clases del mes actual que coinciden con el turno fijo
+        fechas_mes = _fechas_del_mes_para_dia(turno.dia_semana, mes, anio)
+        clases_mes = list(Clase.objects.filter(
+            actividad=turno.actividad,
+            hora_inicio=turno.hora_inicio,
+            fecha__in=fechas_mes,
+            cancelada=False,
+        ))
+
+        # Clases del 1 al 10 del mes siguiente
+        fechas_sig = _fechas_del_mes_para_dia(turno.dia_semana, next_month, next_year)
+        fechas_sig_1_10 = [f for f in fechas_sig if f.day <= 20]
+        clases_extra = list(Clase.objects.filter(
+            actividad=turno.actividad,
+            hora_inicio=turno.hora_inicio,
+            fecha__in=fechas_sig_1_10,
+            cancelada=False,
+        ))
+
+        todas = clases_mes + clases_extra
+        clases_por_turno[turno.id] = todas
+        monto_total += turno.actividad.precio * len(todas)
+
+    n = len(turnos_fijos)
+    if n >= 3:
+        descuento = 20
+    elif n == 2:
+        descuento = 10
+    else:
+        descuento = 0
+
+    factor = Decimal(str(1 - descuento / 100))
+    monto_final = (monto_total * factor).quantize(Decimal('0.01'))
+
+    # Monto proporcional por clase (precio de la actividad con descuento aplicado)
+    monto_por_clase_por_turno = {
+        t.id: (t.actividad.precio * factor).quantize(Decimal('0.01'))
+        for t in turnos_fijos
+    }
+
+    return {
+        'turnos_fijos': turnos_fijos,
+        'clases_por_turno': clases_por_turno,
+        'monto_total': monto_total,
+        'descuento_porcentaje': descuento,
+        'monto_final': monto_final,
+        'monto_por_clase_por_turno': monto_por_clase_por_turno,
+    }
+
+
+def _crear_reservas_abono(usuario, abono, info):
+    """Crea una Reserva confirmada por cada clase del abono, sin duplicar."""
+    for turno in info['turnos_fijos']:
+        monto_pagado = info['monto_por_clase_por_turno'][turno.id]
+        for clase in info['clases_por_turno'][turno.id]:
+            ya_existe = Reserva.objects.filter(
+                usuario=usuario, clase=clase
+            ).exclude(estado='cancelada').exists()
+            if not ya_existe:
+                Reserva.objects.create(
+                    usuario=usuario,
+                    clase=clase,
+                    estado='confirmada',
+                    monto_pagado=monto_pagado,
+                    abono=abono,
+                )
+
+
+# ─── Vistas del abono ─────────────────────────────────────────────────────────
+@login_required
+def abonar_mes(request):
+    """El cliente abonado paga el abono del mes usando MercadoPago (disponible del 1 al 10)."""
+    hoy = timezone.localdate()
+
+    if not (1 <= hoy.day <= 20):
+        messages.error(request, "El período de pago del abono es del 1 al 10 de cada mes.")
+        return redirect('user:perfil')
+
+    usuario = request.user
+
+    if not TurnoFijo.objects.filter(usuario=usuario, activo=True).exists():
+        messages.error(request, "No tenés turnos fijos activos.")
+        return redirect('user:perfil')
+
+    ya_pago = Abono.objects.filter(
+        usuario=usuario,
+        mes=hoy.month,
+        anio=hoy.year,
+        estado_pago='aprobado',
+    ).exists()
+    if ya_pago:
+        messages.info(request, "Ya pagaste el abono de este mes.")
+        return redirect('user:perfil')
+
+    info = _calcular_info_abono(usuario, hoy.month, hoy.year)
+
+    if request.method == 'POST':
+        abono = Abono.objects.create(
+            usuario=usuario,
+            mes=hoy.month,
+            anio=hoy.year,
+            cantidad_turnos_fijos=len(info['turnos_fijos']),
+            descuento_porcentaje=info['descuento_porcentaje'],
+            monto_total=info['monto_total'],
+            monto_final=info['monto_final'],
+            metodo_pago='mercado_pago',
+            estado_pago='pendiente',
+        )
+
+        sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+        preference_data = {
+            "items": [{
+                "title": f"Abono mensual {hoy.month}/{hoy.year} - SIRCA",
+                "quantity": 1,
+                "currency_id": "ARS",
+                "unit_price": float(info['monto_final']),
+            }],
+            "external_reference": f"abono_{abono.id}",
+            "back_urls": {
+                "success": f"{settings.NGROK_URL}/turno/abono/exito/",
+                "failure": f"{settings.NGROK_URL}/turno/abono/fallo/",
+                "pending": f"{settings.NGROK_URL}/turno/abono/pendiente/",
+            },
+            "auto_return": "approved",
+            "notification_url": f"{settings.NGROK_URL}/pago/webhook/",
+        }
+
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response["response"]
+
+        abono.preference_id = preference["id"]
+        abono.save()
+
+        return redirect(preference["init_point"])
+
+    return render(request, 'turno/abonar_mes.html', {'info': info})
+@login_required
+def hacerse_abonado(request):
+    """Un cliente sin turnos fijos convierte reservas pendientes en turnos fijos y paga con MercadoPago (1-10 del mes)."""
+    hoy = timezone.localdate()
+
+    if not (1 <= hoy.day <= 20):
+        messages.error(request, "Solo podés hacerte abonado del 1 al 10 de cada mes.")
+        return redirect('user:perfil')
+
+    usuario = request.user
+
+    if TurnoFijo.objects.filter(usuario=usuario, activo=True).exists():
+        messages.info(request, "Ya sos abonado. Usá 'Abonar Mes' para pagar el mes.")
+        return redirect('abonar_mes')
+
+    if Abono.objects.filter(usuario=usuario, mes=hoy.month, anio=hoy.year, estado_pago='aprobado').exists():
+        messages.info(request, "Ya pagaste el abono de este mes.")
+        return redirect('user:perfil')
+
+    reservas_pendientes = Reserva.objects.filter(
+        usuario=usuario,
+        estado='pendiente_pago',
+        clase__fecha__gte=hoy,
+    ).select_related('clase', 'clase__actividad').order_by('clase__fecha', 'clase__hora_inicio')
+
+    if request.method == 'POST':
+        reserva_ids = request.POST.getlist('reservas')
+        ctx = {'reservas_pendientes': reservas_pendientes}
+
+        if not reserva_ids:
+            ctx['error'] = 'Seleccioná al menos una reserva para hacerte abonado.'
+            return render(request, 'turno/hacerse_abonado.html', ctx)
+
+        reservas_sel = list(Reserva.objects.filter(
+            id__in=reserva_ids,
+            usuario=usuario,
+            estado='pendiente_pago',
+        ).select_related('clase', 'clase__actividad'))
+
+        # Validación backend: no dos reservas con mismo (dia_semana, hora_inicio)
+        vistos = set()
+        for r in reservas_sel:
+            clave = (r.clase.fecha.weekday(), r.clase.hora_inicio)
+            if clave in vistos:
+                ctx['error'] = (
+                    'Seleccionaste dos reservas del mismo día de la semana y horario. '
+                    'Solo podés elegir un turno por combinación día/horario.'
+                )
+                return render(request, 'turno/hacerse_abonado.html', ctx)
+            vistos.add(clave)
+
+        # Crear Abono en estado pendiente guardando los IDs seleccionados
+        # (el webhook creará los TurnoFijos y las Reservas al confirmar el pago)
+        abono_existente = Abono.objects.filter(
+            usuario=usuario,
+            mes=hoy.month,
+            anio=hoy.year,
+        ).first()
+
+        if abono_existente and abono_existente.estado_pago == 'aprobado':
+            messages.info(request, "Ya pagaste el abono de este mes.")
+            return redirect('user:perfil')
+
+        if abono_existente:
+            abono = abono_existente
+            abono.reservas_origen_ids = ','.join(str(r.id) for r in reservas_sel)
+            abono.estado_pago = 'pendiente'
+            abono.save()
+        else:
+            abono = Abono.objects.create(
+                usuario=usuario,
+                mes=hoy.month,
+                anio=hoy.year,
+                cantidad_turnos_fijos=len(reservas_sel),
+                descuento_porcentaje=0,
+                monto_total=Decimal('0'),
+                monto_final=Decimal('0'),
+                metodo_pago='mercado_pago',
+                estado_pago='pendiente',
+                reservas_origen_ids=','.join(str(r.id) for r in reservas_sel),
+        )
+
+        # Calcular precio estimado para mostrárselo a MP (el definitivo lo calcula el webhook)
+        # Para esto creamos TurnoFijo temporales en memoria sin guardarlos
+        from decimal import Decimal as D
+        n = len(reservas_sel)
+        descuento = 20 if n >= 3 else (10 if n == 2 else 0)
+        precio_estimado = sum(r.clase.actividad.precio for r in reservas_sel)
+        precio_final_estimado = (precio_estimado * D(str(1 - descuento / 100))).quantize(D('0.01'))
+
+        sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+        preference_data = {
+            "items": [{
+                "title": f"Abono mensual {hoy.month}/{hoy.year} - SIRCA",
+                "quantity": 1,
+                "currency_id": "ARS",
+                "unit_price": float(precio_final_estimado),
+            }],
+            "external_reference": f"abono_{abono.id}",
+            "back_urls": {
+                "success": f"{settings.NGROK_URL}/turno/abono/exito/",
+                "failure": f"{settings.NGROK_URL}/turno/abono/fallo/",
+                "pending": f"{settings.NGROK_URL}/turno/abono/pendiente/",
+            },
+            "auto_return": "approved",
+            "notification_url": f"{settings.NGROK_URL}/pago/webhook/",
+        }
+
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response.get("response", {})
+        if "id" not in preference:
+            return render(request, 'turno/hacerse_abonado.html', {
+                'reservas_pendientes': reservas_pendientes,
+                'error': 'No fue posible conectarse con la billetera virtual. Intente nuevamente más tarde',
+            })
+
+        abono.preference_id = preference["id"]
+        abono.save()
+
+        return redirect(preference["init_point"])
+
+    return render(request, 'turno/hacerse_abonado.html', {
+        'reservas_pendientes': reservas_pendientes,
+    })
+
+@login_required
+def abono_exito(request):
+    messages.success(request, "¡Pago del abono exitoso! Tus reservas del mes fueron generadas.")
+    return redirect('reservas')
+
+
+@login_required
+def abono_fallo(request):
+    messages.error(request, "Pago rechazado")
+    return redirect('user:perfil')
+
+
+@login_required
+def abono_pendiente(request):
+    messages.warning(request, "Tu pago está pendiente de confirmación.")
+    return redirect('user:perfil')

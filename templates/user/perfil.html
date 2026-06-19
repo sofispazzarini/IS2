@@ -208,6 +208,39 @@
                 </div>
             </div>
         </div>
+        {% if user.rol == 'cliente' %}
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100 p-6">
+            <h3 class="font-heading text-xl font-semibold text-gray-900 mb-2">Abono mensual</h3>
+
+            {% if tiene_turnos_fijos %}
+                {% if abono_pagado_mes %}
+                    <p class="text-green-700 font-semibold mb-2">Abono de este mes abonado.</p>
+                {% elif es_ventana_pago %}
+                    <p class="text-sm text-gray-500 mb-4">Pagá tu abono del mes y reservá tus clases automáticamente.</p>
+                    <a href="{% url 'abonar_mes' %}"
+                       class="block w-full text-center btn-bordo py-3 rounded-full font-semibold">
+                        Abonar Mes
+                    </a>
+                {% else %}
+                    <p class="text-gray-500 text-sm">El período de pago del abono (del 1 al 10) ya cerró este mes.</p>
+                {% endif %}
+            {% else %}
+                {% if es_ventana_pago %}
+                    <p class="text-sm text-gray-500 mb-4">Elegí tus clases favoritas y convertite en abonado.</p>
+                    <a href="{% url 'hacerse_abonado' %}"
+                       class="block w-full text-center btn-bordo py-3 rounded-full font-semibold">
+                        Hacerme abonado
+                    </a>
+                {% else %}
+                    <p class="text-sm text-gray-500 mb-3">Para hacerte abonado, la opción estará disponible del 1 al 10 del mes.</p>
+                    <button disabled
+                            class="block w-full text-center py-3 rounded-full font-semibold bg-gray-200 text-gray-400 cursor-not-allowed">
+                        Hacerme abonado
+                    </button>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 

@@ -206,6 +206,13 @@
                     </svg>
                     Editar datos
                 </a>
+                <a href="{% url 'user:historial_asistencias' client.pk %}" class="btn-action btn-action-ghost">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Historial de asistencias
+                </a>
                 <form method="post" action="{% url 'user:secretary_reset_password' client.pk %}" style="flex:1;min-width:160px;">
                     {% csrf_token %}
                     <button type="submit" class="btn-action btn-action-ghost" style="width:100%;">

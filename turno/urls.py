@@ -32,4 +32,11 @@ urlpatterns = [
 
     # Registrar asistencia manual
     path('admin/reserva/<int:reserva_id>/asistencia-manual/', views.registrar_asistencia_view, name='registrar_asistencia_manual'),
+    
+    # Abono mensual
+    path('abono/abonar/', views.abonar_mes, name='abonar_mes'),
+    path('abono/hacerse-abonado/', views.hacerse_abonado, name='hacerse_abonado'),
+    path('abono/exito/', views.abono_exito, name='abono_exito'),
+    path('abono/fallo/', views.abono_fallo, name='abono_fallo'),
+    path('abono/pendiente/', views.abono_pendiente, name='abono_pendiente'),
 ]
