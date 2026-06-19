@@ -53,6 +53,14 @@ class ClaseForm(forms.ModelForm):
                 "No puedes crear una clase para una fecha ya pasada."
             )
 
+        # 🕒 VALIDACIÓN DE RANGO HORARIO (Escenario V)
+        from datetime import time
+        hora_minima = time(8, 0)
+        hora_maxima = time(19, 0)
+        
+        if not (hora_minima <= hora_inicio <= hora_maxima):
+            raise forms.ValidationError("Elegir un horario entre las 8:00 y 19:00hs")
+
         hora_fin = (datetime.combine(fecha, hora_inicio) + timedelta(hours=1)).time()
         cleaned_data['hora_fin'] = hora_fin
 
@@ -62,7 +70,7 @@ class ClaseForm(forms.ModelForm):
         errores_globales = []
 
         # 1. Validación de Salón
-        conflicto_salon = Clase.objects.filter(
+        conficto_salon = Clase.objects.filter(
             fecha=fecha,
             salon=salon,
             cancelada=False,
@@ -70,12 +78,12 @@ class ClaseForm(forms.ModelForm):
             hora_fin__gt=hora_inicio
         ).exclude(pk=clase_actual_id).exists()
 
-        if conflicto_salon:
+        if conficto_salon:
             errores_globales.append(
                 f"Salón no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
 
-        # 2. Validación de Profesor (se ejecuta SIEMPRE, no se corta por el salón)
+        # 2. Validación de Profesor
         conflicto_profesor = Clase.objects.filter(
             fecha=fecha,
             profesor=profesor,
