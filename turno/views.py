@@ -21,12 +21,14 @@ from .services import validar_qr
 from .forms import ClaseForm
 from pago.models import Pago
 from actividad.models import Actividad
-from user.models import Profesor
+from user.models import Profesor, Penalizacion
 from resena.models import Resena
 from resena.forms import ResenaForm
 from django.db.models import Avg, Count, Sum, Q
 
 from django.urls import reverse
+
+from django.db import transaction
 
 from django.http import HttpResponse
 
@@ -137,11 +139,12 @@ def calendario_api(request):
     actividad_id = request.GET.get('actividad')
     profesor_id = request.GET.get('profesor')
 
+    # OPTIMIZACIÓN: Se agregó 'salon' al select_related
     clases = Clase.objects.filter(
         cancelada=False,
         fecha__year=year,
         fecha__month=month,
-    ).select_related('actividad', 'profesor')
+    ).select_related('actividad', 'profesor', 'salon')
 
     if actividad_id:
         clases = clases.filter(actividad_id=actividad_id)
@@ -164,7 +167,8 @@ def calendario_api(request):
             'hora_fin': clase.hora_fin.strftime('%H:%M'),
             'profesor': f"{clase.profesor.nombre} {clase.profesor.apellido}",
             'cupos': cupos,
-            'salon': clase.salon,
+            # CAMBIADO: Mandamos solo el string del nombre (o un texto seguro si no tiene)
+            'salon': clase.salon.nombre if clase.salon else "Sin salón",
             'precio': float(clase.actividad.precio),
             'es_pasada': es_pasada,
         })
@@ -233,6 +237,7 @@ def pedir_turno(request, clase_id):
         return redirect('reserva_exitosa', reserva_id=nueva_reserva.id)
 
     return render(request, 'turno/pedir_turno.html', {'clase': clase})
+
 @login_required
 def reserva_exitosa(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
@@ -298,23 +303,63 @@ def cancelar_reserva(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
     clase = reserva.clase
     hoy = timezone.localdate()
+    usuario = request.user
 
-    if (clase.fecha - hoy) < timedelta(days=2):
-        messages.error(request, "Las cancelaciones con menos de dos días de anticipación no están permitidas.")
-        return redirect('reservas')
+    # Calculamos si faltan menos de 2 días (48 horas) para la clase
+    dias_anticipacion = (clase.fecha - hoy).days
+    corresponde_penalizar = dias_anticipacion < 2
 
     if request.method == 'POST':
-        era_abonada = reserva.estado == 'confirmada'
-        reserva.estado = 'cancelada'
-        reserva.save()
+        with transaction.atomic():
+            era_abonada = reserva.estado == 'confirmada'
+            reserva.estado = 'cancelada'
+            reserva.save()
 
+            # ⚠️ ADAPTADO: Si cancela tarde, se crea una instancia en tu tabla Penalizacion
+            if corresponde_penalizar:
+                Penalizacion.objects.create(
+                    usuario=usuario,
+                    motivo=f"Cancelación tardía de la reserva #{reserva.id} para la clase de {clase.actividad.nombre}.",
+                    activa=True
+                )
+                messages.warning(request, "Se aplicará una sanción a la hora de solicitar un pack de clases.")
+
+            # =========================================================================
+            # LÓGICA DE LISTA DE ESPERA MASIVA (El primero que acepta se lo queda)
+            # =========================================================================
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            usuarios_espera = ListaEspera.objects.filter(clase=clase).select_related('usuario')
+            if usuarios_espera.exists():
+                lista_emails = list(usuarios_espera.values_list('usuario__email', flat=True))
+                base_url = getattr(settings, 'NGROK_URL', 'http://127.0.0.1:8000')
+                link_aceptar = f"{base_url}/turno/clases/aceptar-cupo/{clase.id}/"
+                
+                asunto = f"¡Se liberó un cupo para {clase.actividad.nombre}!"
+                mensaje = (
+                    f"Hola,\n\nTe avisamos que se acaba de liberar un cupo para la clase de {clase.actividad.nombre}.\n"
+                    f"Podés quedarte con el lugar haciendo clic acá:\n{link_aceptar}\n\n"
+                    f"¡El primero que confirme se queda con el cupo!"
+                )
+                try:
+                    send_mail(asunto, mensaje, settings.DEFAULT_FROM_EMAIL, lista_emails, fail_silently=False)
+                except Exception as e:
+                    print(f"Error al enviar correos: {e}")
+            # =========================================================================
+
+        # Mantenemos tu flujo de redirección y reembolsos intacto
         if era_abonada:
             return redirect('opciones_reembolso', reserva_id=reserva.id)
         else:
             messages.success(request, "Reserva cancelada exitosamente.")
             return redirect('reservas')
 
-    return render(request, 'turno/confirmar_cancelacion.html', {'reserva': reserva})
+    # Pasamos 'corresponde_penalizar' al template para mostrar el cartel de advertencia
+    return render(request, 'turno/confirmar_cancelacion.html', {
+        'reserva': reserva,
+        'corresponde_penalizar': corresponde_penalizar
+    })
 
 
 @login_required
@@ -493,6 +538,9 @@ def detalle_clase(request, clase_id):
     reservas_activas = todas_reservas.exclude(estado='cancelada')
     reservas_canceladas = todas_reservas.filter(estado='cancelada')
 
+    lista_espera_usuarios = ListaEspera.objects.filter(clase=clase).select_related('usuario').order_by('fecha_ingreso')
+    cant_espera = lista_espera_usuarios.count()
+    
     pagos = Pago.objects.filter(reserva__clase=clase).select_related('reserva__usuario').order_by('-fecha_pago')
 
     resenas = Resena.objects.filter(clase=clase).select_related('usuario').order_by('-fecha')[:5]
@@ -521,6 +569,8 @@ def detalle_clase(request, clase_id):
         'clase': clase,
         'reservas_activas': reservas_activas,
         'reservas_canceladas': reservas_canceladas,
+        'lista_espera_usuarios': lista_espera_usuarios,
+        'cant_espera': cant_espera,
         'pagos': pagos,
         'resenas': resenas,
         'promedio_resenas': promedio_resenas,
@@ -530,7 +580,6 @@ def detalle_clase(request, clase_id):
         'clase_finalizada': clase_finalizada,
         'es_dueno': es_dueno(request.user),
     })
-
 
 @login_required
 def lista_presentes_clase(request, clase_id):
@@ -605,6 +654,11 @@ def ver_clase(request, clase_id):
         clase=clase
     ).first()
 
+    en_lista_espera = ListaEspera.objects.filter(
+        usuario=request.user, 
+        clase=clase
+    ).exists()
+
     form = ResenaForm()
 
     if request.method == 'POST' and 'crear_resena' in request.POST:
@@ -633,6 +687,7 @@ def ver_clase(request, clase_id):
         'usuario_asistio': usuario_asistio,
         'clase_finalizada': clase_finalizada,
         'resena_usuario': resena_usuario,
+        'en_lista_espera': en_lista_espera,
         'form': form,
     })
 
@@ -759,3 +814,51 @@ def registrar_asistencia_view(request, reserva_id):
             messages.error(request, e.message)
             
         return redirect('detalle_clase', clase_id=reserva.clase.id)
+
+
+@login_required
+def panel_listas_espera(request):
+    """Panel para que el staff vea las listas de espera de clases que no empezaron."""
+    ahora = timezone.localtime(timezone.now())
+    fecha_actual = ahora.date()
+    hora_actual = ahora.time()
+
+    # Filtramos las clases que todavía no arrancaron (futuras o de hoy más tarde)
+    clases_activas = Clase.objects.filter(
+        Q(fecha__gt=fecha_actual) | 
+        Q(fecha=fecha_actual, hora_inicio__gt=hora_actual)
+    ).select_related('actividad', 'profesor').order_by('fecha', 'hora_inicio')
+
+    # Si querés, opcionalmente podemos precalculares el conteo de personas esperando a cada una
+    for clase in clases_activas:
+        clase.cant_espera = ListaEspera.objects.filter(clase=clase).count()
+
+    return render(request, 'secretario/panel_listas_espera.html', {
+        'clases': clases_activas,
+    })
+
+@login_required
+def ver_detalle_espera(request, clase_id):
+    """Detalle de una clase específica mostrando el orden de prioridad cronológico."""
+    clase = get_object_or_404(Clase, id=clase_id)
+    
+    # REGLA DE NEGOCIO: Orden cronológico según fecha y hora en la que ingresaron
+    espera_usuarios = ListaEspera.objects.filter(clase=clase).select_related('usuario').order_by('fecha_ingreso')
+    
+    return render(request, 'secretario/detalle_lista_espera.html', {
+        'clase': clase,
+        'espera_usuarios': espera_usuarios,
+    })
+
+@login_required 
+def salir_lista_espera(request, clase_id):
+    """Permite al usuario bajarse de la lista de espera de una clase."""
+    if request.method == 'POST':
+        registro = get_object_or_404(ListaEspera, clase_id=clase_id, usuario=request.user)
+        registro.delete()
+        messages.success(request, "Has salido de la lista de espera exitosamente.")
+        
+        # OPCIÓN A: Mandarlo a la lista general de clases/turnos del cliente
+        return redirect('lista_clases') 
+    
+    return redirect('lista_clases')

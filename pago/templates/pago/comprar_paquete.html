@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-2xl mx-auto my-8 bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+    <h2 class="text-3xl font-heading font-bold text-gray-900 mb-2 text-center">Comprar Paquete de Clases</h2>
+    <p class="text-gray-500 text-center mb-6">Armá tu pack como quieras y obtené descuentos exclusivos.</p>
+
+    {% if usuario.penalizado %}
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-xl text-sm text-amber-800">
+            <strong>Nota:</strong> Actualmente te encontrás penalizado, por lo que podrás adquirir el paquete pero sin los descuentos promocionales.
+        </div>
+    {% else %}
+        <div class="grid grid-cols-2 gap-4 mb-6 text-center text-sm text-gray-600">
+            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <span class="block font-bold text-bordo-600 text-lg">10% OFF</span> Comprando 2 clases
+            </div>
+            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <span class="block font-bold text-bordo-600 text-lg">20% OFF</span> Comprando 3 o más clases
+            </div>
+        </div>
+    {% endif %}
+
+    <form method="post" class="space-y-5">
+        {% csrf_token %}
+        
+        <div class="space-y-4">
+            {% for field in form %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <label class="font-medium text-gray-700">{{ field.label }}</label>
+                    <div class="w-24">
+                        {{ field }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <button type="submit" class="w-full btn-bordo py-3 rounded-full font-semibold shadow-md pt-4">
+            Obtener paquete de clases
+        </button>
+    </form>
+</div>
+{% endblock %}

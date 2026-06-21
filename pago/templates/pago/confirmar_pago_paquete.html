@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-md mx-auto my-8 bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+    <h2 class="text-2xl font-heading font-bold text-gray-900 mb-2 text-center">Confirmar Pago del Paquete</h2>
+    
+    <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100 space-y-2 text-sm text-gray-600">
+        <div class="flex justify-between">
+            <span>Subtotal:</span>
+            <span class="font-semibold text-gray-800">${{ paquete.subtotal }}</span>
+        </div>
+        {% if paquete.descuento > 0 %}
+            <div class="flex justify-between text-green-600">
+                <span>Descuento Aplicado ({{ paquete.porcentaje_aplicado }}% OFF):</span>
+                <span>-${{ paquete.descuento }}</span>
+            </div>
+        {% endif %}
+        <hr class="border-gray-200 my-2">
+        <div class="flex justify-between text-base font-bold text-gray-900">
+            <span>Total a Pagar:</span>
+            <span class="text-bordo-700">${{ paquete.total_final }}</span>
+        </div>
+    </div>
+
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Número de Tarjeta</label>
+            <input type="text" name="numero_tarjeta" placeholder="111 222 333 444" required
+                   class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+            <p class="text-xs text-gray-400 mt-1">Usá la tarjeta de prueba de tu simulación.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Código de Seguridad</label>
+                <input type="text" name="codigo_seguridad" placeholder="987" required
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Titular</label>
+                <input type="text" name="titular" placeholder="Juan Ignacio Torres" required
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+            </div>
+        </div>
+
+        <button type="submit" class="w-full btn-bordo py-3 rounded-full font-semibold shadow-md mt-6">
+            Confirmar y Acreditar Créditos
+        </button>
+    </form>
+</div>
+{% endblock %}

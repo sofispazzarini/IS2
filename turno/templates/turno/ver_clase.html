@@ -76,7 +76,7 @@
                                 </div>
                                 <div>
                                     <p class="text-gray-500 text-xs">Salón</p>
-                                    <p class="font-medium text-gray-900">{{ clase.salon }}</p>
+                                    <p class="font-medium text-gray-900">{{ clase.salon.nombre }}</p>
                                 </div>
                             </div>
 
@@ -115,7 +115,32 @@
                         {% elif clase.cancelada %}
                             <p class="text-center text-red-600 font-medium">Esta clase fue cancelada</p>
                         {% else %}
-                            <p class="text-center text-gray-500">No hay cupos disponibles</p>
+                            {% if en_lista_espera %}
+                                <div class="flex flex-col sm:flex-row items-center gap-4 w-full justify-between">
+                                    <span class="text-sm font-medium text-amber-700 bg-amber-50 px-3 py-1 rounded-full flex items-center gap-1.5">
+                                        Ya estás registrado en la lista de espera
+                                    </span>
+                                    
+                                    <form action="{% url 'salir_lista_espera' clase.id %}" method="POST" class="w-full sm:w-auto">
+                                        {% csrf_token %}
+                                        <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2.5 rounded-full text-sm shadow-md transition duration-200 block text-center">
+                                            Salir de la lista de espera
+                                        </button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <div class="flex flex-col sm:flex-row items-center gap-4 w-full justify-between">
+                                    <span class="text-sm text-gray-500 font-medium">
+                                        No hay cupos disponibles
+                                    </span>
+                                    <form action="{% url 'pedir_turno_detalle' clase.id %}" method="POST" class="w-full sm:w-auto">
+                                        {% csrf_token %}
+                                        <button type="submit" class="w-full sm:w-auto bg-red-900 hover:bg-red-950 text-white font-semibold px-6 py-2.5 rounded-full text-sm shadow-md transition duration-200 block text-center">
+                                            Anotarme en lista de espera
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
