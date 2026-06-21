@@ -60,6 +60,33 @@
                         </div>
                     </div>
 
+                    <script>
+                        // Validación en tiempo real para nombre y apellido (solo letras)
+                        const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]*$/;
+                        
+                        document.getElementById('id_first_name').addEventListener('keypress', function(e) {
+                            const char = String.fromCharCode(e.which);
+                            if (!soloLetrasRegex.test(this.value + char)) {
+                                e.preventDefault();
+                            }
+                        });
+
+                        document.getElementById('id_last_name').addEventListener('keypress', function(e) {
+                            const char = String.fromCharCode(e.which);
+                            if (!soloLetrasRegex.test(this.value + char)) {
+                                e.preventDefault();
+                            }
+                        });
+
+                        // Validación en tiempo real para teléfono (solo números)
+                        document.getElementById('id_telefono').addEventListener('keypress', function(e) {
+                            const char = String.fromCharCode(e.which);
+                            if (!/^\d$/.test(char)) {
+                                e.preventDefault();
+                            }
+                        });
+                    </script>
+
                     <div class="mt-6 flex gap-3">
                         <button
                             type="button"

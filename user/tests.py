@@ -2,7 +2,7 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from datetime import date, timedelta
-from .forms import RegistroForm
+from .forms import RegistroForm, EditarPerfilForm
 from django.test import Client
 from django.urls import reverse
 
