@@ -504,6 +504,7 @@ def detalle_clase(request, clase_id):
     todas_reservas = Reserva.objects.filter(clase=clase).select_related('usuario').order_by('-fecha_reserva')
     reservas_activas = todas_reservas.exclude(estado='cancelada')
     reservas_canceladas = todas_reservas.filter(estado='cancelada')
+    asistencias = todas_reservas.filter(estado='asistida').select_related('asistencia')
 
     pagos = Pago.objects.filter(reserva__clase=clase).select_related('reserva__usuario').order_by('-fecha_pago')
 
@@ -533,6 +534,7 @@ def detalle_clase(request, clase_id):
         'clase': clase,
         'reservas_activas': reservas_activas,
         'reservas_canceladas': reservas_canceladas,
+        'asistencias': asistencias,
         'pagos': pagos,
         'resenas': resenas,
         'promedio_resenas': promedio_resenas,

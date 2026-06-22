@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-import pathlib
+from pathlib import Path
 load_dotenv()
 
 MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
