@@ -6,12 +6,17 @@
 <div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
     <div class="max-w-4xl mx-auto">
         <div class="text-center mb-10">
-            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
-                Tus reservas
-            </p>
-            <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
-                Mis Turnos
-            </h2>
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">Tus reservas</p>
+                    <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">Mis Turnos</h2>
+                </div>
+                <div>
+                    <a href="{% url 'user:mi_historial' %}" class="inline-block btn-bordo px-4 py-2 rounded-full font-semibold">
+                        Ver mi historial
+                    </a>
+                </div>
+            </div>
         </div>
 
         {% if tiene_turnos %}
@@ -86,12 +91,23 @@
                             </div>
 
                             <div class="flex flex-col gap-2 min-w-[140px] items-end">
-                                <a href="{% url 'detalle_reserva' item.reserva.id %}" class="inline-flex items-center gap-1 text-sm text-bordo-700 font-medium hover:underline">
-                                    Ver detalle
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                    </svg>
-                                </a>
+                                <div class="flex flex-wrap gap-2 items-center justify-end">
+                                    {% if item.puede_cancelar %}
+                                        <a href="{% url 'cancelar_reserva' item.reserva.id %}" class="inline-flex items-center justify-center rounded-full border border-red-600 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold hover:bg-red-100 transition">
+                                            Cancelar
+                                        </a>
+                                    {% else %}
+                                        <button type="button" class="inline-flex items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-500 px-4 py-2 text-sm font-semibold cursor-not-allowed" disabled>
+                                            Cancelar
+                                        </button>
+                                    {% endif %}
+                                    <a href="{% url 'detalle_reserva' item.reserva.id %}" class="inline-flex items-center gap-1 text-sm text-bordo-700 font-medium hover:underline">
+                                        Ver detalle
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

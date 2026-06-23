@@ -16,6 +16,7 @@ urlpatterns = [
     path('cliente/<int:user_id>/editar/', views.editar_cliente, name='editar_cliente'),
     path('cliente/<int:user_id>/reset-password/', views.secretary_reset_password, name='secretary_reset_password'),
     path('cliente/<int:user_id>/dar-baja/', views.dar_baja_cliente, name='dar_baja_cliente'),
+    path('mi-historial/', views.mi_historial, name='mi_historial'),
     path('logout/', views.logout_view, name='logout'),
     path('register/', views.registro, name='register'),
 
@@ -24,5 +25,11 @@ urlpatterns = [
     path('profesores/crear/', views.crear_profesor, name='crear_profesor'),
     path('profesores/<int:profesor_id>/modificar/', views.modificar_profesor, name='modificar_profesor'),
     path('profesores/<int:profesor_id>/eliminar/', views.eliminar_profesor, name='eliminar_profesor'),
+
+    # Secretarios
+    path('secretarios/', views.admin_secretarios, name='admin_secretarios'),
+    path('secretarios/crear/', views.crear_secretario, name='crear_secretario'),
+    path('secretarios/<int:secretario_id>/modificar/', views.modificar_secretario, name='modificar_secretario'),
+    path('secretarios/<int:secretario_id>/eliminar/', views.eliminar_secretario, name='eliminar_secretario'),
 ]
 

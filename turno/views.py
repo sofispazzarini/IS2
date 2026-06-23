@@ -31,13 +31,12 @@ from django.urls import reverse
 from django.http import HttpResponse
 
 def registrar_asistencia(request, qr_uuid):
-    reserva = get_object_or_404(Reserva, qr_uuid=qr_uuid)
+    resultado = validar_qr(str(qr_uuid), registrado_por=request.user if request.user.is_authenticated else None)
 
-    # marcar asistencia
-    reserva.estado = "asistida"
-    reserva.save()
+    if resultado.exito:
+        return HttpResponse("✔ Asistencia registrada correctamente")
 
-    return HttpResponse("✔ Asistencia registrada correctamente")
+    return HttpResponse(resultado.mensaje, status=400)
 
 
 def generar_qr(request, obj_id):

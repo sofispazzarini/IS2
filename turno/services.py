@@ -41,7 +41,7 @@ def validar_qr(qr_uuid, registrado_por=None):
 
             # QR ya usado
             if reserva.qr_usado:
-                return ResultadoValidacionQR(False, "Error: QR deshabilitado (ya fue usado).")
+                return ResultadoValidacionQR(False, "QR ya usado")
 
             # Reserva cancelada
             if reserva.estado == 'cancelada':
