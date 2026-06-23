@@ -8,7 +8,7 @@ from django.http import HttpResponseForbidden
 from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
-from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm
+from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm, CrearSecretarioForm
 from .models import HistorialUsuarioBaja, Profesor
 from django.utils.http import urlsafe_base64_encode
 from django.utils.http import urlsafe_base64_decode
@@ -17,6 +17,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.views.decorators.cache import never_cache
 from .forms import RestablecerContrasenaForm
+
+User = get_user_model()
 
 @never_cache
 def login_view(request):
@@ -425,6 +427,175 @@ def eliminar_profesor(request, profesor_id):
     return render(request, 'user/confirmar_eliminar_profesor.html', {
         'profesor': profesor,
         'tiene_clases': tiene_clases_activas,
+    })
+
+
+# ============================================================================
+# VISTAS PARA ADMINISTRAR SECRETARIOS
+# ============================================================================
+
+@login_required(login_url='user:login')
+def admin_secretarios(request):
+    """Panel de administración de secretarios."""
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    busqueda = request.GET.get('q', '').strip()
+    estado = request.GET.get('estado', '')
+
+    secretarios = User.objects.filter(rol='secretario')
+
+    if estado == 'activos':
+        secretarios = secretarios.filter(activo=True)
+    elif estado == 'inactivos':
+        secretarios = secretarios.filter(activo=False)
+
+    if busqueda:
+        secretarios = secretarios.filter(
+            Q(email__icontains=busqueda) |
+            Q(dni__icontains=busqueda) |
+            Q(first_name__icontains=busqueda) |
+            Q(last_name__icontains=busqueda)
+        )
+
+    secretarios = secretarios.order_by('first_name', 'last_name')
+
+    return render(request, 'user/admin_secretarios.html', {
+        'secretarios': secretarios,
+        'filtro_estado': estado,
+        'filtro_busqueda': busqueda,
+        'hay_filtros': any([estado, busqueda]),
+    })
+
+
+@login_required(login_url='user:login')
+def crear_secretario(request):
+    """Crear un nuevo secretario."""
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    if request.method == 'POST':
+        form = CrearSecretarioForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.username = form.cleaned_data['email']
+            user.rol = 'secretario'
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            messages.success(request, "Cuenta creada exitosamente.")
+            return redirect('user:admin_secretarios')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, str(error))
+    else:
+        form = CrearSecretarioForm()
+
+    return render(request, 'user/crear_secretario.html', {'form': form})
+
+
+@login_required(login_url='user:login')
+def modificar_secretario(request, secretario_id):
+    """Modificar un secretario existente."""
+    if not _es_dueno(request):
+        messages.error(request, "Solo el dueño puede modificar secretarios.")
+        return redirect('user:admin_secretarios')
+
+    secretario = get_object_or_404(User, id=secretario_id, rol='secretario')
+
+    if request.method == 'POST':
+        form = EditarClienteForm(request.POST, instance=secretario, client=secretario)
+        if form.is_valid():
+            if not form.has_changed():
+                messages.info(request, "No se registraron cambios en los datos del secretario.")
+                return redirect('user:admin_secretarios')
+
+            form.save()
+            messages.success(request, "Secretario modificado exitosamente.")
+            return redirect('user:admin_secretarios')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, str(error))
+    else:
+        form = EditarClienteForm(instance=secretario, client=secretario)
+
+    return render(request, 'user/modificar_secretario.html', {
+        'form': form,
+        'secretario': secretario,
+    })
+
+
+@login_required(login_url='user:login')
+def eliminar_secretario(request, secretario_id):
+    """Eliminar un secretario."""
+    if not _es_dueno(request):
+        messages.error(request, "Solo el dueño puede eliminar secretarios.")
+        return redirect('user:admin_secretarios')
+
+    secretario = get_object_or_404(User, id=secretario_id, rol='secretario')
+
+    if request.method == 'POST':
+        email = secretario.email
+        secretario.delete()
+        messages.success(request, f"Secretario {email} eliminado correctamente.")
+        return redirect('user:admin_secretarios')
+
+    return render(request, 'user/confirmar_eliminar_secretario.html', {
+        'secretario': secretario,
+    })
+
+
+@login_required(login_url='user:login')
+def dar_baja_cliente(request, user_id):
+    """Dar de baja lógica a un cliente, guardando su historial."""
+    if not _es_admin(request):
+        messages.error(request, "Acceso denegado")
+        return HttpResponseForbidden("Acceso denegado")
+
+    cliente = get_object_or_404(User, id=user_id, rol='cliente')
+
+    if request.method == 'POST':
+        # Guardar los datos del cliente en el historial antes de eliminarlo
+        HistorialUsuarioBaja.objects.create(
+            nombre=cliente.first_name,
+            apellido=cliente.last_name,
+            email=cliente.email,
+            dni=cliente.dni,
+            telefono=cliente.telefono,
+            fecha_nacimiento=cliente.fecha_nacimiento,
+            fecha_registro_original=cliente.fecha_registro,
+            creditos_al_momento=cliente.creditos,
+            dado_baja_por=request.user,
+        )
+        
+        # Eliminar el usuario
+        cliente.delete()
+        messages.success(request, "Usuario eliminado exitosamente. Los datos fueron guardados en el historial.")
+        return redirect('user:client_list')
+
+    return render(request, 'user/confirmar_baja_cliente.html', {
+        'cliente': cliente,
+    })
+
+@login_required(login_url='user:login')
+def mi_historial(request):
+    """Mostrar historial de clases del cliente (más recientes primero)."""
+    if not request.user.is_authenticated:
+        return HttpResponseForbidden("Acceso denegado")
+
+    if getattr(request.user, 'rol', None) != 'cliente':
+        return HttpResponseForbidden("Acceso denegado")
+
+    # Obtener reservas del usuario ordenadas por fecha de la clase (más recientes primero)
+    reservas = (
+        request.user.reservas
+        .select_related('clase', 'clase__actividad')
+        .order_by('-clase__fecha', '-clase__hora_inicio')
+    )
+
+    return render(request, 'user/mi_historial.html', {
+        'reservas': reservas,
     })
 
 

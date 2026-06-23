@@ -91,9 +91,10 @@ class ValidarQRTestCase(TestCase):
         self.assertEqual(reserva.estado, 'asistida')
         self.assertTrue(Asistencia.objects.filter(reserva=reserva).exists())
 
+    @patch('turno.models.timezone.localdate')
     @patch('turno.services.timezone.now')
     @patch('turno.services.timezone.localtime')
-    def test_escenario_2_qr_vencido_fecha_pasada(self, mock_localtime, mock_now):
+    def test_escenario_2_qr_vencido_fecha_pasada(self, mock_localtime, mock_now, mock_localdate):
         """
         Escenario II: Registro fallido por QR vencido
         Dada la fecha actual 11/10/04 a las 9:50 am, un QR sin usar
@@ -101,10 +102,13 @@ class ValidarQRTestCase(TestCase):
         Cuando el usuario muestra el QR en el lector.
         Entonces el sistema informa mensaje de error por QR vencido.
         """
+        # Primero creamos la clase cuando la fecha es 10/10/04 (mismo día de la clase)
         fecha_clase = date(2004, 10, 10)
-        fake_now = dt(2004, 10, 11, 9, 50)
-        mock_now.return_value = fake_now
-        mock_localtime.return_value = fake_now
+        
+        # Mockeamos localdate para el 10/10/04 (mismo día, así se permite crear la clase)
+        mock_localdate.return_value = fecha_clase
+        mock_now.return_value = dt(2004, 10, 10, 9, 0)
+        mock_localtime.return_value = dt(2004, 10, 10, 9, 0)
 
         clase = self._crear_clase(
             fecha=fecha_clase,
@@ -112,6 +116,11 @@ class ValidarQRTestCase(TestCase):
             hora_fin=time(11, 0)
         )
         reserva = self._crear_reserva(clase, qr_usado=False)
+
+        # Ahora cambiamos a la fecha 11/10/04 para que el QR esté vencido
+        mock_localdate.return_value = date(2004, 10, 11)
+        mock_now.return_value = dt(2004, 10, 11, 9, 50)
+        mock_localtime.return_value = dt(2004, 10, 11, 9, 50)
 
         resultado = validar_qr(str(reserva.qr_uuid), registrado_por=self.admin)
 
@@ -146,7 +155,7 @@ class ValidarQRTestCase(TestCase):
         resultado = validar_qr(str(reserva.qr_uuid), registrado_por=self.admin)
 
         self.assertFalse(resultado.exito)
-        self.assertIn('deshabilitado', resultado.mensaje.lower())
+        self.assertEqual(resultado.mensaje, 'QR ya usado')
 
     @patch('turno.services.timezone.now')
     @patch('turno.services.timezone.localtime')

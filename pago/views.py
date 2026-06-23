@@ -90,6 +90,7 @@ def pagar_con_tarjeta(request, reserva_id):
 
 @login_required
 def pagar_con_mercadopago(request, reserva_id):
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
     reserva = get_object_or_404(
         Reserva,
@@ -123,17 +124,27 @@ def pagar_con_mercadopago(request, reserva_id):
             "failure": f"{settings.NGROK_URL}/pago/fallo/",
             "pending": f"{settings.NGROK_URL}/pago/pendiente/",
         },
-        "auto_return": "approved",
+        #"auto_return": "approved",
         "notification_url": f"{settings.NGROK_URL}/pago/webhook/",
     }
 
     preference_response = sdk.preference().create(preference_data)
-    preference = preference_response["response"]
+    print("MP RESPONSE:", preference_response)
+    print(preference_response)
+    #preference = preference_response["response"]
+    preference = preference_response.get("response", {}) 
 
-    pago.preference_id = preference["id"]
+    #pago.preference_id = preference["id"]
+    pago.preference_id = preference.get("id", "")
     pago.save()
 
-    return redirect(preference["sandbox_init_point"])
+    #return redirect(preference["init_point"])
+    init_point = preference.get("init_point") or preference.get("sandbox_init_point")
+
+    if not init_point:
+      return HttpResponse("No se pudo generar link de pago", status=500)
+
+    return redirect(init_point)
 
 @login_required
 def pagar_con_creditos(request, reserva_id):
