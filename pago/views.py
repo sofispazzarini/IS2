@@ -6,8 +6,10 @@ from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from turno.models import Reserva
+from turno.models import Reserva, Actividad
 from .models import Pago
+from .forms import CompraPaqueteForm
+from user.models import Penalizacion
 
 sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
@@ -62,10 +64,7 @@ def pagar_con_tarjeta(request, reserva_id):
             )
             reserva.estado = 'confirmada'
             reserva.save()
-            return render(request, 'pago/pagar_tarjeta.html', {
-                'reserva': reserva,
-                'exito': 'Pago exitoso'
-            })
+            return redirect('reservas')
         elif resultado == 'numero_incorrecto':
             error = 'El número de tarjeta es incorrecto'
         elif resultado == 'vencida':
@@ -268,3 +267,106 @@ def solicitar_reembolso(request, reserva_id):
         messages.error(request, "Solo se pueden solicitar reembolsos de reservas canceladas.")
 
     return redirect('reservas')
+
+@login_required
+def comprar_paquete(request):
+    usuario = request.user
+    
+    if request.method == 'POST':
+        form = CompraPaqueteForm(request.POST)
+        if form.is_valid():
+            total_clases = 0
+            subtotal = Decimal('0.00')  # 🛠️ CORREGIDO: Empieza como Decimal exacto
+            items_comprados = [] 
+
+            # 1. Recorrer los campos para calcular totales
+            for campo, cantidad in form.cleaned_data.items():
+                if campo.startswith('actividad_') and cantidad > 0:
+                    actividad_id = campo.split('_')[1]
+                    actividad = Actividad.objects.get(id=actividad_id)
+                    
+                    total_clases += cantidad
+                    subtotal += actividad.precio * cantidad
+                    items_comprados.append({
+                        'actividad': actividad,
+                        'cantidad': cantidad
+                    })
+
+            if total_clases == 0:
+                messages.error(request, "Tenés que seleccionar al menos 1 clase para armar un paquete.")
+                return render(request, 'pago/comprar_paquete.html', {'form': form})
+
+            # 2. Aplicar Reglas de Negocio (Descuentos)
+            descuento_porcentaje = 0
+            
+            # 🛠️ ADAPTADO: Buscamos si el usuario tiene registros de penalización activos
+            usuario_penalizado = Penalizacion.objects.filter(usuario=usuario, activa=True).exists()
+
+            if usuario_penalizado:
+                descuento_porcentaje = 0
+                messages.warning(request, "No se aplicaron descuentos promocionales debido a una penalización activa en tu cuenta.")
+            else:
+                # Si está libre de penalizaciones, aplican los beneficios
+                if total_clases == 2:
+                    descuento_porcentaje = 10
+                elif total_clases >= 3:
+                    descuento_porcentaje = 20
+
+            monto_descuento = subtotal * Decimal(descuento_porcentaje / 100)
+            total_final = subtotal - monto_descuento
+
+            # 3. Guardar en sesión los datos de la compra para recuperarlos en la pantalla de pago
+            request.session['paquete_compra'] = {
+                'total_final': float(total_final),
+                'subtotal': float(subtotal),
+                'descuento': float(monto_descuento),
+                'porcentaje_aplicado': descuento_porcentaje,
+                'items': [{ 'actividad_id': item['actividad'].id, 'cantidad': item['cantidad'] } for item in items_comprados]
+            }
+
+            # Redirigimos a una pantalla de confirmación de pago del paquete
+            return redirect('confirmar_pago_paquete')
+
+    else:
+        form = CompraPaqueteForm()
+
+    return render(request, 'pago/comprar_paquete.html', {'form': form, 'usuario': usuario})
+
+@login_required
+def confirmar_pago_paquete(request):
+    datos_paquete = request.session.get('paquete_compra')
+    if not datos_paquete:
+        messages.error(request, "No hay ninguna compra de paquete activa.")
+        return redirect('comprar_paquete')
+
+    if request.method == 'POST':
+        # Reutilizamos tu simulación de tarjeta con los datos del POST
+        numero = request.POST.get('numero_tarjeta', '').strip()
+        codigo = request.POST.get('codigo_seguridad', '').strip()
+        titular = request.POST.get('titular', '').strip()
+        
+        from .views import simular_servidor_pago # por si está en el mismo archivo
+        resultado = simular_servidor_pago(numero, codigo, titular)
+
+        if resultado == 'aprobado':
+            usuario = request.user
+            
+            # Acreditamos los créditos correspondientes a su favor
+            # Como tu sistema descuenta créditos basándose en el precio de la actividad,
+            # lo ideal es sumarle al usuario el equivalente en pesos/créditos de lo que compró originalmente
+            for item in datos_paquete['items']:
+                actividad = Actividad.objects.get(id=item['actividad_id'])
+                # Suponiendo que 'usuario.creditos' almacena el saldo del cliente
+                usuario.creditos += (actividad.precio * item['cantidad'])
+            
+            usuario.save()
+
+            # Limpiamos la sesión
+            del request.session['paquete_compra']
+
+            messages.success(request, "¡Paquete comprado con éxito! Los créditos fueron acreditados en tu cuenta.")
+            return redirect('reservas')
+        else:
+            messages.error(request, f"Error en el pago: {resultado}. Intenta nuevamente.")
+
+    return render(request, 'pago/confirmar_pago_paquete.html', {'paquete': datos_paquete})

@@ -2,12 +2,20 @@ from django import forms
 from django.utils import timezone
 from datetime import timedelta, datetime
 
-from .models import Clase
+# CAMBIADO: Se agregó Salon a las importaciones
+from .models import Clase, Salon
 from user.models import Profesor
 from actividad.models import Actividad
 
 
 class ClaseForm(forms.ModelForm):
+    # CAMBIADO: Definimos explícitamente el campo salon como un ModelChoiceField
+    salon = forms.ModelChoiceField(
+        queryset=Salon.objects.all(),
+        empty_label="Seleccioná un salón",
+        widget=forms.Select(attrs={'class': 'form-input'})
+    )
+
     class Meta:
         model = Clase
         fields = ['actividad', 'profesor', 'fecha', 'hora_inicio', 'cupo_maximo', 'salon']
@@ -15,7 +23,6 @@ class ClaseForm(forms.ModelForm):
             'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-input'}),
             'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-input'}),
             'cupo_maximo': forms.NumberInput(attrs={'class': 'form-input', 'min': 1}),
-            'salon': forms.TextInput(attrs={'class': 'form-input'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -37,7 +44,7 @@ class ClaseForm(forms.ModelForm):
         cleaned_data = super().clean()
         fecha = cleaned_data.get('fecha')
         hora_inicio = cleaned_data.get('hora_inicio')
-        salon = cleaned_data.get('salon')
+        salon = cleaned_data.get('salon') # Trae la instancia del objeto Salon seleccionada
         profesor = cleaned_data.get('profesor')
 
         if not all([fecha, hora_inicio, salon, profesor]):
@@ -70,6 +77,7 @@ class ClaseForm(forms.ModelForm):
         errores_globales = []
 
         # 1. Validación de Salón
+        # NUEVO: Al comparar salon=salon, Django busca mediante la ForeignKey de forma limpia
         conficto_salon = Clase.objects.filter(
             fecha=fecha,
             salon=salon,
@@ -80,7 +88,7 @@ class ClaseForm(forms.ModelForm):
 
         if conficto_salon:
             errores_globales.append(
-                f"Salón no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
+                f"El {salon.nombre} no está disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
 
         # 2. Validación de Profesor

@@ -132,7 +132,7 @@
                             </div>
                             <div>
                                 <p class="text-gray-500 text-xs">Salón</p>
-                                <p class="font-medium text-gray-900">{{ clase.salon }}</p>
+                                <p class="font-medium text-gray-900">{{ clase.salon.nombre }}</p>
                             </div>
                         </div>
 
@@ -209,6 +209,7 @@
                                 Inscriptos
                                 <span class="ml-1 px-2 py-0.5 text-xs rounded-full bg-bordo-700 text-white">{{ reservas_activas|length }}</span>
                             </button>
+                            
                             <button type="button" onclick="showTab('cancelados')" id="tab-cancelados"
                                     class="tab-btn flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,6 +217,15 @@
                                 </svg>
                                 Cancelados
                                 <span class="ml-1 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-600">{{ reservas_canceladas|length }}</span>
+                            </button>
+
+                            <button type="button" onclick="showTab('espera')" id="tab-espera"
+                                    class="tab-btn flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Lista de Espera
+                                <span class="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-600 text-white font-bold">{{ lista_espera_usuarios|length }}</span>
                             </button>
                         </div>
                     </div>
@@ -340,6 +350,52 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             <p class="text-gray-500">No hay reservas canceladas</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div id="panel-espera" class="tab-panel hidden">
+                        {% if lista_espera_usuarios %}
+                        <div class="divide-y divide-gray-100">
+                            {% for registro in lista_espera_usuarios %}
+                            <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition">
+                                <div class="flex items-center gap-4">
+                                    <span class="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                                        {{ forloop.counter }}
+                                    </span>
+                                    <div>
+                                        <p class="font-medium text-gray-900">{{ registro.usuario.get_full_name|default:registro.usuario.username }}</p>
+                                        <p class="text-sm text-gray-500">{{ registro.usuario.email }} • <span class="text-xs text-gray-400">Anotado: {{ registro.fecha_ingreso|date:"d/m H:i" }}hs</span></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    {% if registro.notificado %}
+                                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                                            Notificado
+                                        </span>
+                                    {% else %}
+                                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-700 animate-pulse">
+                                            En espera
+                                        </span>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'user:client_profile' registro.usuario.pk %}"
+                                       class="text-bordo-700 hover:text-bordo-800" title="Ver perfil">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="px-6 py-12 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-gray-500">No hay clientes en lista de espera</p>
                         </div>
                         {% endif %}
                     </div>
