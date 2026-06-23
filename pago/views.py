@@ -12,8 +12,6 @@ from .models import Pago
 sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
 
-
-
 def simular_servidor_pago(numero, codigo, titular):
     # Simulacion del servidor de pago externo
     tarjetas_validas = {
@@ -115,7 +113,7 @@ def pagar_con_mercadopago(request, reserva_id):
                 "title": f"Clase de {reserva.clase.actividad.nombre}",
                 "quantity": 1,
                 "currency_id": "ARS",
-                "unit_price": float(pago.monto)
+                "unit_price": 1000.0
             }
         ],
         "external_reference": str(pago.id),
@@ -124,7 +122,8 @@ def pagar_con_mercadopago(request, reserva_id):
             "failure": f"{settings.NGROK_URL}/pago/fallo/",
             "pending": f"{settings.NGROK_URL}/pago/pendiente/",
         },
-        #"auto_return": "approved",
+
+        "auto_return": "approved",
         "notification_url": f"{settings.NGROK_URL}/pago/webhook/",
     }
 

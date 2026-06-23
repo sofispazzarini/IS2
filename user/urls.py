@@ -17,8 +17,11 @@ urlpatterns = [
     path('cliente/<int:user_id>/dar-baja/', views.dar_baja_cliente, name='dar_baja_cliente'),
     path('mi-historial/', views.mi_historial, name='mi_historial'),
     path('logout/', views.logout_view, name='logout'),
+    path('mantenimiento/toggle/', views.toggle_modo_mantenimiento, name='toggle_modo_mantenimiento'),
     path('register/', views.registro, name='register'),
 
+    path('estadisticas/', views.estadisticas_usuario, name='estadisticas_usuario'),
+    
     # Profesores
     path('profesores/', views.admin_profesores, name='admin_profesores'),
     path('profesores/crear/', views.crear_profesor, name='crear_profesor'),

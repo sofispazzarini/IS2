@@ -34,8 +34,32 @@
                    class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Profesores
                 </a>
+                <a href="{% url 'user:estadisticas_usuario' %}"
+                    class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                     Estadísticas
+                </a>
             </div>
         </div>
+
+        <!-- Botón de Modo Mantenimiento -->
+        {% if es_dueno %}
+        <div class="bg-bordo-50 border border-bordo-200 rounded-3xl p-6 mb-6 flex items-center justify-between">
+            <div>
+                <p class="font-semibold text-gray-900">Modo mantenimiento</p>
+                <p class="text-sm text-gray-600 mt-1">Presioná para {% if modo_mantenimiento_activo %}desactivar{% else %}activar{% endif %} el modo mantenimiento.</p>
+            </div>
+            <form method="POST" action="{% url 'user:toggle_modo_mantenimiento' %}">
+                {% csrf_token %}
+                <button type="submit" style="background-color: #7f1d1d; color: white; padding: 12px 24px; border-radius: 9999px; font-weight: 600; border: none; cursor: pointer;">
+                    {% if modo_mantenimiento_activo %}
+                        Desactivar modo mantenimiento
+                    {% else %}
+                        Activar modo mantenimiento
+                    {% endif %}
+                </button>
+            </form>
+        </div>
+        {% endif %}
 
         <!-- Filtros -->
         <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">

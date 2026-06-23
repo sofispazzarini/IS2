@@ -24,7 +24,7 @@
                 Fecha: <strong>{{ reserva.clase.fecha }}</strong> a las <strong>{{ reserva.clase.hora_inicio }}</strong>
             </p>
 
-            {% if qr_image %}
+            {% if qr_image and reserva.estado == 'confirmada' %}
             <div class="bg-gray-50 rounded-xl p-6 mb-6">
                 <p class="text-sm text-gray-600 mb-3">Tu código QR para registrar asistencia:</p>
                 <img src="{{ qr_image }}" alt="Código QR" class="mx-auto w-48 h-48">

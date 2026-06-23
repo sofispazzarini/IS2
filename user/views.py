@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm, CrearSecretarioForm
 from .models import HistorialUsuarioBaja, Profesor
+from core.models import ConfiguracionSistema
 from django.utils.http import urlsafe_base64_encode
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_bytes
@@ -98,12 +99,16 @@ def client_list(request):
         )
 
     users = users.order_by('first_name', 'last_name')
+    modo_mantenimiento_activo = ConfiguracionSistema.obtener().modo_mantenimiento
+    es_dueno = getattr(request.user, 'rol', None) == 'dueno'
 
     return render(request, 'user/client_list.html', {
         'clients': users,
         'filtro_busqueda': busqueda,
         'filtro_estado': estado,
         'hay_filtros': any([busqueda, estado]),
+        'modo_mantenimiento_activo': modo_mantenimiento_activo,
+        'es_dueno': es_dueno,
     })
 
 
@@ -314,6 +319,24 @@ def _es_dueno(request):
 
 
 @login_required(login_url='user:login')
+def toggle_modo_mantenimiento(request):
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    if request.method == 'POST':
+        configuracion = ConfiguracionSistema.obtener()
+        configuracion.modo_mantenimiento = not configuracion.modo_mantenimiento
+        configuracion.save()
+
+        if configuracion.modo_mantenimiento:
+            messages.success(request, "Se ha activado el modo mantenimiento")
+        else:
+            messages.success(request, "Se ha desactivado el modo mantenimiento")
+
+    return redirect('user:client_list')
+
+
+@login_required(login_url='user:login')
 def admin_profesores(request):
     """Panel de administración de profesores."""
     if not _es_admin(request):
@@ -344,6 +367,7 @@ def admin_profesores(request):
 
     profesores = profesores.order_by('apellido', 'nombre')
     especialidades = Profesor.objects.values_list('especialidad', flat=True).distinct().order_by('especialidad')
+    modo_mantenimiento_activo = ConfiguracionSistema.obtener().modo_mantenimiento
 
     return render(request, 'user/admin_profesores.html', {
         'profesores': profesores,
@@ -353,6 +377,7 @@ def admin_profesores(request):
         'filtro_especialidad': especialidad,
         'filtro_busqueda': busqueda,
         'hay_filtros': any([activo, especialidad, busqueda]),
+        'modo_mantenimiento_activo': modo_mantenimiento_activo,
     })
 
 
@@ -685,4 +710,80 @@ def confirmar_restablecimiento_view(request, uidb64, token):
         'uid': uidb64,
         'token': token,
         'form': form
+    })
+
+@login_required(login_url='user:login')
+def estadisticas_usuario(request):
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    from turno.models import Reserva
+    from pago.models import Pago
+    from django.db.models import Sum, Count
+
+    es_dueno = _es_dueno(request)
+
+    # --- Estadísticas de usuario individual ---
+    email = request.GET.get('email', '').strip()
+    cliente = None
+    reservas = []
+    pagos_usuario = []
+    error_usuario = None
+    sin_historial = False
+
+    if email:
+        User = get_user_model()
+        try:
+            cliente = User.objects.get(email=email, rol='cliente')
+            reservas = Reserva.objects.filter(usuario=cliente).select_related('clase__actividad').order_by('-fecha_reserva')
+            pagos_usuario = Pago.objects.filter(reserva__usuario=cliente).select_related('reserva__clase__actividad').order_by('-fecha_pago')
+            if not reservas.exists() and not pagos_usuario.exists():
+                sin_historial = True
+        except User.DoesNotExist:
+            error_usuario = "El usuario es inexistente"
+
+    # --- Estadísticas de pago generales (solo dueño) ---
+    fecha_desde = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
+    pagos_generales = None
+    total_ingresos = None
+    error_pagos = None
+    sin_pagos = False
+
+    if es_dueno and fecha_desde and fecha_hasta:
+        try:
+            pagos_generales = Pago.objects.filter(
+                fecha_pago__date__gte=fecha_desde,
+                fecha_pago__date__lte=fecha_hasta,
+                estado_pago='aprobado'
+            ).select_related('reserva__clase__actividad', 'reserva__usuario').order_by('-fecha_pago')
+
+            if pagos_generales.exists():
+                total_ingresos = pagos_generales.aggregate(total=Sum('monto'))['total']
+                por_metodo = pagos_generales.values('metodo_pago').annotate(
+                    cantidad=Count('id'), subtotal=Sum('monto')
+                ).order_by('-subtotal')
+                pagos_generales = {
+                    'lista': pagos_generales,
+                    'por_metodo': por_metodo,
+                }
+            else:
+                sin_pagos = True
+        except Exception:
+            error_pagos = "Las fechas ingresadas no son válidas"
+
+    return render(request, 'user/estadisticas_usuario.html', {
+        'email_buscado': email,
+        'cliente': cliente,
+        'reservas': reservas,
+        'pagos_usuario': pagos_usuario,
+        'error_usuario': error_usuario,
+        'sin_historial': sin_historial,
+        'es_dueno': es_dueno,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'pagos_generales': pagos_generales,
+        'total_ingresos': total_ingresos,
+        'error_pagos': error_pagos,
+        'sin_pagos': sin_pagos,
     })

@@ -35,6 +35,7 @@ python3 -m venv .venv
 
 ```bash
 source .venv/bin/activate
+source .venv/Scripts/activate
 ```
 
 3. Instalar dependencias:
