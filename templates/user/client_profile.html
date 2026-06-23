@@ -223,6 +223,14 @@
                         Contraseña temporal
                     </button>
                 </form>
+                {% if tiene_turnos_fijos or tiene_reservas_para_turno_fijo %}
+                <a href="{% url 'registrar_pago_abono_admin' user_id=client.pk %}" class="btn-action btn-action-primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                    </svg>
+                    Registrar pago turno fijo
+                </a>
+                {% endif %}
                 <a href="{% url 'user:dar_baja_cliente' client.pk %}" class="btn-action btn-action-danger">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                         <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>

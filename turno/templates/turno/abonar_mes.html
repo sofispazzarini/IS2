@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Abonar Mes - SIRCA{% endblock %}
+{% block title %}Abonar mis turnos fijos - SIRCA{% endblock %}
 
 {% block content %}
 <div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
@@ -7,7 +7,8 @@
 
     <div class="text-center">
         <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">Abono mensual</p>
-        <h1 class="font-heading text-3xl font-bold text-gray-900">Pagar abono del mes</h1>
+        <h1 class="font-heading text-3xl font-bold text-gray-900">Abonar mis turnos fijos</h1>
+        <p class="text-gray-500 text-sm mt-2">Seleccioná los turnos fijos que querés pagar este mes.</p>
     </div>
 
     {% if error %}
@@ -16,47 +17,51 @@
     </div>
     {% endif %}
 
-    <!-- Resumen de turnos fijos y precio -->
-    <div class="bg-white shadow rounded-2xl p-6 border border-gray-100 space-y-3">
-        <h2 class="font-semibold text-gray-900">Tus turnos fijos</h2>
-        {% for turno in info.turnos_fijos %}
-        <div class="flex justify-between text-sm text-gray-700 border-b border-gray-100 pb-2">
-            <span>{{ turno.actividad.nombre }} — {{ turno.get_dia_semana_display }} {{ turno.hora_inicio|time:"H:i" }}</span>
-            <span>{{ info.clases_por_turno|length }} clases</span>
-        </div>
-        {% endfor %}
+    <form method="POST" id="form-abonar-mes">
+        {% csrf_token %}
 
-        <div class="pt-2 space-y-1 text-sm text-gray-600">
-            <div class="flex justify-between">
-                <span>Subtotal</span>
-                <span>${{ info.monto_total }}</span>
-            </div>
-            {% if info.descuento_porcentaje %}
-            <div class="flex justify-between text-green-700 font-semibold">
-                <span>Descuento ({{ info.descuento_porcentaje }}%)</span>
-                <span>- ${{ info.monto_total|floatformat:2 }}</span>
-            </div>
-            {% endif %}
-            <div class="flex justify-between font-bold text-gray-900 text-base pt-1 border-t border-gray-200">
-                <span>Total a pagar</span>
-                <span>${{ info.monto_final }}</span>
-            </div>
+        <div class="bg-white shadow rounded-2xl p-6 border border-gray-100 space-y-3 mb-4">
+            <h2 class="font-semibold text-gray-900 mb-2">Tus turnos fijos pendientes</h2>
+            {% for turno in turnos_pendientes %}
+            <label class="flex items-start gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition">
+                <input type="checkbox" name="turnos_fijos" value="{{ turno.id }}"
+                       class="mt-1 h-4 w-4 text-bordo-700 border-gray-300 rounded tf-checkbox"
+                       data-precio="{{ turno.actividad.precio }}">
+                <div>
+                    <p class="font-semibold text-sm text-gray-900">
+                        {{ turno.actividad.nombre }} — {{ turno.get_dia_semana_display }} {{ turno.hora_inicio|time:"H:i" }}hs
+                    </p>
+                    <p class="text-xs text-gray-500">Precio por clase: ${{ turno.actividad.precio }}</p>
+                </div>
+            </label>
+            {% endfor %}
         </div>
-    </div>
 
-    <!-- Botón de pago con MercadoPago -->
-    <div class="bg-white shadow rounded-2xl p-6 border border-gray-100 text-center">
-        <p class="text-sm text-gray-500 mb-4">
-            Serás redirigido a MercadoPago para completar el pago de forma segura.
-        </p>
-        <form method="POST">
-            {% csrf_token %}
-            <button type="submit"
-                    class="w-full btn-bordo py-3 rounded-full font-semibold text-center">
-                Pagar ${{ info.monto_final }} con MercadoPago
+        <div class="bg-white shadow rounded-2xl p-6 border border-gray-100 mb-4">
+            <div class="space-y-1 text-sm text-gray-600" id="resumen-precio">
+                <div class="flex justify-between">
+                    <span>Turnos seleccionados</span>
+                    <span id="cantidad-sel">0</span>
+                </div>
+                <div class="flex justify-between text-green-700 font-semibold" id="fila-descuento" style="display:none!important">
+                    <span>Descuento (<span id="pct-desc">0</span>%)</span>
+                    <span>-$<span id="monto-desc">0</span></span>
+                </div>
+                <div class="flex justify-between font-bold text-gray-900 text-base pt-1 border-t border-gray-200">
+                    <span>Total estimado</span>
+                    <span>$<span id="total-final">0</span></span>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">* El monto exacto se calcula según las clases del mes disponibles.</p>
+        </div>
+
+        <div class="bg-white shadow rounded-2xl p-6 border border-gray-100 text-center">
+            <p class="text-sm text-gray-500 mb-4">Serás redirigido a MercadoPago para completar el pago de forma segura.</p>
+            <button type="submit" class="w-full btn-bordo py-3 rounded-full font-semibold text-center">
+                Pagar con MercadoPago
             </button>
-        </form>
-    </div>
+        </div>
+    </form>
 
     <a href="{% url 'user:perfil' %}" class="block text-center text-sm text-gray-500 hover:text-gray-700">
         Volver al perfil
@@ -64,4 +69,26 @@
 
 </div>
 </div>
+
+<script>
+const checkboxes = document.querySelectorAll('.tf-checkbox');
+function actualizarResumen() {
+    const seleccionados = [...checkboxes].filter(c => c.checked);
+    const n = seleccionados.length;
+    const subtotal = seleccionados.reduce((acc, c) => acc + parseFloat(c.dataset.precio || 0), 0);
+    const pct = n >= 3 ? 20 : (n === 2 ? 10 : 0);
+    const descuento = subtotal * pct / 100;
+    const total = subtotal - descuento;
+
+    document.getElementById('cantidad-sel').textContent = n;
+    document.getElementById('pct-desc').textContent = pct;
+    document.getElementById('monto-desc').textContent = descuento.toFixed(2);
+    document.getElementById('total-final').textContent = total.toFixed(2);
+
+    const filaDesc = document.getElementById('fila-descuento');
+    filaDesc.style.display = pct > 0 ? '' : 'none';
+}
+checkboxes.forEach(c => c.addEventListener('change', actualizarResumen));
+actualizarResumen();
+</script>
 {% endblock %}

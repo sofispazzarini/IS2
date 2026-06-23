@@ -198,28 +198,44 @@ def webhook_mercadopago(request):
     estado_mp = payment_data.get("status")
 
     if external_reference.startswith("abono_"):
-        # Pago del abono mensual
         from turno.models import Abono, TurnoFijo, Reserva as Reserva_
+        from turno.views import _calcular_info_abono, _calcular_info_abono_para_turnos, _crear_reservas_abono
         try:
             abono_id = int(external_reference.replace("abono_", ""))
             abono = Abono.objects.get(id=abono_id)
             abono.payment_id = payment_id
 
             if estado_mp == "approved":
-                # Para el flujo "hacerse abonado": crear TurnoFijos desde los IDs guardados
+                # Flujo hacerse_abonado / abonar_nuevo_turno_fijo: crear TurnoFijo desde reservas origen
+                nuevos_tf_ids = []
                 if abono.reservas_origen_ids:
                     ids = [int(x) for x in abono.reservas_origen_ids.split(',') if x]
                     for r in Reserva_.objects.filter(id__in=ids).select_related('clase', 'clase__actividad'):
-                        TurnoFijo.objects.get_or_create(
+                        tf, _ = TurnoFijo.objects.get_or_create(
                             usuario=abono.usuario,
                             dia_semana=r.clase.fecha.weekday(),
                             hora_inicio=r.clase.hora_inicio,
                             defaults={'actividad': r.clase.actividad, 'activo': True},
                         )
+                        nuevos_tf_ids.append(tf.id)
+
+                # Combinar con turnos_fijos_ids del flujo abonar_mes
+                existing_tf_ids = set()
+                if abono.turnos_fijos_ids:
+                    existing_tf_ids = {int(x) for x in abono.turnos_fijos_ids.split(',') if x}
+                all_tf_ids = existing_tf_ids | set(nuevos_tf_ids)
+
+                if all_tf_ids:
+                    abono.turnos_fijos_ids = ','.join(str(x) for x in all_tf_ids)
 
                 # Calcular monto definitivo y generar reservas
-                from turno.views import _calcular_info_abono, _crear_reservas_abono
-                info = _calcular_info_abono(abono.usuario, abono.mes, abono.anio)
+                if all_tf_ids:
+                    info = _calcular_info_abono_para_turnos(
+                        abono.usuario, list(all_tf_ids), abono.mes, abono.anio
+                    )
+                else:
+                    info = _calcular_info_abono(abono.usuario, abono.mes, abono.anio)
+
                 if info:
                     abono.cantidad_turnos_fijos = len(info['turnos_fijos'])
                     abono.descuento_porcentaje = info['descuento_porcentaje']
