@@ -783,7 +783,7 @@ def confirmar_restablecimiento_view(request, uidb64, token):
 
 @login_required(login_url='user:login')
 def estadisticas_usuario(request):
-    if not _es_admin(request):
+    if not _es_dueno(request):
         return HttpResponseForbidden("Acceso denegado")
 
     from turno.models import Reserva
