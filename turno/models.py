@@ -147,9 +147,28 @@ class Reserva(models.Model):
         null=True
     )
 
+    observaciones = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    monto_pagado = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    abono = models.ForeignKey(
+        'Abono',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reservas'
+    )
+
     def __str__(self):
         return f"{self.usuario.username} - {self.clase}"
-
 
 class Asistencia(models.Model):
 
@@ -191,3 +210,91 @@ class ListaEspera(models.Model):
 
     def __str__(self):
         return f"{self.usuario.username} - {self.clase}"
+    
+
+class TurnoFijo(models.Model):
+
+    DIAS = (
+        (0, 'Lunes'),
+        (1, 'Martes'),
+        (2, 'Miércoles'),
+        (3, 'Jueves'),
+        (4, 'Viernes'),
+        (5, 'Sábado'),
+        (6, 'Domingo'),
+    )
+
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='turnos_fijos'
+    )
+
+    actividad = models.ForeignKey(
+        'actividad.Actividad',
+        on_delete=models.CASCADE,
+        related_name='turnos_fijos'
+    )
+
+    dia_semana = models.IntegerField(choices=DIAS)
+
+    hora_inicio = models.TimeField()
+
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('usuario', 'dia_semana', 'hora_inicio')
+
+    def __str__(self):
+        return f"{self.usuario.username} - {self.get_dia_semana_display()} {self.hora_inicio.strftime('%H:%M')}"
+
+
+class Abono(models.Model):
+
+    ESTADOS = (
+        ('pendiente', 'Pendiente'),
+        ('aprobado', 'Aprobado'),
+        ('rechazado', 'Rechazado'),
+    )
+
+    METODOS = (
+        ('tarjeta', 'Tarjeta'),
+        ('efectivo', 'Efectivo'),
+        ('posnet', 'POSNET'),
+        ('transferencia', 'Transferencia'),
+    )
+
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='abonos'
+    )
+
+    mes = models.IntegerField()
+    anio = models.IntegerField()
+    cantidad_turnos_fijos = models.IntegerField()
+    descuento_porcentaje = models.IntegerField(default=0)
+
+    monto_total = models.DecimalField(max_digits=10, decimal_places=2)
+    monto_final = models.DecimalField(max_digits=10, decimal_places=2)
+
+    metodo_pago = models.CharField(max_length=30, choices=METODOS, default='tarjeta')
+
+    estado_pago = models.CharField(
+        max_length=30,
+        choices=ESTADOS,
+        default='pendiente'
+    )
+
+    fecha_pago = models.DateTimeField(auto_now_add=True)
+
+    preference_id = models.CharField(max_length=255, blank=True, null=True)
+    payment_id = models.CharField(max_length=255, blank=True, null=True)
+    # IDs de reservas pendientes seleccionadas en el flujo "hacerse abonado", separadas por coma
+    reservas_origen_ids = models.TextField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('usuario', 'mes', 'anio')
+
+    def __str__(self):
+        return f"Abono {self.usuario.username} - {self.mes}/{self.anio}"

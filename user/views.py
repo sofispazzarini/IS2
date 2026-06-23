@@ -19,6 +19,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.views.decorators.cache import never_cache
 from .forms import RestablecerContrasenaForm
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -36,6 +37,9 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, "Inicio de sesión exitoso")
+                next_url = request.POST.get('next', '').strip()
+                if next_url and next_url.startswith('/'):
+                    return redirect(next_url)
                 if user.rol in ('secretario', 'dueno'):
                     return redirect('user:client_list')
                 return redirect('core:home')
@@ -112,15 +116,43 @@ def client_list(request):
         'es_dueno': es_dueno,
     })
 
-
 @login_required(login_url='user:login')
 def client_profile(request, user_id):
     if not _es_admin(request):
         return HttpResponseForbidden("Acceso denegado")
 
+    from turno.models import TurnoFijo, Abono
+    from turno.views import _limpiar_turnos_fijos_no_pagados, _reservas_pendientes_sin_superposicion
     client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
-    return render(request, 'user/client_profile.html', {'client': client})
+    hoy = timezone.localdate()
 
+    _limpiar_turnos_fijos_no_pagados(client, hoy)
+
+    tiene_turnos_fijos = TurnoFijo.objects.filter(usuario=client, activo=True).exists()
+    abono_pagado_mes = Abono.objects.filter(
+        usuario=client, mes=hoy.month, anio=hoy.year, estado_pago='aprobado',
+    ).exists()
+    tiene_reservas_para_turno_fijo = bool(_reservas_pendientes_sin_superposicion(client, hoy))
+
+    return render(request, 'user/client_profile.html', {
+        'client': client,
+        'tiene_turnos_fijos': tiene_turnos_fijos,
+        'abono_pagado_mes': abono_pagado_mes,
+        'tiene_reservas_para_turno_fijo': tiene_reservas_para_turno_fijo,
+        'es_ventana_pago': 1 <= hoy.day <= 30,
+    })
+
+@login_required(login_url='user:login')
+def historial_asistencias(request, user_id):
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+    from turno.models import Reserva
+    client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
+    asistencias = Reserva.objects.filter(usuario=client, estado='asistida').select_related('clase', 'clase__actividad', 'clase__profesor').order_by('-clase__fecha', '-clase__hora_inicio')
+    return render(request, 'user\\historial_asistencias.html', {
+        'client': client,
+        'asistencias': asistencias,
+    })
 
 @login_required(login_url='user:login')
 def historial_pagos_cliente(request, user_id):
@@ -259,7 +291,8 @@ def change_password(request):
         form = ChangePasswordForm()
 
     return render(request, 'user/change_password.html', {'form': form})
-
+from turno.models import TurnoFijo, Abono, Reserva
+from turno.views import _limpiar_turnos_fijos_no_pagados, _reservas_pendientes_sin_superposicion
 
 @login_required(login_url='user:login')
 def perfil_view(request):
@@ -317,11 +350,30 @@ def perfil_view(request):
                     for error in errors:
                         messages.error(request, str(error))
 
+        
+    hoy = timezone.localdate()
+    es_ventana_pago = 1 <= hoy.day <= 30
+    tiene_turnos_fijos = False
+    abono_pagado_mes = False
+    tiene_reservas_para_nuevo_tf = False
+
+    if user.rol == 'cliente':
+        _limpiar_turnos_fijos_no_pagados(user, hoy)
+        tiene_turnos_fijos = TurnoFijo.objects.filter(usuario=user, activo=True).exists()
+        abono_pagado_mes = Abono.objects.filter(
+            usuario=user, mes=hoy.month, anio=hoy.year, estado_pago='aprobado',
+        ).exists()
+        if es_ventana_pago and not abono_pagado_mes:
+            tiene_reservas_para_nuevo_tf = bool(_reservas_pendientes_sin_superposicion(user, hoy))
+
     return render(request, 'user/perfil.html', {
         'perfil_form': perfil_form,
         'password_form': password_form,
+        'es_ventana_pago': es_ventana_pago,
+        'tiene_turnos_fijos': tiene_turnos_fijos,
+        'abono_pagado_mes': abono_pagado_mes,
+        'tiene_reservas_para_nuevo_tf': tiene_reservas_para_nuevo_tf,
     })
-
 
 def logout_view(request):
     logout(request)

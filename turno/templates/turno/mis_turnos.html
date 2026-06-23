@@ -5,6 +5,14 @@
 {% block content %}
 <div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
     <div class="max-w-4xl mx-auto">
+        {% if tiene_turnos_fijos %}
+        <div class="flex justify-end mb-4">
+            <a href="{% url 'ver_turnos_fijos' %}"
+            class="btn-bordo px-6 py-2 rounded-full font-semibold text-sm">
+                Ver mis turnos fijos
+            </a>
+        </div>
+        {% endif %}
         <div class="text-center mb-10">
             <div class="flex items-center justify-between mb-3">
                 <div>

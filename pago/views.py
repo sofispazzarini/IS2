@@ -7,6 +7,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from turno.models import Reserva, Actividad
+from turno.models import Abono, TurnoFijo
 from .models import Pago
 from .forms import CompraPaqueteForm
 from user.models import Penalizacion
@@ -127,10 +128,7 @@ def pagar_con_mercadopago(request, reserva_id):
     }
 
     preference_response = sdk.preference().create(preference_data)
-    print("MP RESPONSE:", preference_response)
-    print(preference_response)
-    #preference = preference_response["response"]
-    preference = preference_response.get("response", {}) 
+    preference = preference_response["response"]
 
     #pago.preference_id = preference["id"]
     pago.preference_id = preference.get("id", "")
@@ -203,28 +201,86 @@ def webhook_mercadopago(request):
     if not external_reference:
         return HttpResponse(status=400)
 
-    try:
-        pago = Pago.objects.get(id=external_reference)
+    estado_mp = payment_data.get("status")
 
-        pago.payment_id = payment_id
+    if external_reference.startswith("abono_"):
+        from turno.models import Abono, TurnoFijo, Reserva as Reserva_
+        from turno.views import _calcular_info_abono, _calcular_info_abono_para_turnos, _crear_reservas_abono
+        try:
+            abono_id = int(external_reference.replace("abono_", ""))
+            abono = Abono.objects.get(id=abono_id)
+            abono.payment_id = payment_id
 
-        estado_mp = payment_data.get("status")
+            if estado_mp == "approved":
+                # Flujo hacerse_abonado / abonar_nuevo_turno_fijo: crear TurnoFijo desde reservas origen
+                nuevos_tf_ids = []
+                if abono.reservas_origen_ids:
+                    ids = [int(x) for x in abono.reservas_origen_ids.split(',') if x]
+                    for r in Reserva_.objects.filter(id__in=ids).select_related('clase', 'clase__actividad'):
+                        tf, _ = TurnoFijo.objects.get_or_create(
+                            usuario=abono.usuario,
+                            dia_semana=r.clase.fecha.weekday(),
+                            hora_inicio=r.clase.hora_inicio,
+                            defaults={'actividad': r.clase.actividad, 'activo': True},
+                        )
+                        nuevos_tf_ids.append(tf.id)
 
-        if estado_mp == "approved":
+                # Combinar con turnos_fijos_ids del flujo abonar_mes
+                existing_tf_ids = set()
+                if abono.turnos_fijos_ids:
+                    existing_tf_ids = {int(x) for x in abono.turnos_fijos_ids.split(',') if x}
+                all_tf_ids = existing_tf_ids | set(nuevos_tf_ids)
 
-            pago.estado_pago = "aprobado"
+                if all_tf_ids:
+                    abono.turnos_fijos_ids = ','.join(str(x) for x in all_tf_ids)
 
-            reserva = pago.reserva
-            reserva.estado = "confirmada"
-            reserva.save()
+                # Calcular monto definitivo y generar reservas
+                if all_tf_ids:
+                    info = _calcular_info_abono_para_turnos(
+                        abono.usuario, list(all_tf_ids), abono.mes, abono.anio
+                    )
+                else:
+                    info = _calcular_info_abono(abono.usuario, abono.mes, abono.anio)
 
-        elif estado_mp == "rejected":
-            pago.estado_pago = "rechazado"
+                if info:
+                    abono.cantidad_turnos_fijos = len(info['turnos_fijos'])
+                    abono.descuento_porcentaje = info['descuento_porcentaje']
+                    abono.monto_total = info['monto_total']
+                    abono.monto_final = info['monto_final']
+                    abono.estado_pago = 'aprobado'
+                    abono.save()
+                    _crear_reservas_abono(abono.usuario, abono, info)
+                else:
+                    abono.estado_pago = 'aprobado'
+                    abono.save()
 
-        pago.save()
+            elif estado_mp == "rejected":
+                abono.estado_pago = 'rechazado'
+                abono.save()
 
-    except Pago.DoesNotExist:
-        pass
+        except (Abono.DoesNotExist, ValueError):
+            pass
+
+    else:
+        # Pago de clase suelta — lógica original sin cambios
+        try:
+            pago = Pago.objects.get(id=external_reference)
+
+            pago.payment_id = payment_id
+
+            if estado_mp == "approved":
+                pago.estado_pago = "aprobado"
+                reserva = pago.reserva
+                reserva.estado = "confirmada"
+                reserva.save()
+
+            elif estado_mp == "rejected":
+                pago.estado_pago = "rechazado"
+
+            pago.save()
+
+        except Pago.DoesNotExist:
+            pass
 
     return HttpResponse(status=200)
 
@@ -249,7 +305,8 @@ def acumular_creditos(request, reserva_id):
     usuario = request.user
 
     if reserva.estado == 'cancelada':
-        usuario.creditos += reserva.clase.actividad.precio
+        monto_devolver = reserva.monto_pagado if reserva.monto_pagado is not None else reserva.clase.actividad.precio
+        usuario.creditos += monto_devolver
         usuario.save()
         messages.success(request, f"Se han acumulado {reserva.clase.actividad.precio} créditos en tu cuenta.")
     else:

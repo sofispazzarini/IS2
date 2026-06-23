@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Registrar pago de turno fijo - SIRCA{% endblock %}
+
+{% block content %}
+<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28" style="background:#fafaf9;">
+<div class="max-w-2xl mx-auto space-y-8">
+
+    <div>
+        <p class="text-xs font-semibold tracking-widest uppercase text-bordo-600 mb-1">Admin — pago presencial</p>
+        <h1 class="font-heading text-2xl font-bold text-gray-900">
+            Registrar pago de turno fijo — {{ client.get_full_name }}
+        </h1>
+    </div>
+
+    {% if not tiene_turnos_fijos and not tiene_reservas %}
+    <div class="bg-white rounded-2xl p-6 border border-gray-200 text-center text-gray-500">
+        Este cliente no tiene turnos fijos ni reservas pendientes disponibles.
+    </div>
+    {% endif %}
+
+    {% if tiene_turnos_fijos %}
+    <div class="bg-white shadow rounded-2xl p-6 border border-gray-100">
+        <h2 class="font-heading text-lg font-bold text-gray-900 mb-4">A — Renovar pago de turnos fijos</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="renovar">
+
+            <div class="space-y-3 mb-5">
+                {% for item in turnos_con_detalle %}
+                <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
+                    <input type="checkbox" name="turnos_fijos" value="{{ item.turno.id }}"
+                           class="h-4 w-4 text-bordo-700 border-gray-300 rounded">
+                    <span class="font-medium text-sm text-gray-900">
+                        {{ item.turno.actividad.nombre }} — {{ item.dia_nombre|capfirst }} {{ item.turno.hora_inicio|time:"H:i" }}hs
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
+                <select name="metodo_pago" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="efectivo">Efectivo</option>
+                    <option value="posnet">POSNET</option>
+                    <option value="transferencia">Transferencia</option>
+                </select>
+            </div>
+
+            <button type="submit" class="w-full btn-bordo py-3 rounded-full font-semibold">
+                Registrar renovación
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if tiene_reservas %}
+    <div class="bg-white shadow rounded-2xl p-6 border border-gray-100">
+        <h2 class="font-heading text-lg font-bold text-gray-900 mb-4">B — Nuevo turno fijo</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="nuevo">
+
+            <div class="space-y-3 mb-5">
+                {% for reserva in reservas_disponibles %}
+                <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
+                    <input type="checkbox" name="reservas" value="{{ reserva.id }}"
+                           class="h-4 w-4 text-bordo-700 border-gray-300 rounded">
+                    <div>
+                        <p class="font-medium text-sm text-gray-900">{{ reserva.clase.actividad.nombre }}</p>
+                        <p class="text-xs text-gray-500">
+                            {{ reserva.clase.fecha|date:"l d/m/Y" }} — {{ reserva.clase.hora_inicio|time:"H:i" }}hs
+                        </p>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
+                <select name="metodo_pago" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="efectivo">Efectivo</option>
+                    <option value="posnet">POSNET</option>
+                    <option value="transferencia">Transferencia</option>
+                </select>
+            </div>
+
+            <button type="submit" class="w-full btn-bordo py-3 rounded-full font-semibold">
+                Registrar nuevo turno fijo
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <a href="{% url 'user:client_profile' user_id=client.pk %}" class="block text-center text-sm text-gray-500 hover:text-gray-700">
+        Volver al perfil del cliente
+    </a>
+
+</div>
+</div>
+{% endblock %}

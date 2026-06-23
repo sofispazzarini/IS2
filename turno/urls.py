@@ -33,4 +33,15 @@ urlpatterns = [
 
     # Registrar asistencia manual
     path('admin/reserva/<int:reserva_id>/asistencia-manual/', views.registrar_asistencia_view, name='registrar_asistencia_manual'),
+    
+    # Abono mensual
+    path('abono/abonar/', views.abonar_mes, name='abonar_mes'),
+    path('abono/hacerse-abonado/', views.hacerse_abonado, name='hacerse_abonado'),
+    path('abono/exito/', views.abono_exito, name='abono_exito'),
+    path('abono/fallo/', views.abono_fallo, name='abono_fallo'),
+    path('abono/pendiente/', views.abono_pendiente, name='abono_pendiente'),
+        # Nuevas funcionalidades de turno fijo
+    path('abono/nuevo-turno-fijo/', views.abonar_nuevo_turno_fijo, name='abonar_nuevo_turno_fijo'),
+    path('abono/ver-turnos-fijos/', views.ver_turnos_fijos, name='ver_turnos_fijos'),
+    path('admin/cliente/<int:user_id>/pago-turno-fijo/', views.registrar_pago_abono_admin, name='registrar_pago_abono_admin'),
 ]
