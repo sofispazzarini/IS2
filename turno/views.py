@@ -137,6 +137,7 @@ def calendario_api(request):
     month = int(request.GET.get('month', hoy.month))
     actividad_id = request.GET.get('actividad')
     profesor_id = request.GET.get('profesor')
+    horario = request.GET.get('horario')
 
     # OPTIMIZACIÓN: Se agregó 'salon' al select_related
     clases = Clase.objects.filter(
@@ -149,6 +150,8 @@ def calendario_api(request):
         clases = clases.filter(actividad_id=actividad_id)
     if profesor_id:
         clases = clases.filter(profesor_id=profesor_id)
+    if horario:
+        clases = clases.filter(hora_inicio__hour=int(horario))
 
     dias = {}
     for clase in clases:
@@ -175,10 +178,19 @@ def calendario_api(request):
     for fecha in dias:
         dias[fecha].sort(key=lambda x: x['hora_inicio'])
 
+    # Mensaje vacío cuando se filtra sin resultados
+    mensaje_vacio = None
+    if not dias:
+        if horario:
+            mensaje_vacio = "no existen actividades en el horario seleccionado"
+        elif profesor_id:
+            mensaje_vacio = "este profesor no tiene actividades programadas"
+
     return JsonResponse({
         'year': year,
         'month': month,
         'dias': dias,
+        'mensaje_vacio': mensaje_vacio,
     })
 
 @login_required
@@ -536,6 +548,7 @@ def detalle_clase(request, clase_id):
     todas_reservas = Reserva.objects.filter(clase=clase).select_related('usuario').order_by('-fecha_reserva')
     reservas_activas = todas_reservas.exclude(estado='cancelada')
     reservas_canceladas = todas_reservas.filter(estado='cancelada')
+    asistencias = todas_reservas.filter(estado='asistida').select_related('asistencia')
 
     lista_espera_usuarios = ListaEspera.objects.filter(clase=clase).select_related('usuario').order_by('fecha_ingreso')
     cant_espera = lista_espera_usuarios.count()
@@ -570,6 +583,7 @@ def detalle_clase(request, clase_id):
         'reservas_canceladas': reservas_canceladas,
         'lista_espera_usuarios': lista_espera_usuarios,
         'cant_espera': cant_espera,
+        'asistencias': asistencias,
         'pagos': pagos,
         'resenas': resenas,
         'promedio_resenas': promedio_resenas,
@@ -578,6 +592,7 @@ def detalle_clase(request, clase_id):
         'total_recaudado': total_recaudado,
         'clase_finalizada': clase_finalizada,
         'es_dueno': es_dueno(request.user),
+        'es_admin': es_admin(request.user),
     })
 
 @login_required
