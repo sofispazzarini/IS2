@@ -149,7 +149,7 @@ def historial_asistencias(request, user_id):
     from turno.models import Reserva
     client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
     asistencias = Reserva.objects.filter(usuario=client, estado='asistida').select_related('clase', 'clase__actividad', 'clase__profesor').order_by('-clase__fecha', '-clase__hora_inicio')
-    return render(request, 'user\\historial_asistencias.html', {
+    return render(request, 'user/historial_asistencias.html', {
         'client': client,
         'asistencias': asistencias,
     })
