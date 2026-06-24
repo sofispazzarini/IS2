@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from django.http import HttpResponseForbidden
-from django.db.models import Q
+from django.db.models import Q, Sum, Count
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm, CrearSecretarioForm
@@ -20,6 +20,9 @@ from django.utils.encoding import force_str
 from django.views.decorators.cache import never_cache
 from .forms import RestablecerContrasenaForm
 from django.utils import timezone
+from datetime import timedelta, datetime
+from turno.models import Reserva, Clase
+import json
 
 User = get_user_model()
 
@@ -786,12 +789,6 @@ def estadisticas_usuario(request):
     if not _es_dueno(request):
         return HttpResponseForbidden("Acceso denegado")
 
-    from turno.models import Reserva, Clase
-    from pago.models import Pago
-    from django.db.models import Sum, Count
-    from datetime import timedelta
-    import json
-
     es_dueno = _es_dueno(request)
     hoy = timezone.localdate()
 
@@ -807,7 +804,6 @@ def estadisticas_usuario(request):
         fecha_inicio = hoy - timedelta(days=180)
         fecha_fin = hoy
     elif rango == 'personalizado' and fecha_desde and fecha_hasta:
-        from datetime import datetime
         fecha_inicio = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
         fecha_fin = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
     else:
@@ -842,7 +838,7 @@ def estadisticas_usuario(request):
     # Por actividad
     stats_por_actividad = reservas_periodo.values('clase__actividad__nombre').annotate(
         cantidad=Count('id'),
-        asistencias=Count('id', filter=models.Q(estado='asistida'))
+        asistencias=Count('id', filter=Q(estado='asistida'))
     ).order_by('-cantidad')
 
     recaudado_por_actividad = pagos_periodo.values('reserva__clase__actividad__nombre').annotate(
@@ -877,8 +873,8 @@ def estadisticas_usuario(request):
     if email:
         try:
             cliente = User.objects.get(email=email, rol='cliente')
-            reservas = Reserva.objects.filter(usuario=cliente).select_related('clase__actividad').order_by('-fecha_reserva')
-            pagos_usuario = Pago.objects.filter(reserva__usuario=cliente).select_related('reserva__clase__actividad').order_by('-fecha_pago')
+            reservas = Reserva.objects.filter(usuario=cliente).select_related('clase__actividad').order_by('-fecha_reserva')[:100]
+            pagos_usuario = Pago.objects.filter(reserva__usuario=cliente).select_related('reserva__clase__actividad').order_by('-fecha_pago')[:100]
             if not reservas.exists() and not pagos_usuario.exists():
                 sin_historial = True
         except User.DoesNotExist:
@@ -888,6 +884,8 @@ def estadisticas_usuario(request):
         'rango': rango,
         'fecha_inicio': fecha_inicio,
         'fecha_fin': fecha_fin,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
         'total_clases': total_clases,
         'total_reservas': total_reservas,
         'total_asistencias': total_asistencias,
