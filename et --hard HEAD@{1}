@@ -1,0 +1,39 @@
+[33mc269867[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/sele[m[33m, [m[1;31morigin/feature/sofi[m[33m, [m[1;31morigin/feature/development[m[33m)[m HEAD@{0}: merge origin/feature/development: Fast-forward
+[33m00446ea[m[33m ([m[1;31morigin/feature/sele[m[33m)[m HEAD@{1}: commit: estadisticas
+[33m0c192a2[m HEAD@{2}: commit: subo cambios de modo mantenimiento
+[33m01cea5d[m HEAD@{3}: commit (merge): Merge remote-tracking branch 'origin/feature/joaquin' into feature/sele
+[33md6fdf17[m HEAD@{4}: commit: actualizo antes de traer actualizacion de ine, mia
+[33m1cb65e0[m HEAD@{5}: commit: actualizo antes de traer de development
+[33mf752853[m HEAD@{6}: commit (merge): subo mas actualizacion cambios ine
+[33m42e4d80[m HEAD@{7}: commit: subo mas
+[33m8fe0726[m HEAD@{8}: commit (merge): me guardo los ultimos cambios de joaquin
+[33m151b8eb[m HEAD@{9}: merge origin/feature/development: Merge made by the 'ort' strategy.
+[33m55b454a[m HEAD@{10}: commit: h
+[33m1d654ac[m HEAD@{11}: commit (merge): guaro nuevos cambios
+[33m8f0aaeb[m HEAD@{12}: commit: guardo antes de traerme lo de sofi
+[33med1fc21[m HEAD@{13}: commit (merge): cambios de ine
+[33m4dbb3a3[m HEAD@{14}: commit (merge): cambios de oli
+[33me6460a0[m HEAD@{15}: commit (merge): resuelvo conflictos con joaquin
+[33m784e624[m HEAD@{16}: checkout: moving from feature/sele to feature/sele
+[33m784e624[m HEAD@{17}: commit: agrego ultimas modificaciones
+[33mfddfb57[m HEAD@{18}: commit (merge): merge lo de mp
+[33ma4fd49c[m HEAD@{19}: checkout: moving from feature/development to feature/sele
+[33mb12334f[m[33m ([m[1;32mfeature/development[m[33m)[m HEAD@{20}: merge origin/feature/development: Fast-forward
+[33m98de930[m HEAD@{21}: checkout: moving from feature/sele to feature/development
+[33ma4fd49c[m HEAD@{22}: commit: subo actuaizacion de qr
+[33m5a8086c[m HEAD@{23}: commit: subo logica qr
+[33m939df50[m HEAD@{24}: merge origin/feature/joaquin: Merge made by the 'ort' strategy.
+[33me54fb97[m HEAD@{25}: merge origin/feature/development: Merge made by the 'ort' strategy.
+[33meaad37a[m HEAD@{26}: merge origin/feature/joaquin: Merge made by the 'ort' strategy.
+[33m3b2a977[m HEAD@{27}: commit (merge): agrego funcionalidad de reseñas por clase y ver lista de presentes
+[33m31e91d6[m HEAD@{28}: commit: agrego funcionalidad de reseñas por clase y ver lista de presentes
+[33m8fea4c3[m HEAD@{29}: merge origin/feature/development: Fast-forward
+[33m98de930[m HEAD@{30}: merge feature/development: Fast-forward
+[33md92db5d[m HEAD@{31}: checkout: moving from feature/development to feature/sele
+[33m98de930[m HEAD@{32}: commit (merge): agrego funcionalidad completa de reseñas
+[33m9c45cf1[m HEAD@{33}: checkout: moving from feature/sele to feature/development
+[33md92db5d[m HEAD@{34}: commit: agrego crud reseñas
+[33m7be2066[m HEAD@{35}: pull origin feature/development: Fast-forward
+[33m1b948f5[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mr[m[33m)[m HEAD@{36}: pull origin main: Fast-forward
+[33m90cfef5[m[33m ([m[1;32mmain[m[33m)[m HEAD@{37}: checkout: moving from main to feature/sele
+[33m90cfef5[m[33m ([m[1;32mmain[m[33m)[m HEAD@{38}: clone: from https://github.com/sofispazzarini/IS2.git

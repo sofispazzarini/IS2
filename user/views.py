@@ -865,6 +865,8 @@ def estadisticas_usuario(request):
     pagos_usuario = []
     error_usuario = None
     sin_historial = False
+    reservas_json = json.dumps([])
+    pagos_json = json.dumps([])
 
     # Lista de clientes para autocompletar
     User = get_user_model()
@@ -877,6 +879,22 @@ def estadisticas_usuario(request):
             pagos_usuario = Pago.objects.filter(reserva__usuario=cliente).select_related('reserva__clase__actividad').order_by('-fecha_pago')[:100]
             if not reservas.exists() and not pagos_usuario.exists():
                 sin_historial = True
+            reservas_json = json.dumps([
+                {
+                    'actividad': r.clase.actividad.nombre,
+                    'estado': r.estado,
+                    'fecha': str(r.clase.fecha),
+                }
+                for r in reservas
+            ])
+            pagos_json = json.dumps([
+                {
+                    'fecha': p.fecha_pago.strftime('%Y-%m'),
+                    'monto': float(p.monto),
+                    'estado': p.estado_pago,
+                }
+                for p in pagos_usuario
+            ])
         except User.DoesNotExist:
             error_usuario = "El usuario es inexistente"
 
@@ -898,6 +916,8 @@ def estadisticas_usuario(request):
         'cliente': cliente,
         'reservas': reservas,
         'pagos_usuario': pagos_usuario,
+        'reservas_json': reservas_json,
+        'pagos_json': pagos_json,
         'error_usuario': error_usuario,
         'sin_historial': sin_historial,
         'es_dueno': es_dueno,
