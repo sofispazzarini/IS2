@@ -328,42 +328,46 @@ def solicitar_reembolso(request, reserva_id):
 @login_required
 def comprar_paquete(request):
     usuario = request.user
-    
+
     if request.method == 'POST':
         form = CompraPaqueteForm(request.POST)
         if form.is_valid():
             total_clases = 0
-            subtotal = Decimal('0.00')  # 🛠️ CORREGIDO: Empieza como Decimal exacto
-            items_comprados = [] 
+            subtotal = Decimal('0.00')
+            items_comprados = []
 
-            # 1. Recorrer los campos para calcular totales
-            for campo, cantidad in form.cleaned_data.items():
-                if campo.startswith('actividad_') and cantidad > 0:
+            # 1. Recorrer los campos para calcular totales y días
+            for campo, valor in form.cleaned_data.items():
+                if campo.startswith('actividad_') and valor > 0:
                     actividad_id = campo.split('_')[1]
                     actividad = Actividad.objects.get(id=actividad_id)
-                    
+                    cantidad = valor
+
+                    # Obtener días seleccionados para esta actividad
+                    dias_key = f'dias_{actividad_id}'
+                    dias = form.cleaned_data.get(dias_key, [])
+
                     total_clases += cantidad
                     subtotal += actividad.precio * cantidad
                     items_comprados.append({
                         'actividad': actividad,
-                        'cantidad': cantidad
+                        'cantidad': cantidad,
+                        'dias': dias
                     })
 
             if total_clases == 0:
                 messages.error(request, "Tenés que seleccionar al menos 1 clase para armar un paquete.")
-                return render(request, 'pago/comprar_paquete.html', {'form': form})
+                return render(request, 'pago/comprar_paquete.html', {'form': form, 'usuario': usuario})
 
             # 2. Aplicar Reglas de Negocio (Descuentos)
             descuento_porcentaje = 0
-            
-            # 🛠️ ADAPTADO: Buscamos si el usuario tiene registros de penalización activos
+
             usuario_penalizado = Penalizacion.objects.filter(usuario=usuario, activa=True).exists()
 
             if usuario_penalizado:
                 descuento_porcentaje = 0
                 messages.warning(request, "No se aplicaron descuentos promocionales debido a una penalización activa en tu cuenta.")
             else:
-                # Si está libre de penalizaciones, aplican los beneficios
                 if total_clases == 2:
                     descuento_porcentaje = 10
                 elif total_clases >= 3:
@@ -372,22 +376,30 @@ def comprar_paquete(request):
             monto_descuento = subtotal * Decimal(descuento_porcentaje / 100)
             total_final = subtotal - monto_descuento
 
-            # 3. Guardar en sesión los datos de la compra para recuperarlos en la pantalla de pago
+            # 3. Guardar en sesión los datos de la compra
             request.session['paquete_compra'] = {
                 'total_final': float(total_final),
                 'subtotal': float(subtotal),
                 'descuento': float(monto_descuento),
                 'porcentaje_aplicado': descuento_porcentaje,
-                'items': [{ 'actividad_id': item['actividad'].id, 'cantidad': item['cantidad'] } for item in items_comprados]
+                'items': [{
+                    'actividad_id': item['actividad'].id,
+                    'cantidad': item['cantidad'],
+                    'dias': item['dias']
+                } for item in items_comprados]
             }
 
-            # Redirigimos a una pantalla de confirmación de pago del paquete
             return redirect('confirmar_pago_paquete')
 
     else:
         form = CompraPaqueteForm()
 
-    return render(request, 'pago/comprar_paquete.html', {'form': form, 'usuario': usuario})
+    actividades = Actividad.objects.filter(activa=True)
+    return render(request, 'pago/comprar_paquete.html', {
+        'form': form,
+        'usuario': usuario,
+        'actividades': actividades
+    })
 
 @login_required
 def confirmar_pago_paquete(request):
@@ -397,33 +409,91 @@ def confirmar_pago_paquete(request):
         return redirect('comprar_paquete')
 
     if request.method == 'POST':
-        # Reutilizamos tu simulación de tarjeta con los datos del POST
-        numero = request.POST.get('numero_tarjeta', '').strip()
-        codigo = request.POST.get('codigo_seguridad', '').strip()
-        titular = request.POST.get('titular', '').strip()
-        
-        from .views import simular_servidor_pago # por si está en el mismo archivo
-        resultado = simular_servidor_pago(numero, codigo, titular)
+        sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+        usuario = request.user
 
-        if resultado == 'aprobado':
-            usuario = request.user
-            
-            # Acreditamos los créditos correspondientes a su favor
-            # Como tu sistema descuenta créditos basándose en el precio de la actividad,
-            # lo ideal es sumarle al usuario el equivalente en pesos/créditos de lo que compró originalmente
-            for item in datos_paquete['items']:
-                actividad = Actividad.objects.get(id=item['actividad_id'])
-                # Suponiendo que 'usuario.creditos' almacena el saldo del cliente
-                usuario.creditos += (actividad.precio * item['cantidad'])
-            
-            usuario.save()
+        preference_data = {
+            "items": [
+                {
+                    "title": "Paquete de clases",
+                    "quantity": 1,
+                    "currency_id": "ARS",
+                    "unit_price": float(datos_paquete['total_final'])
+                }
+            ],
+            "external_reference": f"paquete_{usuario.id}",
+            "back_urls": {
+                "success": f"{settings.NGROK_URL}/pago/paquete/exito/",
+                "failure": f"{settings.NGROK_URL}/pago/paquete/fallo/",
+                "pending": f"{settings.NGROK_URL}/pago/paquete/pendiente/",
+            },
+            "auto_return": "approved",
+            "notification_url": f"{settings.NGROK_URL}/pago/webhook/",
+        }
 
-            # Limpiamos la sesión
-            del request.session['paquete_compra']
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response["response"]
 
-            messages.success(request, "¡Paquete comprado con éxito! Los créditos fueron acreditados en tu cuenta.")
-            return redirect('reservas')
-        else:
-            messages.error(request, f"Error en el pago: {resultado}. Intenta nuevamente.")
+        init_point = preference.get("init_point") or preference.get("sandbox_init_point")
+
+        if not init_point:
+            messages.error(request, "No se pudo generar el enlace de pago.")
+            return redirect('comprar_paquete')
+
+        return redirect(init_point)
 
     return render(request, 'pago/confirmar_pago_paquete.html', {'paquete': datos_paquete})
+
+
+@login_required
+def paquete_exito(request):
+    """Callback de éxito de MercadoPago para paquetes."""
+    from datetime import time
+
+    datos_paquete = request.session.get('paquete_compra')
+    if not datos_paquete:
+        messages.info(request, "El paquete ya fue procesado.")
+        return redirect('reservas')
+
+    usuario = request.user
+    turnos_creados = 0
+
+    for item in datos_paquete['items']:
+        actividad = Actividad.objects.get(id=item['actividad_id'])
+        usuario.creditos += (actividad.precio * item['cantidad'])
+
+        # Crear TurnoFijo si hay días seleccionados
+        dias = item.get('dias', [])
+        for dia in dias:
+            TurnoFijo.objects.get_or_create(
+                usuario=usuario,
+                actividad=actividad,
+                dia_semana=int(dia),
+                hora_inicio=time(10, 0),
+                defaults={'activo': True}
+            )
+            turnos_creados += 1
+
+    usuario.save()
+
+    del request.session['paquete_compra']
+
+    if turnos_creados > 0:
+        messages.success(request, f"¡Paquete comprado con éxito! Los créditos fueron acreditados y se crearon {turnos_creados} turno(s) fijo(s).")
+    else:
+        messages.success(request, "¡Paquete comprado con éxito! Los créditos fueron acreditados en tu cuenta.")
+    return redirect('reservas')
+
+
+@login_required
+def paquete_fallo(request):
+    """Callback de fallo de MercadoPago para paquetes."""
+    messages.error(request, "El pago no pudo ser procesado. Intenta nuevamente.")
+    return redirect('confirmar_pago_paquete')
+
+
+@login_required
+def paquete_pendiente(request):
+    """Callback de pago pendiente de MercadoPago para paquetes."""
+    messages.warning(request, "El pago está pendiente de confirmación. Te notificaremos cuando se acredite.")
+    return redirect('reservas')

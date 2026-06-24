@@ -124,25 +124,35 @@ class Command(BaseCommand):
         self.stdout.write('\n🏃 ACTIVIDADES')
         self.stdout.write('-' * 40)
 
-        yoga, _ = Actividad.objects.get_or_create(
-            nombre='Yoga',
+        zona_media, _ = Actividad.objects.get_or_create(
+            nombre='ZONA MEDIA',
             defaults={
-                'descripcion': 'Clase de yoga para todos los niveles. Mejora tu flexibilidad y reduce el estrés.',
+                'descripcion': 'Entrenamiento enfocado en la zona media: abdominales, oblicuos y espalda baja.',
                 'duracion_min': 60,
                 'precio': Decimal('5000'),
             }
         )
-        self.stdout.write(f'  ✓ Actividad 1: Yoga (${yoga.precio})')
+        self.stdout.write(f'  ✓ Actividad 1: ZONA MEDIA (${zona_media.precio})')
 
-        funcional, _ = Actividad.objects.get_or_create(
-            nombre='Funcional',
+        zona_inferior, _ = Actividad.objects.get_or_create(
+            nombre='ZONA INFERIOR',
             defaults={
-                'descripcion': 'Entrenamiento funcional de alta intensidad. Quemá calorías y ganá fuerza.',
-                'duracion_min': 45,
-                'precio': Decimal('4500'),
+                'descripcion': 'Entrenamiento de piernas, glúteos y pantorrillas.',
+                'duracion_min': 60,
+                'precio': Decimal('5000'),
             }
         )
-        self.stdout.write(f'  ✓ Actividad 2: Funcional (${funcional.precio})')
+        self.stdout.write(f'  ✓ Actividad 2: ZONA INFERIOR (${zona_inferior.precio})')
+
+        zona_superior, _ = Actividad.objects.get_or_create(
+            nombre='ZONA SUPERIOR',
+            defaults={
+                'descripcion': 'Entrenamiento de hombros, pecho, espalda y brazos.',
+                'duracion_min': 60,
+                'precio': Decimal('5000'),
+            }
+        )
+        self.stdout.write(f'  ✓ Actividad 3: ZONA SUPERIOR (${zona_superior.precio})')
 
         # ═══════════════════════════════════════════════════════════
         # 🧑‍🏫 PROFESORES
@@ -150,29 +160,41 @@ class Command(BaseCommand):
         self.stdout.write('\n🧑‍🏫 PROFESORES')
         self.stdout.write('-' * 40)
 
-        profesor_yoga, _ = Profesor.objects.get_or_create(
+        profesor_zona_media, _ = Profesor.objects.get_or_create(
             dni=40000001,
             defaults={
                 'nombre': 'Laura',
                 'apellido': 'García',
                 'telefono': '1155553001',
                 'email': 'laura.garcia@gym.com',
-                'especialidad': 'Yoga',
+                'especialidad': 'Zona Media',
             }
         )
-        self.stdout.write(f'  ✓ Profesor 1: {profesor_yoga} (Yoga)')
+        self.stdout.write(f'  ✓ Profesor 1: {profesor_zona_media} (Zona Media)')
 
-        profesor_funcional, _ = Profesor.objects.get_or_create(
+        profesor_zona_inferior, _ = Profesor.objects.get_or_create(
             dni=40000002,
             defaults={
                 'nombre': 'Martín',
                 'apellido': 'Pérez',
                 'telefono': '1155553002',
                 'email': 'martin.perez@gym.com',
-                'especialidad': 'Funcional',
+                'especialidad': 'Zona Inferior',
             }
         )
-        self.stdout.write(f'  ✓ Profesor 2: {profesor_funcional} (Funcional)')
+        self.stdout.write(f'  ✓ Profesor 2: {profesor_zona_inferior} (Zona Inferior)')
+
+        profesor_zona_superior, _ = Profesor.objects.get_or_create(
+            dni=40000003,
+            defaults={
+                'nombre': 'Carolina',
+                'apellido': 'López',
+                'telefono': '1155553003',
+                'email': 'carolina.lopez@gym.com',
+                'especialidad': 'Zona Superior',
+            }
+        )
+        self.stdout.write(f'  ✓ Profesor 3: {profesor_zona_superior} (Zona Superior)')
 
         # ═══════════════════════════════════════════════════════════
         # 🏠 SALONES
@@ -193,8 +215,8 @@ class Command(BaseCommand):
 
         # Clase A - CON CUPO DISPONIBLE, para demo en vivo (pedir turno → confirmar → pagar)
         clase_a = self._crear_clase_si_no_existe(
-            actividad=yoga,
-            profesor=profesor_yoga,
+            actividad=zona_media,
+            profesor=profesor_zona_media,
             fecha=manana,
             hora_inicio=time(10, 0),
             hora_fin=time(11, 0),
@@ -202,25 +224,25 @@ class Command(BaseCommand):
             salon=salon_a,
             nombre='Clase A'
         )
-        self.stdout.write(f'  ✓ Clase A: {yoga.nombre} - {manana} 10:00hs (cupo: 15, DISPONIBLE para demo)')
+        self.stdout.write(f'  ✓ Clase A: {zona_media.nombre} - {manana} 10:00hs (cupo: 15, DISPONIBLE para demo)')
 
         # Clase B - CUPO LLENO, para mostrar lista de espera
         clase_b = self._crear_clase_si_no_existe(
-            actividad=funcional,
-            profesor=profesor_funcional,
+            actividad=zona_inferior,
+            profesor=profesor_zona_inferior,
             fecha=manana,
             hora_inicio=time(18, 0),
-            hora_fin=time(18, 45),
+            hora_fin=time(19, 0),
             cupo_maximo=5,
             salon=salon_b,
             nombre='Clase B'
         )
-        self.stdout.write(f'  ✓ Clase B: {funcional.nombre} - {manana} 18:00hs (cupo: 5, se llenará)')
+        self.stdout.write(f'  ✓ Clase B: {zona_inferior.nombre} - {manana} 18:00hs (cupo: 5, se llenará)')
 
         # Clase C - FECHA DISTINTA, para filtros
         clase_c = self._crear_clase_si_no_existe(
-            actividad=yoga,
-            profesor=profesor_yoga,
+            actividad=zona_media,
+            profesor=profesor_zona_media,
             fecha=pasado,
             hora_inicio=time(9, 0),
             hora_fin=time(10, 0),
@@ -228,20 +250,20 @@ class Command(BaseCommand):
             salon=salon_a,
             nombre='Clase C'
         )
-        self.stdout.write(f'  ✓ Clase C: {yoga.nombre} - {pasado} 09:00hs (para filtros por fecha)')
+        self.stdout.write(f'  ✓ Clase C: {zona_media.nombre} - {pasado} 09:00hs (para filtros por fecha)')
 
         # Clase D - CON INSCRIPTO LISTO PARA REGISTRAR ASISTENCIA
         clase_d = self._crear_clase_si_no_existe(
-            actividad=funcional,
-            profesor=profesor_funcional,
+            actividad=zona_superior,
+            profesor=profesor_zona_superior,
             fecha=en_3_dias,
             hora_inicio=time(17, 0),
-            hora_fin=time(17, 45),
+            hora_fin=time(18, 0),
             cupo_maximo=10,
             salon=salon_b,
             nombre='Clase D'
         )
-        self.stdout.write(f'  ✓ Clase D: {funcional.nombre} - {en_3_dias} 17:00hs (para registrar asistencia)')
+        self.stdout.write(f'  ✓ Clase D: {zona_superior.nombre} - {en_3_dias} 17:00hs (para registrar asistencia)')
 
         # ═══════════════════════════════════════════════════════════
         # 🎟️ TURNOS Y RESERVAS
@@ -256,13 +278,13 @@ class Command(BaseCommand):
                 clase=clase_c,
                 defaults={
                     'estado': 'confirmada',
-                    'monto_pagado': yoga.precio,
+                    'monto_pagado': zona_media.precio,
                 }
             )
             if created:
                 Pago.objects.create(
                     reserva=reserva_cancelable,
-                    monto=yoga.precio,
+                    monto=zona_media.precio,
                     metodo_pago='creditos',
                     estado_pago='aprobado',
                     registrado_por=dueno,
@@ -277,13 +299,13 @@ class Command(BaseCommand):
                     clase=clase_b,
                     defaults={
                         'estado': 'confirmada',
-                        'monto_pagado': funcional.precio,
+                        'monto_pagado': zona_inferior.precio,
                     }
                 )
                 if created:
                     Pago.objects.create(
                         reserva=reserva,
-                        monto=funcional.precio,
+                        monto=zona_inferior.precio,
                         metodo_pago='efectivo',
                         estado_pago='aprobado',
                         registrado_por=secretario,
@@ -304,13 +326,13 @@ class Command(BaseCommand):
                 clase=clase_d,
                 defaults={
                     'estado': 'confirmada',
-                    'monto_pagado': funcional.precio,
+                    'monto_pagado': zona_superior.precio,
                 }
             )
             if created:
                 Pago.objects.create(
                     reserva=reserva_asistencia,
-                    monto=funcional.precio,
+                    monto=zona_superior.precio,
                     metodo_pago='mercado_pago',
                     estado_pago='aprobado',
                 )
@@ -328,11 +350,11 @@ class Command(BaseCommand):
             dia_semana=0,  # Lunes
             hora_inicio=time(10, 0),
             defaults={
-                'actividad': yoga,
+                'actividad': zona_media,
                 'activo': True,
             }
         )
-        self.stdout.write(f'  ✓ Turno fijo: cliente@demo.com - Lunes 10:00hs (Yoga)')
+        self.stdout.write(f'  ✓ Turno fijo: cliente@demo.com - Lunes 10:00hs (ZONA MEDIA)')
 
         abono, _ = Abono.objects.get_or_create(
             usuario=cliente_abonado,
@@ -341,8 +363,8 @@ class Command(BaseCommand):
             defaults={
                 'cantidad_turnos_fijos': 4,
                 'descuento_porcentaje': 10,
-                'monto_total': yoga.precio * 4,
-                'monto_final': yoga.precio * 4 * Decimal('0.9'),
+                'monto_total': zona_media.precio * 4,
+                'monto_final': zona_media.precio * 4 * Decimal('0.9'),
                 'metodo_pago': 'transferencia',
                 'estado_pago': 'aprobado',
             }

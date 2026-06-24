@@ -9,10 +9,9 @@ from actividad.models import Actividad
 
 
 class ClaseForm(forms.ModelForm):
-    # CAMBIADO: Definimos explícitamente el campo salon como un ModelChoiceField
     salon = forms.ModelChoiceField(
         queryset=Salon.objects.all(),
-        empty_label="Seleccioná un salón",
+        empty_label=None,
         widget=forms.Select(attrs={'class': 'form-input'})
     )
 

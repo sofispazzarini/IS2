@@ -786,11 +786,81 @@ def estadisticas_usuario(request):
     if not _es_dueno(request):
         return HttpResponseForbidden("Acceso denegado")
 
-    from turno.models import Reserva
+    from turno.models import Reserva, Clase
     from pago.models import Pago
     from django.db.models import Sum, Count
+    from datetime import timedelta
+    import json
 
     es_dueno = _es_dueno(request)
+    hoy = timezone.localdate()
+
+    # --- Rango de fechas por default (último mes) ---
+    rango = request.GET.get('rango', '1mes')
+    fecha_desde = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
+
+    if rango == '2meses':
+        fecha_inicio = hoy - timedelta(days=60)
+        fecha_fin = hoy
+    elif rango == '6meses':
+        fecha_inicio = hoy - timedelta(days=180)
+        fecha_fin = hoy
+    elif rango == 'personalizado' and fecha_desde and fecha_hasta:
+        from datetime import datetime
+        fecha_inicio = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
+        fecha_fin = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+    else:
+        fecha_inicio = hoy - timedelta(days=30)
+        fecha_fin = hoy
+        rango = '1mes'
+
+    # --- Estadísticas generales del gimnasio (por default) ---
+    clases_periodo = Clase.objects.filter(
+        fecha__gte=fecha_inicio,
+        fecha__lte=fecha_fin,
+        cancelada=False
+    ).select_related('actividad')
+
+    reservas_periodo = Reserva.objects.filter(
+        clase__fecha__gte=fecha_inicio,
+        clase__fecha__lte=fecha_fin,
+    ).select_related('clase__actividad')
+
+    pagos_periodo = Pago.objects.filter(
+        fecha_pago__date__gte=fecha_inicio,
+        fecha_pago__date__lte=fecha_fin,
+        estado_pago='aprobado'
+    ).select_related('reserva__clase__actividad')
+
+    # Estadísticas agregadas
+    total_clases = clases_periodo.count()
+    total_reservas = reservas_periodo.count()
+    total_asistencias = reservas_periodo.filter(estado='asistida').count()
+    total_recaudado = pagos_periodo.aggregate(total=Sum('monto'))['total'] or 0
+
+    # Por actividad
+    stats_por_actividad = reservas_periodo.values('clase__actividad__nombre').annotate(
+        cantidad=Count('id'),
+        asistencias=Count('id', filter=models.Q(estado='asistida'))
+    ).order_by('-cantidad')
+
+    recaudado_por_actividad = pagos_periodo.values('reserva__clase__actividad__nombre').annotate(
+        total=Sum('monto')
+    ).order_by('-total')
+
+    # Datos para gráficos (JSON)
+    labels = [item['clase__actividad__nombre'] for item in stats_por_actividad]
+    data_reservas = [item['cantidad'] for item in stats_por_actividad]
+    data_asistencias = [item['asistencias'] for item in stats_por_actividad]
+    data_recaudado = [float(item['total'] or 0) for item in recaudado_por_actividad]
+
+    grafico_data = json.dumps({
+        'labels': labels,
+        'reservas': data_reservas,
+        'asistencias': data_asistencias,
+        'recaudado': data_recaudado,
+    })
 
     # --- Estadísticas de usuario individual ---
     email = request.GET.get('email', '').strip()
@@ -800,8 +870,11 @@ def estadisticas_usuario(request):
     error_usuario = None
     sin_historial = False
 
+    # Lista de clientes para autocompletar
+    User = get_user_model()
+    clientes_lista = User.objects.filter(rol='cliente', activo=True).values('id', 'email', 'first_name', 'last_name')[:50]
+
     if email:
-        User = get_user_model()
         try:
             cliente = User.objects.get(email=email, rol='cliente')
             reservas = Reserva.objects.filter(usuario=cliente).select_related('clase__actividad').order_by('-fecha_reserva')
@@ -811,37 +884,18 @@ def estadisticas_usuario(request):
         except User.DoesNotExist:
             error_usuario = "El usuario es inexistente"
 
-    # --- Estadísticas de pago generales (solo dueño) ---
-    fecha_desde = request.GET.get('fecha_desde', '').strip()
-    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
-    pagos_generales = None
-    total_ingresos = None
-    error_pagos = None
-    sin_pagos = False
-
-    if es_dueno and fecha_desde and fecha_hasta:
-        try:
-            pagos_generales = Pago.objects.filter(
-                fecha_pago__date__gte=fecha_desde,
-                fecha_pago__date__lte=fecha_hasta,
-                estado_pago='aprobado'
-            ).select_related('reserva__clase__actividad', 'reserva__usuario').order_by('-fecha_pago')
-
-            if pagos_generales.exists():
-                total_ingresos = pagos_generales.aggregate(total=Sum('monto'))['total']
-                por_metodo = pagos_generales.values('metodo_pago').annotate(
-                    cantidad=Count('id'), subtotal=Sum('monto')
-                ).order_by('-subtotal')
-                pagos_generales = {
-                    'lista': pagos_generales,
-                    'por_metodo': por_metodo,
-                }
-            else:
-                sin_pagos = True
-        except Exception:
-            error_pagos = "Las fechas ingresadas no son válidas"
-
     return render(request, 'user/estadisticas_usuario.html', {
+        'rango': rango,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'total_clases': total_clases,
+        'total_reservas': total_reservas,
+        'total_asistencias': total_asistencias,
+        'total_recaudado': total_recaudado,
+        'stats_por_actividad': stats_por_actividad,
+        'recaudado_por_actividad': recaudado_por_actividad,
+        'grafico_data': grafico_data,
+        'clientes_lista': clientes_lista,
         'email_buscado': email,
         'cliente': cliente,
         'reservas': reservas,
@@ -849,10 +903,4 @@ def estadisticas_usuario(request):
         'error_usuario': error_usuario,
         'sin_historial': sin_historial,
         'es_dueno': es_dueno,
-        'fecha_desde': fecha_desde,
-        'fecha_hasta': fecha_hasta,
-        'pagos_generales': pagos_generales,
-        'total_ingresos': total_ingresos,
-        'error_pagos': error_pagos,
-        'sin_pagos': sin_pagos,
     })

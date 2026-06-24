@@ -405,7 +405,7 @@ def admin_clases(request):
     estado = request.GET.get('estado', '')
     fecha_desde = request.GET.get('fecha_desde', '')
     fecha_hasta = request.GET.get('fecha_hasta', '')
-    salon = request.GET.get('salon', '').strip()
+    salon_id = request.GET.get('salon', '')
 
     clases = Clase.objects.filter(fecha__gte=timezone.localdate())
 
@@ -421,8 +421,8 @@ def admin_clases(request):
         clases = clases.filter(fecha__gte=fecha_desde)
     if fecha_hasta:
         clases = clases.filter(fecha__lte=fecha_hasta)
-    if salon:
-        clases = clases.filter(salon__icontains=salon)
+    if salon_id:
+        clases = clases.filter(salon_id=salon_id)
 
     clases = clases.order_by('fecha', 'hora_inicio').select_related('actividad', 'profesor')
 
@@ -431,13 +431,14 @@ def admin_clases(request):
         'es_dueno': es_dueno(request.user),
         'actividades': Actividad.objects.filter(activa=True).order_by('nombre'),
         'profesores': Profesor.objects.filter(activo=True).order_by('apellido', 'nombre'),
+        'salones': Salon.objects.all().order_by('nombre'),
         'filtro_actividad': actividad_id,
         'filtro_profesor': profesor_id,
         'filtro_estado': estado,
         'filtro_fecha_desde': fecha_desde,
         'filtro_fecha_hasta': fecha_hasta,
-        'filtro_salon': salon,
-        'hay_filtros': any([actividad_id, profesor_id, estado, fecha_desde, fecha_hasta, salon]),
+        'filtro_salon': salon_id,
+        'hay_filtros': any([actividad_id, profesor_id, estado, fecha_desde, fecha_hasta, salon_id]),
     })
 
 
@@ -884,11 +885,62 @@ def salir_lista_espera(request, clase_id):
         registro = get_object_or_404(ListaEspera, clase_id=clase_id, usuario=request.user)
         registro.delete()
         messages.success(request, "Has salido de la lista de espera exitosamente.")
-        
+
         # OPCIÓN A: Mandarlo a la lista general de clases/turnos del cliente
-        return redirect('lista_clases') 
-    
+        return redirect('lista_clases')
+
     return redirect('lista_clases')
+
+
+@login_required
+def aceptar_cupo(request, clase_id):
+    """Permite a usuario en lista de espera aceptar cupo disponible."""
+    clase = get_object_or_404(Clase, id=clase_id)
+    usuario = request.user
+
+    # Verificar que la clase no haya pasado
+    if clase.ya_paso:
+        messages.error(request, "Esta clase ya ha pasado.")
+        return redirect('reservas')
+
+    # Verificar que usuario está en ListaEspera
+    lista_espera = ListaEspera.objects.filter(usuario=usuario, clase=clase).first()
+    if not lista_espera:
+        messages.error(request, "No estás en la lista de espera de esta clase.")
+        return redirect('reservas')
+
+    # Verificar que hay cupo disponible
+    reservas_activas = Reserva.objects.filter(
+        clase=clase,
+        estado__in=['confirmada', 'pendiente_pago']
+    ).count()
+
+    if reservas_activas >= clase.cupo_maximo:
+        messages.error(request, "Lamentablemente, el cupo ya fue ocupado por otro usuario.")
+        return redirect('reservas')
+
+    # Verificar que no tenga ya una reserva
+    reserva_existente = Reserva.objects.filter(usuario=usuario, clase=clase).first()
+    if reserva_existente:
+        messages.info(request, "Ya tienes una reserva para esta clase.")
+        lista_espera.delete()
+        return redirect('detalle_reserva', reserva_id=reserva_existente.id)
+
+    # Crear Reserva con estado pendiente_pago
+    reserva = Reserva.objects.create(
+        usuario=usuario,
+        clase=clase,
+        estado='pendiente_pago'
+    )
+
+    # Eliminar de ListaEspera
+    lista_espera.delete()
+
+    messages.success(request, "¡Aceptaste el cupo! Ahora debes confirmar el pago.")
+
+    # Redirigir al detalle de la reserva para pagar
+    return redirect('detalle_reserva', reserva_id=reserva.id)
+
 
 # ─── Helpers para el abono ────────────────────────────────────────────────────
 
@@ -1269,6 +1321,12 @@ def hacerse_abonado(request):
                 return render(request, 'turno/hacerse_abonado.html', ctx)
             vistos.add(clave)
 
+        # Validación: no abonar clases que ya pasaron
+        for r in reservas_sel:
+            if r.clase.ya_paso:
+                ctx['error'] = f'La clase de {r.clase.actividad.nombre} del {r.clase.fecha.strftime("%d/%m")} ya ha pasado y no puede ser abonada.'
+                return render(request, 'turno/hacerse_abonado.html', ctx)
+
         # Crear Abono en estado pendiente guardando los IDs seleccionados
         # (el webhook creará los TurnoFijos y las Reservas al confirmar el pago)
         abono_existente = Abono.objects.filter(
@@ -1405,6 +1463,12 @@ def abonar_nuevo_turno_fijo(request):
                 )
                 return render(request, 'turno/abonar_nuevo_turno_fijo.html', ctx)
             vistos.add(clave)
+
+        # Validación: no abonar clases que ya pasaron
+        for r in reservas_sel:
+            if r.clase.ya_paso:
+                ctx['error'] = f'La clase de {r.clase.actividad.nombre} del {r.clase.fecha.strftime("%d/%m")} ya ha pasado y no puede ser abonada.'
+                return render(request, 'turno/abonar_nuevo_turno_fijo.html', ctx)
 
         abono_existente = Abono.objects.filter(usuario=usuario, mes=hoy.month, anio=hoy.year).first()
         if abono_existente and abono_existente.estado_pago == 'aprobado':

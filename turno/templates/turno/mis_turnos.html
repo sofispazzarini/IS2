@@ -8,7 +8,7 @@
         {% if tiene_turnos_fijos %}
         <div class="flex justify-end mb-4">
             <a href="{% url 'ver_turnos_fijos' %}"
-            class="btn-bordo px-6 py-2 rounded-full font-semibold text-sm">
+               class="btn-bordo px-6 py-2.5 rounded-full font-semibold text-sm">
                 Ver mis turnos fijos
             </a>
         </div>
@@ -20,7 +20,10 @@
                     <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">Mis Turnos</h2>
                 </div>
                 <div>
-                    <a href="{% url 'user:mi_historial' %}" class="inline-block btn-bordo px-4 py-2 rounded-full font-semibold">
+                    <a href="{% url 'user:mi_historial' %}" class="inline-flex items-center gap-2 btn-bordo px-6 py-2.5 rounded-full font-semibold text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
                         Ver mi historial
                     </a>
                 </div>
@@ -87,9 +90,9 @@
                                 </a>
 
                                 {% if item.reserva.estado != 'cancelada' %}
-                                    <a href="{% url 'cancelar_reserva' item.reserva.id %}" 
-                                       class="inline-flex items-center gap-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 font-semibold px-3 py-1.5 rounded-full transition duration-200">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <a href="{% url 'cancelar_reserva' item.reserva.id %}"
+                                       class="inline-flex items-center gap-2 text-sm border-2 border-red-500 text-red-600 hover:bg-red-50 font-semibold px-4 py-2 rounded-full transition duration-200">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                         </svg>
                                         Cancelar reserva
