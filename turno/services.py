@@ -28,7 +28,7 @@ def validar_qr(qr_uuid, registrado_por=None):
     try:
         uuid.UUID(str(qr_uuid))
     except (ValueError, AttributeError):
-        return ResultadoValidacionQR(False, "QR inválido: el código no tiene un formato válido.")
+        return ResultadoValidacionQR(False, "Error: QR no reconocido.")
 
     try:
         with transaction.atomic():
@@ -41,7 +41,7 @@ def validar_qr(qr_uuid, registrado_por=None):
 
             # QR ya usado
             if reserva.qr_usado:
-                return ResultadoValidacionQR(False, "QR ya usado")
+                return ResultadoValidacionQR(False, "Error: QR ya fue usado.")
 
             # Reserva cancelada
             if reserva.estado == 'cancelada':
@@ -96,7 +96,7 @@ def validar_qr(qr_uuid, registrado_por=None):
             )
 
     except Reserva.DoesNotExist:
-        return ResultadoValidacionQR(False, "QR inválido: no existe reserva asociada.")
+        return ResultadoValidacionQR(False, "Error: QR no reconocido.")
 
 def registrar_asistencia_manual(reserva_id):
     reserva = Reserva.objects.get(id=reserva_id)
