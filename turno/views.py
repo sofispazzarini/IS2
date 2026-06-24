@@ -591,6 +591,8 @@ def detalle_clase(request, clase_id):
     )
     clase_finalizada = clase_finalizada and not clase.cancelada
 
+    inicio_clase_dt = timezone.make_aware(datetime.combine(clase.fecha, clase.hora_inicio))
+    puede_registrar_asistencia = ahora >= inicio_clase_dt - timedelta(minutes=30)
     return render(request, 'turno/detalle_clase.html', {
         'clase': clase,
         'reservas_activas': reservas_activas,
@@ -605,6 +607,7 @@ def detalle_clase(request, clase_id):
         'cupos_disponibles': cupos_disponibles,
         'total_recaudado': total_recaudado,
         'clase_finalizada': clase_finalizada,
+        'puede_registrar_asistencia': puede_registrar_asistencia,
         'es_dueno': es_dueno(request.user),
         'es_admin': es_admin(request.user),
     })
