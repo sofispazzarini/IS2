@@ -15,36 +15,48 @@
         </div>
 
         <div class="bg-white shadow-lg rounded-2xl mb-8 border border-gray-100 overflow-hidden">
-            <div class="flex border-b border-gray-200">
+            <div class="flex border-b border-gray-200 flex-wrap">
                 <a href="{% url 'user:client_list' %}"
-                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                   class="flex-1 min-w-fit text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Clientes
                 </a>
                 <a href="{% url 'admin_clases' %}"
-                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                   class="flex-1 min-w-fit text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Gestión de Clases
                 </a>
                 {% if user.rol == 'dueno' %}
                 <a href="{% url 'actividad:admin_actividades' %}"
-                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                   class="flex-1 min-w-fit text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Actividades
                 </a>
-                {% endif %}
-                <span class="flex-1 text-center px-6 py-4 text-sm font-semibold text-bordo-700 border-b-2 border-bordo-700 bg-bordo-50">
+                <span class="flex-1 min-w-fit text-center px-6 py-4 text-sm font-semibold text-bordo-700 border-b-2 border-bordo-700 bg-bordo-50">
                     Profesores
                 </span>
+                <a href="{% url 'user:admin_secretarios' %}"
+                   class="flex-1 min-w-fit text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                    Secretarios
+                </a>
+                {% else %}
+                <span class="flex-1 min-w-fit text-center px-6 py-4 text-sm font-semibold text-bordo-700 border-b-2 border-bordo-700 bg-bordo-50">
+                    Profesores
+                </span>
+                {% endif %}
             </div>
         </div>
 
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="font-heading text-xl font-semibold text-gray-900">Profesores del sistema</h2>
-            <a href="{% url 'user:crear_profesor' %}"
-               class="btn-bordo px-5 py-2.5 rounded-full font-semibold flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Crear profesor
-            </a>
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+            <div>
+                <h2 class="font-heading text-xl font-semibold text-gray-900">Profesores del sistema</h2>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                <a href="{% url 'user:crear_profesor' %}"
+                   class="btn-bordo px-5 py-2.5 rounded-full font-semibold flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Crear profesor
+                </a>
+            </div>
         </div>
 
         <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">

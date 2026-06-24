@@ -9,6 +9,11 @@ from datetime import datetime
 from user.models import User, Profesor
 from actividad.models import Actividad
 
+class Salon(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.nombre
 
 class Clase(models.Model):
 
@@ -31,7 +36,12 @@ class Clase(models.Model):
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
     cupo_maximo = models.IntegerField()
-    salon = models.CharField(max_length=100)
+    
+    salon = models.ForeignKey(
+        Salon, 
+        on_delete=models.PROTECT, 
+        related_name='clases'
+    )
     cancelada = models.BooleanField(default=False)
     motivo_cancelacion = models.TextField(
         blank=True,
@@ -67,12 +77,15 @@ class Clase(models.Model):
             if self.ya_paso:
                 raise ValidationError('No puedes modificar ni cancelar una clase que ya ha finalizado.')
 
-        # Validación original de salón y profesor ocupado
+        # 2. ACTUALIZADO AQUÍ: Django ahora comparará usando la instancia o el ID del salón de manera automática
         salon_ocupado = Clase.objects.filter(
             fecha=self.fecha,
             hora_inicio=self.hora_inicio,
             salon=self.salon
         ).exclude(pk=self.pk)
+
+        if salon_ocupado.exists():
+            raise ValidationError('El salón seleccionado ya está ocupado en esa fecha y horario.')
 
         profesor_ocupado = Clase.objects.filter(
             fecha=self.fecha,
@@ -80,6 +93,9 @@ class Clase(models.Model):
             profesor=self.profesor
         ).exclude(pk=self.pk)
 
+        if profesor_ocupado.exists():
+            raise ValidationError('El profesor seleccionado ya tiene otra clase asignada en esa fecha y horario.')
+        
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)

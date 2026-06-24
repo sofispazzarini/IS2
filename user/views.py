@@ -5,11 +5,13 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from django.http import HttpResponseForbidden
-from django.db.models import Q
+from django.db.models import Q, Sum, Count
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
-from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm
+from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm, CrearSecretarioForm
 from .models import HistorialUsuarioBaja, Profesor
+from core.models import ConfiguracionSistema
+from pago.models import Pago
 from django.utils.http import urlsafe_base64_encode
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_bytes
@@ -18,6 +20,11 @@ from django.utils.encoding import force_str
 from django.views.decorators.cache import never_cache
 from .forms import RestablecerContrasenaForm
 from django.utils import timezone
+from datetime import timedelta, datetime
+from turno.models import Reserva, Clase
+import json
+
+User = get_user_model()
 
 @never_cache
 def login_view(request):
@@ -100,12 +107,16 @@ def client_list(request):
         )
 
     users = users.order_by('first_name', 'last_name')
+    modo_mantenimiento_activo = ConfiguracionSistema.obtener().modo_mantenimiento
+    es_dueno = getattr(request.user, 'rol', None) == 'dueno'
 
     return render(request, 'user/client_list.html', {
         'clients': users,
         'filtro_busqueda': busqueda,
         'filtro_estado': estado,
         'hay_filtros': any([busqueda, estado]),
+        'modo_mantenimiento_activo': modo_mantenimiento_activo,
+        'es_dueno': es_dueno,
     })
 
 @login_required(login_url='user:login')
@@ -141,10 +152,26 @@ def historial_asistencias(request, user_id):
     from turno.models import Reserva
     client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
     asistencias = Reserva.objects.filter(usuario=client, estado='asistida').select_related('clase', 'clase__actividad', 'clase__profesor').order_by('-clase__fecha', '-clase__hora_inicio')
-    return render(request, 'user\\historial_asistencias.html', {
+    return render(request, 'user/historial_asistencias.html', {
         'client': client,
         'asistencias': asistencias,
     })
+
+@login_required(login_url='user:login')
+def historial_pagos_cliente(request, user_id):
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
+    pagos = Pago.objects.filter(
+        reserva__usuario=client
+    ).select_related('reserva', 'reserva__clase', 'reserva__clase__actividad').order_by('-fecha_pago')
+
+    return render(request, 'user/historial_pagos.html', {
+        'client': client,
+        'pagos': pagos,
+    })
+
 
 @login_required(login_url='user:login')
 def editar_cliente(request, user_id):
@@ -364,6 +391,24 @@ def _es_dueno(request):
 
 
 @login_required(login_url='user:login')
+def toggle_modo_mantenimiento(request):
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    if request.method == 'POST':
+        configuracion = ConfiguracionSistema.obtener()
+        configuracion.modo_mantenimiento = not configuracion.modo_mantenimiento
+        configuracion.save()
+
+        if configuracion.modo_mantenimiento:
+            messages.success(request, "Se ha activado el modo mantenimiento")
+        else:
+            messages.success(request, "Se ha desactivado el modo mantenimiento")
+
+    return redirect('user:client_list')
+
+
+@login_required(login_url='user:login')
 def admin_profesores(request):
     """Panel de administración de profesores."""
     if not _es_admin(request):
@@ -394,6 +439,7 @@ def admin_profesores(request):
 
     profesores = profesores.order_by('apellido', 'nombre')
     especialidades = Profesor.objects.values_list('especialidad', flat=True).distinct().order_by('especialidad')
+    modo_mantenimiento_activo = ConfiguracionSistema.obtener().modo_mantenimiento
 
     return render(request, 'user/admin_profesores.html', {
         'profesores': profesores,
@@ -403,6 +449,7 @@ def admin_profesores(request):
         'filtro_especialidad': especialidad,
         'filtro_busqueda': busqueda,
         'hay_filtros': any([activo, especialidad, busqueda]),
+        'modo_mantenimiento_activo': modo_mantenimiento_activo,
     })
 
 
@@ -477,6 +524,175 @@ def eliminar_profesor(request, profesor_id):
     return render(request, 'user/confirmar_eliminar_profesor.html', {
         'profesor': profesor,
         'tiene_clases': tiene_clases_activas,
+    })
+
+
+# ============================================================================
+# VISTAS PARA ADMINISTRAR SECRETARIOS
+# ============================================================================
+
+@login_required(login_url='user:login')
+def admin_secretarios(request):
+    """Panel de administración de secretarios."""
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    busqueda = request.GET.get('q', '').strip()
+    estado = request.GET.get('estado', '')
+
+    secretarios = User.objects.filter(rol='secretario')
+
+    if estado == 'activos':
+        secretarios = secretarios.filter(activo=True)
+    elif estado == 'inactivos':
+        secretarios = secretarios.filter(activo=False)
+
+    if busqueda:
+        secretarios = secretarios.filter(
+            Q(email__icontains=busqueda) |
+            Q(dni__icontains=busqueda) |
+            Q(first_name__icontains=busqueda) |
+            Q(last_name__icontains=busqueda)
+        )
+
+    secretarios = secretarios.order_by('first_name', 'last_name')
+
+    return render(request, 'user/admin_secretarios.html', {
+        'secretarios': secretarios,
+        'filtro_estado': estado,
+        'filtro_busqueda': busqueda,
+        'hay_filtros': any([estado, busqueda]),
+    })
+
+
+@login_required(login_url='user:login')
+def crear_secretario(request):
+    """Crear un nuevo secretario."""
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    if request.method == 'POST':
+        form = CrearSecretarioForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.username = form.cleaned_data['email']
+            user.rol = 'secretario'
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            messages.success(request, "Cuenta creada exitosamente.")
+            return redirect('user:admin_secretarios')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, str(error))
+    else:
+        form = CrearSecretarioForm()
+
+    return render(request, 'user/crear_secretario.html', {'form': form})
+
+
+@login_required(login_url='user:login')
+def modificar_secretario(request, secretario_id):
+    """Modificar un secretario existente."""
+    if not _es_dueno(request):
+        messages.error(request, "Solo el dueño puede modificar secretarios.")
+        return redirect('user:admin_secretarios')
+
+    secretario = get_object_or_404(User, id=secretario_id, rol='secretario')
+
+    if request.method == 'POST':
+        form = EditarClienteForm(request.POST, instance=secretario, client=secretario)
+        if form.is_valid():
+            if not form.has_changed():
+                messages.info(request, "No se registraron cambios en los datos del secretario.")
+                return redirect('user:admin_secretarios')
+
+            form.save()
+            messages.success(request, "Secretario modificado exitosamente.")
+            return redirect('user:admin_secretarios')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, str(error))
+    else:
+        form = EditarClienteForm(instance=secretario, client=secretario)
+
+    return render(request, 'user/modificar_secretario.html', {
+        'form': form,
+        'secretario': secretario,
+    })
+
+
+@login_required(login_url='user:login')
+def eliminar_secretario(request, secretario_id):
+    """Eliminar un secretario."""
+    if not _es_dueno(request):
+        messages.error(request, "Solo el dueño puede eliminar secretarios.")
+        return redirect('user:admin_secretarios')
+
+    secretario = get_object_or_404(User, id=secretario_id, rol='secretario')
+
+    if request.method == 'POST':
+        email = secretario.email
+        secretario.delete()
+        messages.success(request, f"Secretario {email} eliminado correctamente.")
+        return redirect('user:admin_secretarios')
+
+    return render(request, 'user/confirmar_eliminar_secretario.html', {
+        'secretario': secretario,
+    })
+
+
+@login_required(login_url='user:login')
+def dar_baja_cliente(request, user_id):
+    """Dar de baja lógica a un cliente, guardando su historial."""
+    if not _es_admin(request):
+        messages.error(request, "Acceso denegado")
+        return HttpResponseForbidden("Acceso denegado")
+
+    cliente = get_object_or_404(User, id=user_id, rol='cliente')
+
+    if request.method == 'POST':
+        # Guardar los datos del cliente en el historial antes de eliminarlo
+        HistorialUsuarioBaja.objects.create(
+            nombre=cliente.first_name,
+            apellido=cliente.last_name,
+            email=cliente.email,
+            dni=cliente.dni,
+            telefono=cliente.telefono,
+            fecha_nacimiento=cliente.fecha_nacimiento,
+            fecha_registro_original=cliente.fecha_registro,
+            creditos_al_momento=cliente.creditos,
+            dado_baja_por=request.user,
+        )
+        
+        # Eliminar el usuario
+        cliente.delete()
+        messages.success(request, "Usuario eliminado exitosamente. Los datos fueron guardados en el historial.")
+        return redirect('user:client_list')
+
+    return render(request, 'user/confirmar_baja_cliente.html', {
+        'cliente': cliente,
+    })
+
+@login_required(login_url='user:login')
+def mi_historial(request):
+    """Mostrar historial de clases del cliente (más recientes primero)."""
+    if not request.user.is_authenticated:
+        return HttpResponseForbidden("Acceso denegado")
+
+    if getattr(request.user, 'rol', None) != 'cliente':
+        return HttpResponseForbidden("Acceso denegado")
+
+    # Obtener reservas del usuario ordenadas por fecha de la clase (más recientes primero)
+    reservas = (
+        request.user.reservas
+        .select_related('clase', 'clase__actividad')
+        .order_by('-clase__fecha', '-clase__hora_inicio')
+    )
+
+    return render(request, 'user/mi_historial.html', {
+        'reservas': reservas,
     })
 
 
@@ -566,4 +782,123 @@ def confirmar_restablecimiento_view(request, uidb64, token):
         'uid': uidb64,
         'token': token,
         'form': form
+    })
+
+@login_required(login_url='user:login')
+def estadisticas_usuario(request):
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    es_dueno = _es_dueno(request)
+    hoy = timezone.localdate()
+
+    # --- Rango de fechas por default (último mes) ---
+    rango = request.GET.get('rango', '1mes')
+    fecha_desde = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
+
+    if rango == '2meses':
+        fecha_inicio = hoy - timedelta(days=60)
+        fecha_fin = hoy
+    elif rango == '6meses':
+        fecha_inicio = hoy - timedelta(days=180)
+        fecha_fin = hoy
+    elif rango == 'personalizado' and fecha_desde and fecha_hasta:
+        fecha_inicio = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
+        fecha_fin = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+    else:
+        fecha_inicio = hoy - timedelta(days=30)
+        fecha_fin = hoy
+        rango = '1mes'
+
+    # --- Estadísticas generales del gimnasio (por default) ---
+    clases_periodo = Clase.objects.filter(
+        fecha__gte=fecha_inicio,
+        fecha__lte=fecha_fin,
+        cancelada=False
+    ).select_related('actividad')
+
+    reservas_periodo = Reserva.objects.filter(
+        clase__fecha__gte=fecha_inicio,
+        clase__fecha__lte=fecha_fin,
+    ).select_related('clase__actividad')
+
+    pagos_periodo = Pago.objects.filter(
+        fecha_pago__date__gte=fecha_inicio,
+        fecha_pago__date__lte=fecha_fin,
+        estado_pago='aprobado'
+    ).select_related('reserva__clase__actividad')
+
+    # Estadísticas agregadas
+    total_clases = clases_periodo.count()
+    total_reservas = reservas_periodo.count()
+    total_asistencias = reservas_periodo.filter(estado='asistida').count()
+    total_recaudado = pagos_periodo.aggregate(total=Sum('monto'))['total'] or 0
+
+    # Por actividad
+    stats_por_actividad = reservas_periodo.values('clase__actividad__nombre').annotate(
+        cantidad=Count('id'),
+        asistencias=Count('id', filter=Q(estado='asistida'))
+    ).order_by('-cantidad')
+
+    recaudado_por_actividad = pagos_periodo.values('reserva__clase__actividad__nombre').annotate(
+        total=Sum('monto')
+    ).order_by('-total')
+
+    # Datos para gráficos (JSON)
+    labels = [item['clase__actividad__nombre'] for item in stats_por_actividad]
+    data_reservas = [item['cantidad'] for item in stats_por_actividad]
+    data_asistencias = [item['asistencias'] for item in stats_por_actividad]
+    data_recaudado = [float(item['total'] or 0) for item in recaudado_por_actividad]
+
+    grafico_data = json.dumps({
+        'labels': labels,
+        'reservas': data_reservas,
+        'asistencias': data_asistencias,
+        'recaudado': data_recaudado,
+    })
+
+    # --- Estadísticas de usuario individual ---
+    email = request.GET.get('email', '').strip()
+    cliente = None
+    reservas = []
+    pagos_usuario = []
+    error_usuario = None
+    sin_historial = False
+
+    # Lista de clientes para autocompletar
+    User = get_user_model()
+    clientes_lista = User.objects.filter(rol='cliente', activo=True).values('id', 'email', 'first_name', 'last_name')[:50]
+
+    if email:
+        try:
+            cliente = User.objects.get(email=email, rol='cliente')
+            reservas = Reserva.objects.filter(usuario=cliente).select_related('clase__actividad').order_by('-fecha_reserva')[:100]
+            pagos_usuario = Pago.objects.filter(reserva__usuario=cliente).select_related('reserva__clase__actividad').order_by('-fecha_pago')[:100]
+            if not reservas.exists() and not pagos_usuario.exists():
+                sin_historial = True
+        except User.DoesNotExist:
+            error_usuario = "El usuario es inexistente"
+
+    return render(request, 'user/estadisticas_usuario.html', {
+        'rango': rango,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'total_clases': total_clases,
+        'total_reservas': total_reservas,
+        'total_asistencias': total_asistencias,
+        'total_recaudado': total_recaudado,
+        'stats_por_actividad': stats_por_actividad,
+        'recaudado_por_actividad': recaudado_por_actividad,
+        'grafico_data': grafico_data,
+        'clientes_lista': clientes_lista,
+        'email_buscado': email,
+        'cliente': cliente,
+        'reservas': reservas,
+        'pagos_usuario': pagos_usuario,
+        'error_usuario': error_usuario,
+        'sin_historial': sin_historial,
+        'es_dueno': es_dueno,
     })

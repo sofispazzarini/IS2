@@ -17,7 +17,7 @@ class ResultadoValidacionQR:
 
 def validar_qr(qr_uuid, registrado_por=None):
     """
-    Valida un código QR y registra asistencia si es válido.
+    Valida un codigo QR y registra asistencia si es valido.
 
     Reglas de negocio:
     - El QR se habilita 30 min antes de la clase y se deshabilita al terminar
@@ -28,7 +28,7 @@ def validar_qr(qr_uuid, registrado_por=None):
     try:
         uuid.UUID(str(qr_uuid))
     except (ValueError, AttributeError):
-        return ResultadoValidacionQR(False, "QR inválido: el código no tiene un formato válido.")
+        return ResultadoValidacionQR(False, "Error: QR no reconocido.")
 
     try:
         with transaction.atomic():
@@ -41,15 +41,15 @@ def validar_qr(qr_uuid, registrado_por=None):
 
             # QR ya usado
             if reserva.qr_usado:
-                return ResultadoValidacionQR(False, "Error: QR deshabilitado (ya fue usado).")
+                return ResultadoValidacionQR(False, "Error: QR ya fue usado.")
 
             # Reserva cancelada
             if reserva.estado == 'cancelada':
-                return ResultadoValidacionQR(False, "Error: la reserva está cancelada.")
+                return ResultadoValidacionQR(False, "Error: la reserva esta cancelada.")
 
             # QR vencido (fecha de clase pasada)
             if clase.fecha < fecha_actual:
-                return ResultadoValidacionQR(False, "Error: QR vencido (la clase ya pasó).")
+                return ResultadoValidacionQR(False, "Error: QR vencido (la clase ya paso).")
 
             # QR no habilitado (fecha futura)
             if clase.fecha > fecha_actual:
@@ -75,7 +75,7 @@ def validar_qr(qr_uuid, registrado_por=None):
             if ahora_dt > hora_fin_clase:
                 return ResultadoValidacionQR(
                     False,
-                    "Error: QR vencido (la clase ya terminó)."
+                    "Error: QR vencido (la clase ya termino)."
                 )
 
             # Registro exitoso
@@ -96,18 +96,23 @@ def validar_qr(qr_uuid, registrado_por=None):
             )
 
     except Reserva.DoesNotExist:
-        return ResultadoValidacionQR(False, "QR inválido: no existe reserva asociada.")
+        return ResultadoValidacionQR(False, "Error: QR no reconocido.")
+
 
 def registrar_asistencia_manual(reserva_id):
-    reserva = Reserva.objects.get(id=reserva_id)
-    
-    # REGLA DE NEGOCIO: El turno debe estar registrado como “Abonado” (Confirmada)
+    reserva = Reserva.objects.select_related('clase').get(id=reserva_id)
+
+    # REGLA DE NEGOCIO: No registrar asistencia a clases que ya terminaron
+    if reserva.clase.ya_paso:
+        raise ValidationError("No se puede registrar asistencia a una clase que ya finalizo.")
+
+    # REGLA DE NEGOCIO: El turno debe estar registrado como Abonado (Confirmada)
     if reserva.estado != 'confirmada':
         raise ValidationError("El cliente debe abonar para registrar su asistencia.")
-    
+
     # Escenario I: Registro exitoso
     reserva.estado = 'asistida'
-    reserva.qr_usado = True  # Ya ingresó, el QR se da por usado
+    reserva.qr_usado = True
     reserva.save()
-    
+
     return reserva
