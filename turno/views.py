@@ -44,8 +44,12 @@ def registrar_asistencia(request, qr_uuid):
 
 def generar_qr(request, obj_id):
     base_url = "https://supreme-cavalier-unchain.ngrok-free.dev"
+    
+    obj = Reserva.objects.get(id=obj_id)
 
-    url = f"{base_url}/asistencia/{obj_id}/"
+    print(obj.qr_uuid) 
+    
+    url = f"{base_url}/asistencia/{obj.qr_uuid}/"
     print("URL DEL QR:", url)
     img = qrcode.make(url)
     img.save("qr.png")
@@ -828,7 +832,7 @@ def registrar_pago_presencial(request, reserva_id):
     return redirect('detalle_clase', clase_id=reserva.clase.id)
 
 
-def registrar_asistencia_view(request, reserva_id):
+def registrar_asistencia_view(request, qr_uuid):
     if request.method == "POST":
         from django.shortcuts import get_object_or_404, redirect
         from django.contrib import messages
