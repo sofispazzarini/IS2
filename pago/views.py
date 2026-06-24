@@ -6,8 +6,10 @@ from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from turno.models import Reserva, Actividad
+from turno.models import Reserva, Actividad, Clase
 from turno.models import Abono, TurnoFijo
+from django.utils import timezone
+from django.db.models import Q
 from .models import Pago
 from .forms import CompraPaqueteForm
 from user.models import Penalizacion
@@ -394,11 +396,52 @@ def comprar_paquete(request):
     else:
         form = CompraPaqueteForm()
 
-    actividades = Actividad.objects.filter(activa=True)
+    # Obtener clases futuras no canceladas
+    clases_futuras = Clase.objects.filter(
+        fecha__gte=timezone.now().date(),
+        cancelada=False,
+        actividad__isnull=False
+    ).select_related('actividad')
+
+    # Nombres de días
+    DIAS_NOMBRE = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+
+    # Construir diccionario de actividades con sus horarios disponibles
+    actividades_con_horarios = {}
+    for clase in clases_futuras:
+        act_id = clase.actividad.id
+        dia_semana = clase.fecha.weekday()  # 0=Lunes, 6=Domingo
+        hora = clase.hora_inicio.strftime('%H:%M')
+
+        if act_id not in actividades_con_horarios:
+            actividades_con_horarios[act_id] = {
+                'actividad': clase.actividad,
+                'horarios': set()
+            }
+        # Guardar tupla (día, hora) como string único para el value del checkbox
+        actividades_con_horarios[act_id]['horarios'].add((dia_semana, hora))
+
+    # Convertir a lista con horarios formateados
+    actividades_disponibles = []
+    for data in actividades_con_horarios.values():
+        horarios_lista = []
+        for dia, hora in sorted(data['horarios']):
+            horarios_lista.append({
+                'value': f"{dia}_{hora}",
+                'label': f"{DIAS_NOMBRE[dia]} {hora}"
+            })
+        actividades_disponibles.append({
+            'actividad': data['actividad'],
+            'horarios': horarios_lista
+        })
+
+    # Ordenar por nombre de actividad
+    actividades_disponibles.sort(key=lambda x: x['actividad'].nombre)
+
     return render(request, 'pago/comprar_paquete.html', {
         'form': form,
         'usuario': usuario,
-        'actividades': actividades
+        'actividades_disponibles': actividades_disponibles
     })
 
 @login_required

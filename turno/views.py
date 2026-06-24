@@ -16,7 +16,7 @@ from django.views.decorators.http import require_http_methods
 import calendar
 import qrcode
 
-from .models import Clase, Reserva, ListaEspera, Asistencia, TurnoFijo, Abono
+from .models import Clase, Reserva, ListaEspera, Asistencia, TurnoFijo, Abono, Salon
 from .services import validar_qr
 from .forms import ClaseForm
 from pago.models import Pago
