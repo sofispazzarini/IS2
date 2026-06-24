@@ -78,19 +78,20 @@
                 </div>
 
                 <div>
-    <label class="block text-sm font-medium text-gray-700 mb-2">Salón</label>
-    <input 
-        type="text" 
-        name="salon" 
-        value="{{ form.salon.value|default:'' }}" 
-        required
-        placeholder="Ej: Salón 3"
-        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500"
-    >
-    {% if form.salon.errors %}
-        <p class="mt-1 text-sm text-red-600">{{ form.salon.errors.0 }}</p>
-    {% endif %}
-</div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Salón</label>
+                    <select name="salon" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                        <option value="">Seleccionar salón...</option>
+                        {% for salon in form.fields.salon.queryset %}
+                            <option value="{{ salon.id }}" {% if form.salon.value == salon.id|stringformat:"i" %}selected{% endif %}>
+                                {{ salon.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.salon.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.salon.errors.0 }}</p>
+                    {% endif %}
+                </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Cupo máximo</label>

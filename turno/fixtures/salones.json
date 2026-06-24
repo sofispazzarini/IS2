@@ -1,0 +1,23 @@
+[
+  {
+    "model": "turno.salon",
+    "pk": 1,
+    "fields": {
+      "nombre": "Salón 1"
+    }
+  },
+  {
+    "model": "turno.salon",
+    "pk": 2,
+    "fields": {
+      "nombre": "Salón 2"
+    }
+  },
+  {
+    "model": "turno.salon",
+    "pk": 3,
+    "fields": {
+      "nombre": "Salón 3"
+    }
+  }
+]

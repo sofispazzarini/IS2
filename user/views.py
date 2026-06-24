@@ -5,11 +5,13 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from django.http import HttpResponseForbidden
-from django.db.models import Q
+from django.db.models import Q, Sum, Count
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
 from .forms import RegistroForm, LoginForm, ChangePasswordForm, EditarPerfilForm, EditarClienteForm, ProfesorForm, CrearSecretarioForm
 from .models import HistorialUsuarioBaja, Profesor
+from core.models import ConfiguracionSistema
+from pago.models import Pago
 from django.utils.http import urlsafe_base64_encode
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_bytes
@@ -17,6 +19,10 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.views.decorators.cache import never_cache
 from .forms import RestablecerContrasenaForm
+from django.utils import timezone
+from datetime import timedelta, datetime
+from turno.models import Reserva, Clase
+import json
 
 User = get_user_model()
 
@@ -34,6 +40,9 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, "Inicio de sesión exitoso")
+                next_url = request.POST.get('next', '').strip()
+                if next_url and next_url.startswith('/'):
+                    return redirect(next_url)
                 if user.rol in ('secretario', 'dueno'):
                     return redirect('user:client_list')
                 return redirect('core:home')
@@ -98,22 +107,70 @@ def client_list(request):
         )
 
     users = users.order_by('first_name', 'last_name')
+    modo_mantenimiento_activo = ConfiguracionSistema.obtener().modo_mantenimiento
+    es_dueno = getattr(request.user, 'rol', None) == 'dueno'
 
     return render(request, 'user/client_list.html', {
         'clients': users,
         'filtro_busqueda': busqueda,
         'filtro_estado': estado,
         'hay_filtros': any([busqueda, estado]),
+        'modo_mantenimiento_activo': modo_mantenimiento_activo,
+        'es_dueno': es_dueno,
     })
-
 
 @login_required(login_url='user:login')
 def client_profile(request, user_id):
     if not _es_admin(request):
         return HttpResponseForbidden("Acceso denegado")
 
+    from turno.models import TurnoFijo, Abono
+    from turno.views import _limpiar_turnos_fijos_no_pagados, _reservas_pendientes_sin_superposicion
     client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
-    return render(request, 'user/client_profile.html', {'client': client})
+    hoy = timezone.localdate()
+
+    _limpiar_turnos_fijos_no_pagados(client, hoy)
+
+    tiene_turnos_fijos = TurnoFijo.objects.filter(usuario=client, activo=True).exists()
+    abono_pagado_mes = Abono.objects.filter(
+        usuario=client, mes=hoy.month, anio=hoy.year, estado_pago='aprobado',
+    ).exists()
+    tiene_reservas_para_turno_fijo = bool(_reservas_pendientes_sin_superposicion(client, hoy))
+
+    return render(request, 'user/client_profile.html', {
+        'client': client,
+        'tiene_turnos_fijos': tiene_turnos_fijos,
+        'abono_pagado_mes': abono_pagado_mes,
+        'tiene_reservas_para_turno_fijo': tiene_reservas_para_turno_fijo,
+        'es_ventana_pago': 1 <= hoy.day <= 30,
+    })
+
+@login_required(login_url='user:login')
+def historial_asistencias(request, user_id):
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+    from turno.models import Reserva
+    client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
+    asistencias = Reserva.objects.filter(usuario=client, estado='asistida').select_related('clase', 'clase__actividad', 'clase__profesor').order_by('-clase__fecha', '-clase__hora_inicio')
+    return render(request, 'user/historial_asistencias.html', {
+        'client': client,
+        'asistencias': asistencias,
+    })
+
+@login_required(login_url='user:login')
+def historial_pagos_cliente(request, user_id):
+    if not _es_admin(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    client = get_object_or_404(get_user_model(), pk=user_id, rol='cliente')
+    pagos = Pago.objects.filter(
+        reserva__usuario=client
+    ).select_related('reserva', 'reserva__clase', 'reserva__clase__actividad').order_by('-fecha_pago')
+
+    return render(request, 'user/historial_pagos.html', {
+        'client': client,
+        'pagos': pagos,
+    })
 
 
 @login_required(login_url='user:login')
@@ -237,7 +294,8 @@ def change_password(request):
         form = ChangePasswordForm()
 
     return render(request, 'user/change_password.html', {'form': form})
-
+from turno.models import TurnoFijo, Abono, Reserva
+from turno.views import _limpiar_turnos_fijos_no_pagados, _reservas_pendientes_sin_superposicion
 
 @login_required(login_url='user:login')
 def perfil_view(request):
@@ -295,11 +353,30 @@ def perfil_view(request):
                     for error in errors:
                         messages.error(request, str(error))
 
+        
+    hoy = timezone.localdate()
+    es_ventana_pago = 1 <= hoy.day <= 30
+    tiene_turnos_fijos = False
+    abono_pagado_mes = False
+    tiene_reservas_para_nuevo_tf = False
+
+    if user.rol == 'cliente':
+        _limpiar_turnos_fijos_no_pagados(user, hoy)
+        tiene_turnos_fijos = TurnoFijo.objects.filter(usuario=user, activo=True).exists()
+        abono_pagado_mes = Abono.objects.filter(
+            usuario=user, mes=hoy.month, anio=hoy.year, estado_pago='aprobado',
+        ).exists()
+        if es_ventana_pago and not abono_pagado_mes:
+            tiene_reservas_para_nuevo_tf = bool(_reservas_pendientes_sin_superposicion(user, hoy))
+
     return render(request, 'user/perfil.html', {
         'perfil_form': perfil_form,
         'password_form': password_form,
+        'es_ventana_pago': es_ventana_pago,
+        'tiene_turnos_fijos': tiene_turnos_fijos,
+        'abono_pagado_mes': abono_pagado_mes,
+        'tiene_reservas_para_nuevo_tf': tiene_reservas_para_nuevo_tf,
     })
-
 
 def logout_view(request):
     logout(request)
@@ -311,6 +388,24 @@ def _es_dueno(request):
     if not request.user.is_authenticated:
         return False
     return getattr(request.user, 'rol', None) == 'dueno'
+
+
+@login_required(login_url='user:login')
+def toggle_modo_mantenimiento(request):
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    if request.method == 'POST':
+        configuracion = ConfiguracionSistema.obtener()
+        configuracion.modo_mantenimiento = not configuracion.modo_mantenimiento
+        configuracion.save()
+
+        if configuracion.modo_mantenimiento:
+            messages.success(request, "Se ha activado el modo mantenimiento")
+        else:
+            messages.success(request, "Se ha desactivado el modo mantenimiento")
+
+    return redirect('user:client_list')
 
 
 @login_required(login_url='user:login')
@@ -344,6 +439,7 @@ def admin_profesores(request):
 
     profesores = profesores.order_by('apellido', 'nombre')
     especialidades = Profesor.objects.values_list('especialidad', flat=True).distinct().order_by('especialidad')
+    modo_mantenimiento_activo = ConfiguracionSistema.obtener().modo_mantenimiento
 
     return render(request, 'user/admin_profesores.html', {
         'profesores': profesores,
@@ -353,6 +449,7 @@ def admin_profesores(request):
         'filtro_especialidad': especialidad,
         'filtro_busqueda': busqueda,
         'hay_filtros': any([activo, especialidad, busqueda]),
+        'modo_mantenimiento_activo': modo_mantenimiento_activo,
     })
 
 
@@ -685,4 +782,123 @@ def confirmar_restablecimiento_view(request, uidb64, token):
         'uid': uidb64,
         'token': token,
         'form': form
+    })
+
+@login_required(login_url='user:login')
+def estadisticas_usuario(request):
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    es_dueno = _es_dueno(request)
+    hoy = timezone.localdate()
+
+    # --- Rango de fechas por default (último mes) ---
+    rango = request.GET.get('rango', '1mes')
+    fecha_desde = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
+
+    if rango == '2meses':
+        fecha_inicio = hoy - timedelta(days=60)
+        fecha_fin = hoy
+    elif rango == '6meses':
+        fecha_inicio = hoy - timedelta(days=180)
+        fecha_fin = hoy
+    elif rango == 'personalizado' and fecha_desde and fecha_hasta:
+        fecha_inicio = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
+        fecha_fin = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+    else:
+        fecha_inicio = hoy - timedelta(days=30)
+        fecha_fin = hoy
+        rango = '1mes'
+
+    # --- Estadísticas generales del gimnasio (por default) ---
+    clases_periodo = Clase.objects.filter(
+        fecha__gte=fecha_inicio,
+        fecha__lte=fecha_fin,
+        cancelada=False
+    ).select_related('actividad')
+
+    reservas_periodo = Reserva.objects.filter(
+        clase__fecha__gte=fecha_inicio,
+        clase__fecha__lte=fecha_fin,
+    ).select_related('clase__actividad')
+
+    pagos_periodo = Pago.objects.filter(
+        fecha_pago__date__gte=fecha_inicio,
+        fecha_pago__date__lte=fecha_fin,
+        estado_pago='aprobado'
+    ).select_related('reserva__clase__actividad')
+
+    # Estadísticas agregadas
+    total_clases = clases_periodo.count()
+    total_reservas = reservas_periodo.count()
+    total_asistencias = reservas_periodo.filter(estado='asistida').count()
+    total_recaudado = pagos_periodo.aggregate(total=Sum('monto'))['total'] or 0
+
+    # Por actividad
+    stats_por_actividad = reservas_periodo.values('clase__actividad__nombre').annotate(
+        cantidad=Count('id'),
+        asistencias=Count('id', filter=Q(estado='asistida'))
+    ).order_by('-cantidad')
+
+    recaudado_por_actividad = pagos_periodo.values('reserva__clase__actividad__nombre').annotate(
+        total=Sum('monto')
+    ).order_by('-total')
+
+    # Datos para gráficos (JSON)
+    labels = [item['clase__actividad__nombre'] for item in stats_por_actividad]
+    data_reservas = [item['cantidad'] for item in stats_por_actividad]
+    data_asistencias = [item['asistencias'] for item in stats_por_actividad]
+    data_recaudado = [float(item['total'] or 0) for item in recaudado_por_actividad]
+
+    grafico_data = json.dumps({
+        'labels': labels,
+        'reservas': data_reservas,
+        'asistencias': data_asistencias,
+        'recaudado': data_recaudado,
+    })
+
+    # --- Estadísticas de usuario individual ---
+    email = request.GET.get('email', '').strip()
+    cliente = None
+    reservas = []
+    pagos_usuario = []
+    error_usuario = None
+    sin_historial = False
+
+    # Lista de clientes para autocompletar
+    User = get_user_model()
+    clientes_lista = User.objects.filter(rol='cliente', activo=True).values('id', 'email', 'first_name', 'last_name')[:50]
+
+    if email:
+        try:
+            cliente = User.objects.get(email=email, rol='cliente')
+            reservas = Reserva.objects.filter(usuario=cliente).select_related('clase__actividad').order_by('-fecha_reserva')[:100]
+            pagos_usuario = Pago.objects.filter(reserva__usuario=cliente).select_related('reserva__clase__actividad').order_by('-fecha_pago')[:100]
+            if not reservas.exists() and not pagos_usuario.exists():
+                sin_historial = True
+        except User.DoesNotExist:
+            error_usuario = "El usuario es inexistente"
+
+    return render(request, 'user/estadisticas_usuario.html', {
+        'rango': rango,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'total_clases': total_clases,
+        'total_reservas': total_reservas,
+        'total_asistencias': total_asistencias,
+        'total_recaudado': total_recaudado,
+        'stats_por_actividad': stats_por_actividad,
+        'recaudado_por_actividad': recaudado_por_actividad,
+        'grafico_data': grafico_data,
+        'clientes_lista': clientes_lista,
+        'email_buscado': email,
+        'cliente': cliente,
+        'reservas': reservas,
+        'pagos_usuario': pagos_usuario,
+        'error_usuario': error_usuario,
+        'sin_historial': sin_historial,
+        'es_dueno': es_dueno,
     })

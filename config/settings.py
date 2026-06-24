@@ -40,6 +40,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.MantenimientoMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -56,6 +57,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "core.context_processors.mantenimiento_context",
             ],
         },
     },
@@ -104,9 +106,11 @@ EMAIL_HOST_USER = 'jm951659@gmail.com'
 EMAIL_HOST_PASSWORD = 'gqzn rbee hxap htls'
 DEFAULT_FROM_EMAIL = 'SIRCA <no-reply@sirca.local>'
 
-#MERCADO_PAGO_ACCESS_TOKEN = os.getenv("APP_USR-4715857974084293-052416-33a6d12aef08c3138283b467bbc81062-3422206410")
-#MP_PUBLIC_KEY = os.getenv("MP_PUBLIC_KEY")
-#NGROK_URL = os.getenv("NGROK_URL", "http://localhost:8000")
+PASSWORD_RESET_TIMEOUT = 600
+
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN", "APP_USR-4715857974084293-052416-33a6d12aef08c3138283b467bbc81062-3422206410")
+MP_PUBLIC_KEY = os.getenv("MP_PUBLIC_KEY")
+NGROK_URL = os.getenv("NGROK_URL", "http://localhost:8000")
 
 #MERCADO_PAGO_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 MP_PUBLIC_KEY = os.getenv("MP_PUBLIC_KEY")
