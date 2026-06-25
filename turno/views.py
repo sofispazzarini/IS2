@@ -144,13 +144,31 @@ def calendario_api(request):
     actividad_id = request.GET.get('actividad')
     profesor_id = request.GET.get('profesor')
     horario = request.GET.get('horario')
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+
+    # Validación: fecha_desde no puede ser mayor a fecha_hasta
+    if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+        return JsonResponse({
+            'year': year,
+            'month': month,
+            'dias': {},
+            'mensaje_vacio': 'La fecha "desde" no puede ser mayor a la fecha "hasta"',
+        })
 
     # OPTIMIZACIÓN: Se agregó 'salon' al select_related
     clases = Clase.objects.filter(
         cancelada=False,
-        fecha__year=year,
-        fecha__month=month,
     ).select_related('actividad', 'profesor', 'salon')
+
+    # Aplicar filtro de rango de fechas O filtro por mes
+    if fecha_desde or fecha_hasta:
+        if fecha_desde:
+            clases = clases.filter(fecha__gte=fecha_desde)
+        if fecha_hasta:
+            clases = clases.filter(fecha__lte=fecha_hasta)
+    else:
+        clases = clases.filter(fecha__year=year, fecha__month=month)
 
     if actividad_id:
         clases = clases.filter(actividad_id=actividad_id)
@@ -187,7 +205,9 @@ def calendario_api(request):
     # Mensaje vacío cuando se filtra sin resultados
     mensaje_vacio = None
     if not dias:
-        if horario:
+        if fecha_desde or fecha_hasta:
+            mensaje_vacio = "No hay actividades programadas para las fechas seleccionadas"
+        elif horario:
             mensaje_vacio = "no existen actividades en el horario seleccionado"
         elif profesor_id:
             mensaje_vacio = "este profesor no tiene actividades programadas"
