@@ -840,7 +840,7 @@ def registrar_asistencia_view(request, qr_uuid):
         from .services import registrar_asistencia_manual  
         from django.http import HttpResponseForbidden
 
-        reserva = get_object_or_404(Reserva, id=reserva_id)
+        reserva = get_object_or_404(Reserva, qr_uuid=qr_uuid)
         try:
             registrar_asistencia_manual(reserva.id)
             messages.success(request, f"Asistencia registrada para {reserva.usuario.get_full_name()}")
