@@ -832,7 +832,7 @@ def registrar_pago_presencial(request, reserva_id):
     return redirect('detalle_clase', clase_id=reserva.clase.id)
 
 
-def registrar_asistencia_view(request, qr_uuid):
+def registrar_asistencia_view(request, reserva_id):
     if request.method == "POST":
         from django.shortcuts import get_object_or_404, redirect
         from django.contrib import messages
@@ -840,14 +840,16 @@ def registrar_asistencia_view(request, qr_uuid):
         from .services import registrar_asistencia_manual  
         from django.http import HttpResponseForbidden
 
-        reserva = get_object_or_404(Reserva, qr_uuid=qr_uuid)
+
+        reserva = get_object_or_404(Reserva, id=reserva_id)
         try:
             registrar_asistencia_manual(reserva.id)
             messages.success(request, f"Asistencia registrada para {reserva.usuario.get_full_name()}")
         except ValidationError as e:
             messages.error(request, e.message)
-            
+           
         return redirect('detalle_clase', clase_id=reserva.clase.id)
+
 
 
 @login_required
