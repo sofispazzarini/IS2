@@ -3,7 +3,10 @@
     "allow": [
       "Bash(python3 -m py_compile /home/sofia/Desktop/IS2/turno/views.py)",
       "Bash(.venv/bin/pip install *)",
-      "Bash(.venv/bin/django-admin version *)"
+      "Bash(.venv/bin/django-admin version *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\monta\\\\IS2\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)"
     ]
   }
 }
