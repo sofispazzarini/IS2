@@ -29,20 +29,13 @@
                 <p class="text-sm text-gray-600 mb-3">Tu código QR para registrar asistencia:</p>
                 <img src="{{ qr_image }}" alt="Código QR" class="mx-auto w-48 h-48">
                 <p class="text-xs text-gray-600 mt-3 font-mono bg-gray-100 px-2 py-1 rounded inline-block">
-                    Código: {{ reserva.qr_uuid }}
+                    
                 </p>
                 <p class="text-xs text-gray-500 mt-2">
                     Mostrá este código 30 minutos antes de la clase para registrar tu presente.
                 </p>
-               {% comment %} 
-               <p class="text-xs text-gray-500 mt-1">
-                    En caso de que no funcione el QR, mostrar el UUID al secretario presencialmente.
-                </p>
-               {% comment %} 
-               <p class="text-xs text-gray-500 mt-1">
-                    En caso de que no funcione el QR, mostrar el UUID al secretario presencialmente.
-                </p>
-             {% endcomment %}
+            
+                
             </div>
             {% endif %}
 
