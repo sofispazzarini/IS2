@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('turno', '0006_alter_clase_salon'),
+        ('turno', '0007_alter_clase_salon_fk'),
         ('turno', '0602_remove_abono_turnos_fijos_ids'),
     ]
 
