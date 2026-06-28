@@ -804,13 +804,16 @@ def estadisticas_usuario(request):
         fecha_inicio = hoy - timedelta(days=180)
         fecha_fin = hoy
     elif rango == 'personalizado' and fecha_desde and fecha_hasta:
-        fecha_inicio = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
-        fecha_fin = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+        try:
+            fecha_inicio = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
+            fecha_fin = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+        except ValueError:
+            fecha_inicio = hoy - timedelta(days=30)
+            fecha_fin = hoy
+            rango = '1mes'
     else:
         fecha_inicio = hoy - timedelta(days=30)
         fecha_fin = hoy
-        rango = '1mes'
-
     # --- Estadísticas generales del gimnasio (por default) ---
     clases_periodo = Clase.objects.filter(
         fecha__gte=fecha_inicio,
@@ -850,7 +853,7 @@ def estadisticas_usuario(request):
     data_reservas = [item['cantidad'] for item in stats_por_actividad]
     data_asistencias = [item['asistencias'] for item in stats_por_actividad]
     data_recaudado = [float(item['total'] or 0) for item in recaudado_por_actividad]
-
+    sin_pagos_en_rango = (total_recaudado == 0 and total_reservas == 0)
     grafico_data = json.dumps({
         'labels': labels,
         'reservas': data_reservas,
@@ -911,6 +914,7 @@ def estadisticas_usuario(request):
         'stats_por_actividad': stats_por_actividad,
         'recaudado_por_actividad': recaudado_por_actividad,
         'grafico_data': grafico_data,
+        'sin_pagos_en_rango': sin_pagos_en_rango,
         'clientes_lista': clientes_lista,
         'email_buscado': email,
         'cliente': cliente,

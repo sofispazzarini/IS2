@@ -108,3 +108,58 @@ def eliminar_resena(request, resena_id):
     if clase:
         return redirect('ver_clase', clase_id=clase.id)
     return redirect('core:home')
+
+@login_required(login_url='user:login')
+@require_http_methods(["POST"])
+def crear_resena_clase(request, clase_id):
+    """
+    Crear reseña de una clase específica.
+    Condiciones: usuario asistió a la clase Y tiene pago aprobado.
+    """
+    from turno.models import Clase, Reserva
+    from pago.models import Pago
+
+    clase = get_object_or_404(Clase, id=clase_id)
+
+    # Condición 1: el usuario tiene una reserva con estado 'asistida' para esta clase
+    reserva = Reserva.objects.filter(
+        usuario=request.user,
+        clase=clase,
+        estado='asistida'
+    ).first()
+
+    if not reserva:
+        messages.error(request, 'Solo podés reseñar una clase a la que hayas asistido.')
+        return redirect('core:home')
+
+    # Condición 2: esa reserva tiene un pago aprobado
+    pago_aprobado = Pago.objects.filter(
+        reserva=reserva,
+        estado_pago='aprobado'
+    ).exists()
+
+    if not pago_aprobado:
+        messages.error(request, 'Solo podés reseñar una clase que hayas pagado.')
+        return redirect('core:home')
+
+    # Condición 3: no existe ya una reseña de este usuario para esta clase
+    ya_existe = Resena.objects.filter(usuario=request.user, clase=clase).exists()
+    if ya_existe:
+        messages.error(request, 'Ya enviaste una reseña para esta clase.')
+        return redirect('core:home')
+
+    form = ResenaForm(request.POST)
+    if form.is_valid():
+        resena = form.save(commit=False)
+        resena.usuario = request.user
+        resena.clase = clase
+        resena.actividad = clase.actividad
+        resena.puntuacion = 5
+        resena.save()
+        messages.success(request, 'Tu reseña fue enviada exitosamente.')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, error)
+
+    return redirect('core:home')

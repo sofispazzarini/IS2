@@ -26,6 +26,14 @@
                                     {% if reserva.asistencia %}
                                         <p class="text-sm text-green-600">Asistió el {{ reserva.asistencia.fecha_registro|date:"d/m/Y H:i" }}</p>
                                     {% endif %}
+
+                                    {# NUEVO: botón reseña - solo si asistida Y tiene pago aprobado Y no reseñó aún #}
+                                    {% if reserva.estado == 'asistida' and reserva.tiene_pago_aprobado and not reserva.ya_reseno %}
+                                        <a href="{% url 'ver_clase' reserva.clase.id %}#resena"
+                                             class="mt-2 inline-block text-xs font-semibold px-4 py-1.5 rounded-full bg-bordo-700 text-white hover:bg-bordo-800 transition">
+                                               Dejar reseña
+                                        </a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </li>

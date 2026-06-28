@@ -722,7 +722,7 @@ def ver_clase(request, clase_id):
             resena.clase = clase
             resena.puntuacion = int(request.POST.get('puntuacion', 5))
             resena.save()
-            messages.success(request, '¡Gracias por tu reseña!')
+            messages.success(request, 'Tu reseña fue enviada exitosamente.')
             return redirect('ver_clase', clase_id=clase.id)
 
     return render(request, 'turno/ver_clase.html', {
