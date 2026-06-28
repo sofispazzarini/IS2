@@ -337,7 +337,7 @@ class Command(BaseCommand):
                     estado_pago='aprobado',
                 )
             self.stdout.write(f'  ✓ cliente@demo.com en Clase D (listo para registrar asistencia)')
-            self.stdout.write(f'    QR UUID: {reserva_asistencia.qr_uuid}')
+            #self.stdout.write(f'    QR UUID: {reserva_asistencia.qr_uuid}')
 
         # ═══════════════════════════════════════════════════════════
         # 📦 TURNO FIJO Y ABONO (para cliente abonado)

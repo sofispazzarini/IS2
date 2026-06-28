@@ -273,7 +273,7 @@
                                     </form>
                                     {% endif %}
                                     
-                                    {% if reserva.estado == 'confirmada' %}
+                                    {% if reserva.estado == 'confirmada' and puede_registrar_asistencia %}
                                     <form action="{% url 'registrar_asistencia_manual' reserva.id %}" method="POST" class="inline">
                                         {% csrf_token %}
                                         <button type="submit"

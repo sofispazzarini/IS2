@@ -49,7 +49,7 @@ def validar_qr(qr_uuid, registrado_por=None):
 
             # QR vencido (fecha de clase pasada)
             if clase.fecha < fecha_actual:
-                return ResultadoValidacionQR(False, "Error: QR vencido (la clase ya paso).")
+                return ResultadoValidacionQR(False, "Este QR perdió su tiempo de validez.")
 
             # QR no habilitado (fecha futura)
             if clase.fecha > fecha_actual:
@@ -75,7 +75,7 @@ def validar_qr(qr_uuid, registrado_por=None):
             if ahora_dt > hora_fin_clase:
                 return ResultadoValidacionQR(
                     False,
-                    "Error: QR vencido (la clase ya termino)."
+                    "Este QR perdió su tiempo de validez."
                 )
 
             # Registro exitoso
