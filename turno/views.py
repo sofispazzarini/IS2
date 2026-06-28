@@ -553,8 +553,7 @@ def cancelar_clase(request, clase_id):
                     pass
 
         todas_las_reservas.update(estado='cancelada')
-        clase.cancelada = True
-        clase.save()
+        Clase.objects.filter(pk=clase.pk).update(cancelada=True)
 
         messages.success(
             request,
@@ -616,7 +615,8 @@ def detalle_clase(request, clase_id):
     clase_finalizada = clase_finalizada and not clase.cancelada
 
     inicio_clase_dt = timezone.make_aware(datetime.combine(clase.fecha, clase.hora_inicio))
-    puede_registrar_asistencia = ahora >= inicio_clase_dt - timedelta(minutes=30)
+    fin_ventana_dt = inicio_clase_dt + timedelta(hours=1,minutes=30)
+    puede_registrar_asistencia = (inicio_clase_dt - timedelta(minutes=30))<= ahora <= fin_ventana_dt
     return render(request, 'turno/detalle_clase.html', {
         'clase': clase,
         'reservas_activas': reservas_activas,
