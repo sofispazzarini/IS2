@@ -315,4 +315,24 @@ function togglePassword(inputId, iconId) {
     }
 }
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const nuevaPass = document.getElementById('id_password');
+    const confirmarPass = document.getElementById('id_password_confirm');
+    const btnSubmit = document.querySelector('button[name="cambiar_password"]');
+
+    function validar() {
+        const pass = nuevaPass.value;
+        const confirmar = confirmarPass.value;
+        const longitudOk = pass.length >= 8 && pass.length <= 20;
+        const coincideOk = pass === confirmar && confirmar.length > 0;
+        btnSubmit.disabled = !(longitudOk && coincideOk);
+        btnSubmit.style.opacity = btnSubmit.disabled ? '0.5' : '1';
+        btnSubmit.style.cursor = btnSubmit.disabled ? 'not-allowed' : 'pointer';
+    }
+
+    nuevaPass.addEventListener('input', validar);
+    confirmarPass.addEventListener('input', validar);
+});
+</script>
 {% endblock %}

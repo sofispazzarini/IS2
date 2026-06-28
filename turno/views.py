@@ -43,9 +43,13 @@ def registrar_asistencia(request, qr_uuid):
 
 
 def generar_qr(request, obj_id):
-    base_url = "https://stubble-cytoplast-busload.ngrok-free.dev"
+    base_url = "https://supreme-cavalier-unchain.ngrok-free.dev"
+    
+    obj = Reserva.objects.get(id=obj_id)
 
-    url = f"{base_url}/asistencia/{obj_id}/"
+    print(obj.qr_uuid) 
+    
+    url = f"{base_url}/asistencia/{obj.qr_uuid}/"
     print("URL DEL QR:", url)
     img = qrcode.make(url)
     img.save("qr.png")
@@ -95,7 +99,7 @@ def mis_turnos(request):
                 if ventana_inicio <= ahora_dt <= hora_fin:
                     mostrar_qr = True
                     #qr_image = generar_qr_base64(str(reserva.qr_uuid))
-                    base_url = " https://stubble-cytoplast-busload.ngrok-free.dev"
+                    base_url = " https://supreme-cavalier-unchain.ngrok-free.dev"
                     url = f"{base_url}/turno/asistencia/{reserva.qr_uuid}/"
                     qr_image = generar_qr_base64(url)
 
@@ -316,7 +320,7 @@ def detalle_reserva(request, reserva_id):
             if ventana_inicio <= ahora_dt <= hora_fin:
                 mostrar_qr = True
                 #qr_image = generar_qr_base64(str(reserva.qr_uuid))
-                base_url = " https://stubble-cytoplast-busload.ngrok-free.dev"
+                base_url = " https://supreme-cavalier-unchain.ngrok-free.dev"
                 url = f"{base_url}/turno/asistencia/{reserva.qr_uuid}/"
                 print("QR URL:", url)  # S
 
@@ -611,6 +615,8 @@ def detalle_clase(request, clase_id):
     )
     clase_finalizada = clase_finalizada and not clase.cancelada
 
+    inicio_clase_dt = timezone.make_aware(datetime.combine(clase.fecha, clase.hora_inicio))
+    puede_registrar_asistencia = ahora >= inicio_clase_dt - timedelta(minutes=30)
     return render(request, 'turno/detalle_clase.html', {
         'clase': clase,
         'reservas_activas': reservas_activas,
@@ -625,6 +631,7 @@ def detalle_clase(request, clase_id):
         'cupos_disponibles': cupos_disponibles,
         'total_recaudado': total_recaudado,
         'clase_finalizada': clase_finalizada,
+        'puede_registrar_asistencia': puede_registrar_asistencia,
         'es_dueno': es_dueno(request.user),
         'es_admin': es_admin(request.user),
     })
@@ -742,7 +749,6 @@ def ver_clase(request, clase_id):
 
 def generar_qr_base64(data):
     """Genera un código QR como imagen base64."""
-    print("QR URL:", data)
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(data)
     qr.make(fit=True)
@@ -854,14 +860,16 @@ def registrar_asistencia_view(request, reserva_id):
         from .services import registrar_asistencia_manual  
         from django.http import HttpResponseForbidden
 
+
         reserva = get_object_or_404(Reserva, id=reserva_id)
         try:
             registrar_asistencia_manual(reserva.id)
             messages.success(request, f"Asistencia registrada para {reserva.usuario.get_full_name()}")
         except ValidationError as e:
             messages.error(request, e.message)
-            
+           
         return redirect('detalle_clase', clase_id=reserva.clase.id)
+
 
 
 @login_required

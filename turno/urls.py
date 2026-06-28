@@ -32,6 +32,7 @@ urlpatterns = [
     path('asistencia/<uuid:qr_uuid>/', views.registrar_asistencia, name='asistencia_qr'),
 
 
+
     # Registrar asistencia manual
     path('admin/reserva/<int:reserva_id>/asistencia-manual/', views.registrar_asistencia_view, name='registrar_asistencia_manual'),
     
