@@ -87,15 +87,13 @@
 
                             <div class="flex flex-col gap-2 min-w-[140px] items-end">
                                 <div class="flex flex-wrap gap-2 items-center justify-end">
-                                    {% if item.puede_cancelar %}
+                                    
+                                    {% if item.reserva.estado == 'confirmada' or item.reserva.estado == 'pendiente_pago' %}
                                         <a href="{% url 'cancelar_reserva' item.reserva.id %}" class="inline-flex items-center justify-center rounded-full border border-red-600 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold hover:bg-red-100 transition">
                                             Cancelar
                                         </a>
-                                    {% else %}
-                                        <button type="button" class="inline-flex items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-500 px-4 py-2 text-sm font-semibold cursor-not-allowed" disabled>
-                                            Cancelar
-                                        </button>
                                     {% endif %}
+
                                     <a href="{% url 'detalle_reserva' item.reserva.id %}" class="inline-flex items-center gap-1 text-sm text-bordo-700 font-medium hover:underline">
                                         Ver detalle
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

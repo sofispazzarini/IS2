@@ -13,7 +13,7 @@ class Salon(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
-        return self.nombre
+        return f"{self.nombre} (Capacidad 50 cupos)"
 
 class Clase(models.Model):
 
@@ -166,6 +166,8 @@ class Reserva(models.Model):
         blank=True,
         related_name='reservas'
     )
+
+    cancelacion_tardia = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.usuario.username} - {self.clase}"
