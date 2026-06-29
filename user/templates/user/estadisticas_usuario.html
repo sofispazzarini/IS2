@@ -1,152 +1,345 @@
 {% extends "base.html" %}
 
-{% block title %}Estadísticas - SIRCA{% endblock %}
+{% block title %}Estadísticas - Endereza{% endblock %}
 
 {% block content %}
 <div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-6xl mx-auto">
+
+        <!-- Header -->
         <div class="text-center mb-8">
             <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
-                Gestión del sistema
+                Panel de control
             </p>
             <h1 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
-                Panel de Administración
+                Estadísticas
             </h1>
         </div>
 
         <!-- Navegación del panel admin -->
         <div class="bg-white shadow-lg rounded-2xl mb-8 border border-gray-100 overflow-hidden">
-            <div class="flex border-b border-gray-200">
+            <div class="flex flex-wrap border-b border-gray-200">
                 <a href="{% url 'user:client_list' %}"
-                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                   class="flex-1 text-center px-4 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Clientes
                 </a>
                 <a href="{% url 'admin_clases' %}"
-                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                   class="flex-1 text-center px-4 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Gestión de Clases
                 </a>
                 {% if user.rol == 'dueno' %}
                 <a href="{% url 'actividad:admin_actividades' %}"
-                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                   class="flex-1 text-center px-4 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Actividades
                 </a>
                 {% endif %}
                 <a href="{% url 'user:admin_profesores' %}"
-                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                   class="flex-1 text-center px-4 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Profesores
                 </a>
                 {% if user.rol == 'dueno' %}
-                <span class="flex-1 text-center px-6 py-4 text-sm font-semibold text-bordo-700 border-b-2 border-bordo-700 bg-bordo-50">
+                <span class="flex-1 text-center px-4 py-4 text-sm font-semibold text-bordo-700 border-b-2 border-bordo-700 bg-bordo-50">
                     Estadísticas
                 </span>
-                {% endif %}
-                {% if user.rol == 'dueno' %}
                 <a href="{% url 'user:admin_secretarios' %}"
-                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                   class="flex-1 text-center px-4 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Secretarios
                 </a>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Filtros de rango -->
-        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
-            <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Período</h3>
-            <div class="flex flex-wrap gap-2 mb-4">
-                <a href="?rango=1mes" class="px-4 py-2 rounded-full text-sm font-semibold transition {% if rango == '1mes' %}bg-bordo-700 text-white{% else %}border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+        <!-- Filtros de período -->
+        <style>
+            .period-card {
+                background: #ffffff;
+                border: 1px solid #e8e2dc;
+                border-radius: 20px;
+                padding: 1.75rem 2rem;
+                margin-bottom: 1.5rem;
+            }
+            .period-card h3 {
+                font-family: 'Playfair Display', serif;
+                font-size: 1.35rem;
+                font-weight: 600;
+                color: #1f1a16;
+                margin-bottom: 1.25rem;
+            }
+            .period-pills {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-bottom: 1.5rem;
+            }
+            .period-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                padding: 10px 20px;
+                border-radius: 50px;
+                text-decoration: none;
+                transition: all 0.2s;
+                cursor: pointer;
+            }
+            .period-pill.active {
+                background: #7A1530;
+                color: white;
+                box-shadow: 0 4px 12px -4px rgba(122,21,48,0.4);
+            }
+            .period-pill:not(.active) {
+                background: transparent;
+                color: #3a332e;
+                border: 1px solid #e8e2dc;
+            }
+            .period-pill:not(.active):hover {
+                background: #f3ede6;
+                border-color: #7A1530;
+                color: #7A1530;
+            }
+            .period-form {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: flex-end;
+                gap: 1rem;
+            }
+            .period-field label {
+                display: block;
+                font-size: 12px;
+                font-weight: 500;
+                color: #7a726b;
+                margin-bottom: 6px;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+            }
+            .period-field input[type="date"] {
+                width: 100%;
+                border: 1px solid #e8e2dc;
+                border-radius: 12px;
+                padding: 10px 14px;
+                font-family: inherit;
+                font-size: 14px;
+                background: #faf8f5;
+                color: #3a332e;
+                outline: none;
+                transition: border-color 0.15s;
+            }
+            .period-field input[type="date"]:focus {
+                border-color: #7A1530;
+            }
+            .period-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                padding: 10px 24px;
+                border-radius: 50px;
+                border: none;
+                background: #7A1530;
+                color: white;
+                cursor: pointer;
+                transition: all 0.2s;
+                box-shadow: 0 4px 12px -4px rgba(122,21,48,0.4);
+            }
+            .period-btn:hover {
+                background: #5c0f23;
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px -4px rgba(122,21,48,0.5);
+            }
+            .period-note {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-top: 1.25rem;
+                padding-top: 1rem;
+                border-top: 1px solid #f3ede6;
+                font-size: 13px;
+                color: #7a726b;
+            }
+            .period-note::before {
+                content: '';
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #E07B54;
+            }
+            @media (max-width: 640px) {
+                .period-form { flex-direction: column; align-items: stretch; }
+                .period-field { width: 100%; }
+                .period-btn { width: 100%; justify-content: center; }
+            }
+        </style>
+
+        <div class="period-card">
+            <h3>Período de análisis</h3>
+
+            <!-- Pills de rango rápido -->
+            <div class="period-pills">
+                <a href="?rango=1mes" class="period-pill {% if rango == '1mes' %}active{% endif %}">
                     Último mes
                 </a>
-                <a href="?rango=2meses" class="px-4 py-2 rounded-full text-sm font-semibold transition {% if rango == '2meses' %}bg-bordo-700 text-white{% else %}border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                <a href="?rango=2meses" class="period-pill {% if rango == '2meses' %}active{% endif %}">
                     2 meses
                 </a>
-                <a href="?rango=6meses" class="px-4 py-2 rounded-full text-sm font-semibold transition {% if rango == '6meses' %}bg-bordo-700 text-white{% else %}border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                <a href="?rango=6meses" class="period-pill {% if rango == '6meses' %}active{% endif %}">
                     6 meses
                 </a>
             </div>
-            <form method="GET" class="flex flex-wrap items-end gap-3 mt-4">
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Desde</label>
-                    <input type="date" name="fecha_desde" value="{{ fecha_desde }}"
-                           class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500">
+
+            <!-- Rango personalizado -->
+            <form method="GET" class="period-form">
+                <div class="period-field">
+                    <label>Desde</label>
+                    <input type="date" name="fecha_desde" value="{{ fecha_desde }}">
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
-                    <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}"
-                           class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500">
+                <div class="period-field">
+                    <label>Hasta</label>
+                    <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}">
                 </div>
                 <input type="hidden" name="rango" value="personalizado">
-                <button type="submit" style="background-color:#8B001E; color:white;" class="px-4 py-2 rounded-full text-sm font-semibold transition">
-                     Ver Estadisticas
+                <button type="submit" class="period-btn">
+                    Aplicar
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
             </form>
-            <p class="text-sm text-gray-500 mt-4">Mostrando datos del {{ fecha_inicio|date:"d/m/Y" }} al {{ fecha_fin|date:"d/m/Y" }}</p>
+
+            <p class="period-note">
+                Mostrando datos del {{ fecha_inicio|date:"d/m/Y" }} al {{ fecha_fin|date:"d/m/Y" }}
+            </p>
         </div>
 
-        <!-- Resumen general -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 text-center">
-                <p class="text-sm text-gray-500 mb-1">Clases</p>
-                <p class="text-3xl font-bold text-bordo-700">{{ total_clases }}</p>
-            </div>
-            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 text-center">
-                <p class="text-sm text-gray-500 mb-1">Reservas</p>
-                <p class="text-3xl font-bold text-blue-600">{{ total_reservas }}</p>
-            </div>
-            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 text-center">
-                <p class="text-sm text-gray-500 mb-1">Asistencias</p>
-                <p class="text-3xl font-bold text-green-600">{{ total_asistencias }}</p>
-            </div>
-            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 text-center">
-                <p class="text-sm text-gray-500 mb-1">Recaudado</p>
-                <p class="text-3xl font-bold text-gray-900">${{ total_recaudado }}</p>
-            </div>
-        </div>
+        <!-- Alerta si no hay pagos -->
         {% if sin_pagos_en_rango %}
-        <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 text-center text-yellow-800 font-semibold mb-6">
-            No hay registros de pago en las fechas ingresadas
+        <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 text-center text-yellow-800 font-medium mb-6">
+            No hay registros de pago en el período seleccionado
         </div>
         {% endif %}
 
-        <!-- Gráfico -->
-        <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 mb-6">
-            <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Estadísticas por actividad</h3>
-            <canvas id="graficoActividades" height="200"></canvas>
+        <!-- KPIs principales -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Recaudado</p>
+                <p class="text-2xl md:text-3xl font-bold text-bordo-700">${{ total_recaudado }}</p>
+                <p class="text-xs text-gray-400 mt-1">en el período</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Clases</p>
+                <p class="text-2xl md:text-3xl font-bold text-gray-900">{{ total_clases }}</p>
+                <p class="text-xs text-gray-400 mt-1">dictadas</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Reservas</p>
+                <p class="text-2xl md:text-3xl font-bold text-blue-600">{{ total_reservas }}</p>
+                <p class="text-xs text-gray-400 mt-1">confirmadas</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Asistencias</p>
+                <p class="text-2xl md:text-3xl font-bold text-green-600">{{ total_asistencias }}</p>
+                <p class="text-xs text-gray-400 mt-1">registradas</p>
+            </div>
         </div>
 
-        <!-- Por actividad -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h2 class="font-heading text-lg font-semibold text-gray-900">Reservas por actividad</h2>
-                </div>
-                <div class="divide-y divide-gray-100">
-                    {% for item in stats_por_actividad %}
-                    <div class="px-6 py-4 flex items-center justify-between">
-                        <p class="font-semibold text-gray-900">{{ item.clase__actividad__nombre }}</p>
-                        <div class="text-right">
-                            <p class="font-bold text-gray-900">{{ item.cantidad }} reservas</p>
-                            <p class="text-xs text-green-600">{{ item.asistencias }} asistencias</p>
-                        </div>
+        <!-- Gráficos -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Barras: Reservas vs Asistencias -->
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h3 class="font-heading text-base font-semibold text-gray-900">Reservas vs Asistencias</h3>
+                        <p class="text-xs text-gray-500">por actividad</p>
                     </div>
-                    {% empty %}
-                    <div class="px-6 py-8 text-center text-gray-400">Sin datos</div>
-                    {% endfor %}
+                    <div class="flex gap-3 text-xs">
+                        <span class="flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-bordo-700"></span> Reservas
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-amber-300 border border-amber-500"></span> Asistencias
+                        </span>
+                    </div>
+                </div>
+                <div class="h-52">
+                    <canvas id="barChart"></canvas>
                 </div>
             </div>
 
-            <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h2 class="font-heading text-lg font-semibold text-gray-900">Recaudado por actividad</h2>
+            <!-- Torta: Distribución por actividad -->
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
+                <div class="mb-4">
+                    <h3 class="font-heading text-base font-semibold text-gray-900">Distribución por actividad</h3>
+                    <p class="text-xs text-gray-500">% del total de reservas</p>
                 </div>
-                <div class="divide-y divide-gray-100">
-                    {% for item in recaudado_por_actividad %}
-                    <div class="px-6 py-4 flex items-center justify-between">
-                        <p class="font-semibold text-gray-900">{{ item.reserva__clase__actividad__nombre }}</p>
-                        <p class="font-bold text-gray-900">${{ item.total }}</p>
+                <div class="h-52 flex justify-center">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recaudado por actividad + Detalle -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="lg:col-span-2 bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
+                <div class="mb-4">
+                    <h3 class="font-heading text-base font-semibold text-gray-900">Recaudado por actividad</h3>
+                    <p class="text-xs text-gray-500">en el período seleccionado</p>
+                </div>
+                <div class="h-44">
+                    <canvas id="hbarChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
+                <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Detalle por actividad</h3>
+                <div class="space-y-3 max-h-44 overflow-y-auto">
+                    {% for item in stats_por_actividad %}
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                        <span class="text-sm font-medium text-gray-700">{{ item.clase__actividad__nombre }}</span>
+                        <span class="text-xs text-gray-500">{{ item.cantidad }} res. / {{ item.asistencias }} asis.</span>
                     </div>
                     {% empty %}
-                    <div class="px-6 py-8 text-center text-gray-400">Sin datos</div>
+                    <p class="text-sm text-gray-400 text-center py-4">Sin datos en este período</p>
                     {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Medios de pago -->
+        <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Medios de pago</h3>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Efectivo</p>
+                <p class="text-xl font-bold text-bordo-700">${{ recaudado_efectivo }}</p>
+                <div class="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    {% if total_recaudado > 0 %}
+                    <div class="h-full bg-bordo-700 rounded-full" style="width: {% widthratio recaudado_efectivo total_recaudado 100 %}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">MercadoPago</p>
+                <p class="text-xl font-bold text-bordo-700">${{ recaudado_mercadopago }}</p>
+                <div class="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    {% if total_recaudado > 0 %}
+                    <div class="h-full bg-blue-500 rounded-full" style="width: {% widthratio recaudado_mercadopago total_recaudado 100 %}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Posnet</p>
+                <p class="text-xl font-bold text-bordo-700">${{ recaudado_posnet }}</p>
+                <div class="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    {% if total_recaudado > 0 %}
+                    <div class="h-full bg-green-500 rounded-full" style="width: {% widthratio recaudado_posnet total_recaudado 100 %}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Tarjeta</p>
+                <p class="text-xl font-bold text-bordo-700">${{ recaudado_tarjeta }}</p>
+                <div class="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    {% if total_recaudado > 0 %}
+                    <div class="h-full bg-purple-500 rounded-full" style="width: {% widthratio recaudado_tarjeta total_recaudado 100 %}%"></div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -154,192 +347,238 @@
         <!-- Búsqueda de cliente -->
         <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
             <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Buscar cliente</h3>
-            <form method="GET" class="flex gap-3">
+            <form method="GET" class="flex flex-col sm:flex-row gap-3">
                 <input type="hidden" name="rango" value="{{ rango }}">
                 {% if rango == 'personalizado' %}
                 <input type="hidden" name="fecha_desde" value="{{ fecha_desde }}">
                 <input type="hidden" name="fecha_hasta" value="{{ fecha_hasta }}">
                 {% endif %}
                 <input type="email" name="email" value="{{ email_buscado }}"
-                       placeholder="Ingresá el email del usuario..."
+                       placeholder="Ingresá el email del cliente..."
                        list="clientes_list"
-                       class="flex-1 px-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500">
+                       class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
                 <datalist id="clientes_list">
-                    {% for cliente in clientes_lista %}
-                        <option value="{{ cliente.email }}">{{ cliente.first_name }} {{ cliente.last_name }}</option>
+                    {% for c in clientes_lista %}
+                    <option value="{{ c.email }}">{{ c.first_name }} {{ c.last_name }}</option>
                     {% endfor %}
                 </datalist>
-                <button type="submit" class="btn-bordo px-6 py-2 rounded-full font-semibold">
+                <button type="submit" class="btn-bordo px-6 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap">
                     Buscar
                 </button>
             </form>
         </div>
 
+        <!-- Resultados de búsqueda -->
         {% if error_usuario %}
-        <div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-center text-red-700 font-semibold">
-            {{ error_usuario }}
+        <div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+            <p class="text-red-700 font-medium">{{ error_usuario }}</p>
         </div>
 
         {% elif sin_historial %}
-        <div class="bg-white shadow-lg rounded-2xl p-12 text-center border border-gray-100">
-            <p class="text-gray-500 text-lg">El usuario aún no cuenta con ningún historial</p>
-            <p class="text-gray-400 text-sm mt-1">{{ cliente.get_full_name }} — {{ cliente.email }}</p>
+        <div class="bg-white shadow-lg rounded-2xl p-8 border border-gray-100 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="text-gray-500 mb-1">El usuario aún no cuenta con historial</p>
+            <p class="text-sm text-gray-400">{{ cliente.get_full_name }} — {{ cliente.email }}</p>
         </div>
 
-{% elif cliente %}
-
-        <!-- Encabezado del cliente -->
-        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-full bg-bordo-100 flex items-center justify-center flex-shrink-0">
-                <span class="text-bordo-700 font-bold text-lg">{{ cliente.first_name|first|upper }}</span>
-            </div>
-            <div>
-                <p class="font-heading text-xl font-bold text-gray-900">{{ cliente.get_full_name }}</p>
-                <p class="text-sm text-gray-500">{{ cliente.email }}</p>
-            </div>
-        </div>
-
-        <!-- Métricas rápidas del cliente -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
-                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total reservas</p>
-                <p class="text-3xl font-bold text-blue-600" id="stat-total-reservas">—</p>
-            </div>
-            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
-                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Asistencias</p>
-                <p class="text-3xl font-bold text-green-600" id="stat-asistencias">—</p>
-            </div>
-            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
-                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Tasa de asistencia</p>
-                <p class="text-3xl font-bold text-bordo-700" id="stat-tasa">—</p>
-            </div>
-            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
-                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total pagado</p>
-                <p class="text-3xl font-bold text-gray-900" id="stat-pagado">—</p>
-            </div>
-        </div>
-
-        <!-- Gráficos del cliente: torta + barras -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
-                <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Estado de reservas</h3>
-                <div class="flex justify-center">
-                    <canvas id="graficoPie" style="max-height:240px; max-width:240px;"></canvas>
+        {% elif cliente %}
+        <!-- Info del cliente -->
+        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
+            <div class="flex items-center gap-4 mb-6 pb-4 border-b border-gray-100">
+                <div class="w-12 h-12 rounded-full bg-bordo-100 flex items-center justify-center flex-shrink-0">
+                    <span class="text-bordo-700 font-bold text-lg">{{ cliente.first_name|first|upper }}</span>
+                </div>
+                <div>
+                    <p class="font-heading text-lg font-bold text-gray-900">{{ cliente.get_full_name }}</p>
+                    <p class="text-sm text-gray-500">{{ cliente.email }}</p>
                 </div>
             </div>
-            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
-                <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Reservas por actividad</h3>
-                <canvas id="graficoBarrasCliente" style="max-height:240px;"></canvas>
+
+            <!-- Reservas y Asistencias -->
+            <h4 class="font-semibold text-gray-900 mb-3">Reservas y Asistencias</h4>
+            <div class="space-y-2 mb-6">
+                {% for reserva in reservas %}
+                <div class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
+                    <div>
+                        <p class="font-medium text-gray-900">{{ reserva.clase.actividad.nombre }}</p>
+                        <p class="text-xs text-gray-500">{{ reserva.clase.fecha }} — {{ reserva.clase.hora_inicio }}</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold
+                        {% if reserva.estado == 'asistida' %}bg-green-100 text-green-700
+                        {% elif reserva.estado == 'ausente' %}bg-red-100 text-red-700
+                        {% elif reserva.estado == 'confirmada' %}bg-blue-100 text-blue-700
+                        {% elif reserva.estado == 'cancelada' %}bg-gray-100 text-gray-600
+                        {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                        {{ reserva.get_estado_display }}
+                    </span>
+                </div>
+                {% empty %}
+                <p class="text-sm text-gray-400 text-center py-4">Sin reservas registradas</p>
+                {% endfor %}
+            </div>
+
+            <!-- Pagos -->
+            <h4 class="font-semibold text-gray-900 mb-3">Pagos</h4>
+            <div class="space-y-2">
+                {% for pago in pagos_usuario %}
+                <div class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
+                    <div>
+                        <p class="font-medium text-gray-900">{{ pago.reserva.clase.actividad.nombre }}</p>
+                        <p class="text-xs text-gray-500">{{ pago.fecha_pago|date:"d/m/Y H:i" }} — {{ pago.get_metodo_pago_display }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-gray-900">${{ pago.monto }}</p>
+                        <span class="text-xs {% if pago.estado_pago == 'aprobado' %}text-green-600{% elif pago.estado_pago == 'rechazado' %}text-red-600{% else %}text-yellow-600{% endif %}">
+                            {{ pago.get_estado_pago_display }}
+                        </span>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-gray-400 text-center py-4">Sin pagos registrados</p>
+                {% endfor %}
             </div>
         </div>
-
-        <!-- Línea: pagos en el tiempo -->
-        <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 mb-6">
-            <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Historial de pagos</h3>
-            <canvas id="graficoLinea" height="120"></canvas>
-        </div>
-
-       <!-- Datos para JS -->
-        <script id="reservas-data" type="application/json">{{ reservas_json|safe }}</script>
-        <script id="pagos-data" type="application/json">{{ pagos_json|safe }}</script>
         {% endif %}
+
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-    // Gráfico general del gimnasio
-    const data = {{ grafico_data|safe }};
-    const ctx = document.getElementById('graficoActividades').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.labels,
-            datasets: [
-                {
-                    label: 'Reservas',
-                    data: data.reservas,
-                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Asistencias',
-                    data: data.asistencias,
-                    backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                    borderColor: 'rgba(16, 185, 129, 1)',
-                    borderWidth: 1
-                }
-            ]
+const data = {{ grafico_data|safe }};
+
+const BORDO = '#8b1c26';
+const BORDO_LIGHT = '#c97090';
+const AMBER = '#fcd34d';
+const PALETTE = ['#8b1c26', '#c0392b', '#e07b54', '#f59e0b', '#6b7280'];
+
+const tooltipStyle = {
+    backgroundColor: '#1f2937',
+    titleColor: '#f9fafb',
+    bodyColor: '#d1d5db',
+    cornerRadius: 8,
+    padding: 12,
+};
+
+// Barras: Reservas vs Asistencias
+new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+        labels: data.labels,
+        datasets: [
+            {
+                label: 'Reservas',
+                data: data.reservas,
+                backgroundColor: BORDO,
+                borderRadius: 6,
+                borderSkipped: false
+            },
+            {
+                label: 'Asistencias',
+                data: data.asistencias,
+                backgroundColor: AMBER,
+                borderRadius: 6,
+                borderSkipped: false,
+                borderColor: '#f59e0b',
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { ...tooltipStyle }
         },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'top' } },
-            scales: { y: { beginAtZero: true } }
-        }
-    });
-
-    // Gráficos del cliente individual
-    const reservasDataEl = document.getElementById('reservas-data');
-    const pagosDataEl    = document.getElementById('pagos-data');
-
-    if (reservasDataEl && pagosDataEl) {
-        const reservas = JSON.parse(reservasDataEl.textContent);
-        const pagos    = JSON.parse(pagosDataEl.textContent);
-
-        const totalReservas = reservas.length;
-        const asistencias   = reservas.filter(r => r.estado === 'asistida').length;
-        const tasa          = totalReservas > 0 ? Math.round((asistencias / totalReservas) * 100) + '%' : '0%';
-        const totalPagado   = pagos.filter(p => p.estado === 'aprobado').reduce((sum, p) => sum + parseFloat(p.monto), 0);
-
-        document.getElementById('stat-total-reservas').textContent = totalReservas;
-        document.getElementById('stat-asistencias').textContent    = asistencias;
-        document.getElementById('stat-tasa').textContent           = tasa;
-        document.getElementById('stat-pagado').textContent         = '$' + totalPagado.toLocaleString('es-AR');
-
-        const estadoLabels = ['Asistida', 'Ausente', 'Confirmada', 'Cancelada', 'Pendiente'];
-        const estadoKeys   = ['asistida', 'ausente', 'confirmada', 'cancelada', 'pendiente'];
-        const estadoColors = ['rgba(16,185,129,0.8)','rgba(239,68,68,0.8)','rgba(59,130,246,0.8)','rgba(156,163,175,0.8)','rgba(251,191,36,0.8)'];
-        const estadoCounts = estadoKeys.map(k => reservas.filter(r => r.estado === k).length);
-        const pieIndices   = estadoCounts.map((v,i) => i).filter(i => estadoCounts[i] > 0);
-
-        new Chart(document.getElementById('graficoPie'), {
-            type: 'doughnut',
-            data: {
-                labels: pieIndices.map(i => estadoLabels[i]),
-                datasets: [{ data: pieIndices.map(i => estadoCounts[i]), backgroundColor: pieIndices.map(i => estadoColors[i]), borderWidth: 2, borderColor: '#fff' }]
+        scales: {
+            x: {
+                grid: { display: false },
+                border: { display: false },
+                ticks: { color: '#6b7280', font: { size: 11 } }
             },
-            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } } }
-        });
-
-        const actividadMap = {};
-        reservas.forEach(r => { actividadMap[r.actividad] = (actividadMap[r.actividad] || 0) + 1; });
-        const actLabels = Object.keys(actividadMap);
-        const barColors = ['rgba(139,0,30,0.75)','rgba(59,130,246,0.75)','rgba(16,185,129,0.75)','rgba(251,191,36,0.75)','rgba(168,85,247,0.75)','rgba(249,115,22,0.75)'];
-
-        new Chart(document.getElementById('graficoBarrasCliente'), {
-            type: 'bar',
-            data: {
-                labels: actLabels,
-                datasets: [{ label: 'Reservas', data: Object.values(actividadMap), backgroundColor: actLabels.map((_, i) => barColors[i % barColors.length]), borderRadius: 6, borderWidth: 0 }]
-            },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-        });
-
-        const pagosPorMes = {};
-        pagos.forEach(p => { if (p.estado === 'aprobado') { pagosPorMes[p.fecha] = (pagosPorMes[p.fecha] || 0) + parseFloat(p.monto); } });
-        const mesesOrdenados = Object.keys(pagosPorMes).sort();
-        const nombresMes = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-        const labelsMes  = mesesOrdenados.map(m => { const [y, mo] = m.split('-'); return nombresMes[parseInt(mo,10)-1] + ' ' + y; });
-
-        new Chart(document.getElementById('graficoLinea'), {
-            type: 'line',
-            data: {
-                labels: labelsMes.length ? labelsMes : ['Sin pagos'],
-                datasets: [{ label: 'Monto pagado ($)', data: mesesOrdenados.map(m => pagosPorMes[m]), borderColor: 'rgba(139,0,30,1)', backgroundColor: 'rgba(139,0,30,0.08)', borderWidth: 2, pointBackgroundColor: 'rgba(139,0,30,1)', pointRadius: 5, tension: 0.4, fill: true }]
-            },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
-        });
+            y: {
+                grid: { color: '#f3f4f6' },
+                border: { display: false },
+                ticks: { color: '#9ca3af', font: { size: 11 } },
+                beginAtZero: true
+            }
+        },
+        barPercentage: 0.6,
+        categoryPercentage: 0.7,
     }
+});
+
+// Torta: Distribución por actividad
+new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+        labels: data.labels,
+        datasets: [{
+            data: data.reservas,
+            backgroundColor: PALETTE.slice(0, data.labels.length),
+            borderWidth: 0,
+            hoverOffset: 8
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    color: '#6b7280',
+                    font: { size: 11 },
+                    boxWidth: 12,
+                    padding: 16,
+                    usePointStyle: true
+                }
+            },
+            tooltip: { ...tooltipStyle }
+        }
+    }
+});
+
+// Barras horizontales: Recaudado por actividad
+new Chart(document.getElementById('hbarChart'), {
+    type: 'bar',
+    data: {
+        labels: data.labels,
+        datasets: [{
+            label: 'Recaudado',
+            data: data.recaudado,
+            backgroundColor: PALETTE.slice(0, data.labels.length),
+            borderRadius: 6,
+            borderSkipped: false,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { ...tooltipStyle }
+        },
+        scales: {
+            x: {
+                grid: { color: '#f3f4f6' },
+                border: { display: false },
+                ticks: { color: '#9ca3af', font: { size: 11 } },
+                beginAtZero: true
+            },
+            y: {
+                grid: { display: false },
+                border: { display: false },
+                ticks: { color: '#6b7280', font: { size: 12, weight: '500' } }
+            }
+        }
+    }
+});
 </script>
 {% endblock %}

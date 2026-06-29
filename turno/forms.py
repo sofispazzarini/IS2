@@ -28,6 +28,7 @@ class ClaseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['actividad'].queryset = Actividad.objects.filter(activa=True)
         self.fields['profesor'].queryset = Profesor.objects.filter(activo=True)
+        self.fields['salon'].label_from_instance = lambda obj: f"{obj.nombre} (Capacidad 50 cupos)"
 
         for field in self.fields.values():
             field.widget.attrs.setdefault('class', 'form-input')

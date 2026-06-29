@@ -283,7 +283,7 @@ def pedir_turno(request, clase_id):
         if reservas_activas >= clase.cupo_maximo:
             # Escenario II: Lista de espera
             ListaEspera.objects.get_or_create(usuario=usuario, clase=clase)
-            messages.info(request, "No hay cupos disponibles. Has sido agregado a la lista de espera.")
+            messages.warning(request, "No hay cupos disponibles. Has sido agregado a la lista de espera.")
             return redirect('lista_clases')
 
         # 3. Escenario I: Reserva exitosa
@@ -337,22 +337,22 @@ def detalle_reserva(request, reserva_id):
 
             if ventana_inicio <= ahora_dt <= hora_fin:
                 mostrar_qr = True
-                #qr_image = generar_qr_base64(str(reserva.qr_uuid))
                 base_url = " https://supreme-cavalier-unchain.ngrok-free.dev"
                 url = f"{base_url}/turno/asistencia/{reserva.qr_uuid}/"
-                print("QR URL:", url)  # S
+                print("QR URL:", url)  
 
                 qr_image = generar_qr_base64(url)
 
-    # Determinar si puede cancelar (2 días de anticipación)
+    # 🚀 NUEVA LÓGICA DE CANCELACIÓN:
+    # 'tiene_anticipacion_48hs' controla si la cancelación es libre (True) o si va con advertencia de penalización (False)
     dias_anticipacion = (clase.fecha - hoy).days
-    puede_cancelar = dias_anticipacion >= 2
+    tiene_anticipacion_48hs = dias_anticipacion >= 2
 
     return render(request, 'turno/detalle_reserva.html', {
         'reserva': reserva,
         'mostrar_qr': mostrar_qr,
         'qr_image': qr_image,
-        'puede_cancelar': puede_cancelar,
+        'tiene_anticipacion_48hs': tiene_anticipacion_48hs,  # 🚀 Enviamos la variable corregida al HTML
         'dias_anticipacion': dias_anticipacion,
     })
 
@@ -364,60 +364,95 @@ def cancelar_reserva(request, reserva_id):
     hoy = timezone.localdate()
     usuario = request.user
 
-    # Calculamos si faltan menos de 2 días (48 horas) para la clase
+    # 1. Calculamos si la cancelación actual es tardía (menos de 2 días)
     dias_anticipacion = (clase.fecha - hoy).days
     corresponde_penalizar = dias_anticipacion < 2
 
+    # 2. Calculamos la racha previa recorriendo el historial del usuario de la más nueva a la más vieja
+    historial_canceladas = Reserva.objects.filter(
+        usuario=usuario, 
+        estado='cancelada'
+    ).order_by('-id')
+
+    tardias_seguidas_previas = 0
+    for r in historial_canceladas:
+        if r.cancelacion_tardia:
+            tardias_seguidas_previas += 1
+        else:
+            break # Si una fue a tiempo, se rompe la racha de consecutivas
+
+    # =========================================================================
+    # ACCIÓN AL CONFIRMAR LA CANCELACIÓN (POST)
+    # =========================================================================
     if request.method == 'POST':
         with transaction.atomic():
             era_abonada = reserva.estado == 'confirmada'
             reserva.estado = 'cancelada'
+            
+            # Si cancela tarde, dejamos asentada la marca en esta reserva para la próxima vez
+            if corresponde_penalizar:
+                reserva.cancelacion_tardia = True
+                
+                # Sumamos la actual a la racha previa
+                racha_total = tardias_seguidas_previas + 1
+                
+                # REGLA: Penaliza ÚNICAMENTE si llega a la 3ra consecutiva
+                if racha_total >= 3:
+                    Penalizacion.objects.create(
+                        usuario=usuario,
+                        motivo=f"Acumulación de 3 cancelaciones tardías seguidas. Última: Reserva #{reserva.id}.",
+                        activa=True
+                    )
+                    messages.error(request, "Has acumulado 3 cancelaciones tardías seguidas. Se aplicará una sanción en tu cuenta.")
+                else:
+                    chances_restantes = 3 - racha_total
+                    messages.warning(request, f"Cancelación tardía registrada. Te quedan {chances_restantes} oportunidades.")
+            
             reserva.save()
 
-            # ⚠️ ADAPTADO: Si cancela tarde, se crea una instancia en tu tabla Penalizacion
-            if corresponde_penalizar:
-                Penalizacion.objects.create(
-                    usuario=usuario,
-                    motivo=f"Cancelación tardía de la reserva #{reserva.id} para la clase de {clase.actividad.nombre}.",
-                    activa=True
-                )
-                messages.warning(request, "Se aplicará una sanción a la hora de solicitar un pack de clases.")
+        # =========================================================================
+        # LÓGICA DE LISTA DE ESPERA MASIVA (fuera de transaction.atomic para no bloquear DB)
+        # =========================================================================
+        from django.core.mail import send_mail
+        from django.conf import settings
 
-            # =========================================================================
-            # LÓGICA DE LISTA DE ESPERA MASIVA (El primero que acepta se lo queda)
-            # =========================================================================
-            from django.core.mail import send_mail
-            from django.conf import settings
-            
-            usuarios_espera = ListaEspera.objects.filter(clase=clase).select_related('usuario')
-            if usuarios_espera.exists():
-                lista_emails = list(usuarios_espera.values_list('usuario__email', flat=True))
-                base_url = getattr(settings, 'NGROK_URL', 'http://127.0.0.1:8000')
-                link_aceptar = f"{base_url}/turno/clases/aceptar-cupo/{clase.id}/"
-                
-                asunto = f"¡Se liberó un cupo para {clase.actividad.nombre}!"
-                mensaje = (
-                    f"Hola,\n\nTe avisamos que se acaba de liberar un cupo para la clase de {clase.actividad.nombre}.\n"
-                    f"Podés quedarte con el lugar haciendo clic acá:\n{link_aceptar}\n\n"
-                    f"¡El primero que confirme se queda con el cupo!"
-                )
-                try:
-                    send_mail(asunto, mensaje, settings.DEFAULT_FROM_EMAIL, lista_emails, fail_silently=False)
-                except Exception as e:
-                    print(f"Error al enviar correos: {e}")
-            # =========================================================================
+        usuarios_espera = ListaEspera.objects.filter(clase=clase).select_related('usuario')
+        if usuarios_espera.exists():
+            lista_emails = list(usuarios_espera.values_list('usuario__email', flat=True))
+            base_url = getattr(settings, 'NGROK_URL', 'http://127.0.0.1:8000')
+            link_sistema = f"{base_url}/"
 
-        # Mantenemos tu flujo de redirección y reembolsos intacto
+            asunto = f"¡Se liberó un cupo para {clase.actividad.nombre}!"
+            mensaje = (
+                f"Hola,\n\n"
+                f"¡Se liberó un cupo para {clase.actividad.nombre}!\n\n"
+                f"Fecha: {clase.fecha.strftime('%d/%m/%Y')} {clase.hora_inicio.strftime('%H:%M')}\n\n"
+                f"Si te interesa, entrá al sistema y reservalo:\n{link_sistema}\n\n"
+                f"¡El primero que reserve se queda con el cupo!"
+            )
+            try:
+                send_mail(asunto, mensaje, settings.DEFAULT_FROM_EMAIL, lista_emails, fail_silently=False)
+            except Exception as e:
+                print(f"Error al enviar correos: {e}")
+        # =========================================================================
+
         if era_abonada:
             return redirect('opciones_reembolso', reserva_id=reserva.id)
         else:
             messages.success(request, "Reserva cancelada exitosamente.")
             return redirect('reservas')
 
-    # Pasamos 'corresponde_penalizar' al template para mostrar el cartel de advertencia
+    # =========================================================================
+    # RENDERIZAR LA PANTALLA INTERMEDIA (GET)
+    # =========================================================================
+    # Calculamos cuántas chances le quedan de las 2 permitidas antes del castigo
+    racha_restante = max(0, 2 - tardias_seguidas_previas)
+
     return render(request, 'turno/confirmar_cancelacion.html', {
         'reserva': reserva,
-        'corresponde_penalizar': corresponde_penalizar
+        'corresponde_penalizar': corresponde_penalizar,
+        'tardias_seguidas_previas': tardias_seguidas_previas,
+        'racha_restante': racha_restante, # 🚀 ACÁ NACE LA VARIABLE QUE TE FALTABA
     })
 
 
@@ -600,30 +635,33 @@ def detalle_clase(request, clase_id):
         id=clase_id
     )
 
+    # 1. Traemos todas las reservas de la clase de forma eficiente
     todas_reservas = Reserva.objects.filter(clase=clase).select_related('usuario').order_by('-fecha_reserva')
-    reservas_activas = todas_reservas.exclude(estado='cancelada')
+    
+    # 2. Segmentamos correctamente SIN QUE SE COLOQUEN LOS AUSENTES AQUÍ
+    reservas_activas = todas_reservas.exclude(estado__in=['cancelada', 'ausente'])
     reservas_canceladas = todas_reservas.filter(estado='cancelada')
+    reservas_ausentes = todas_reservas.filter(estado='ausente') # 🚀 Filtrado desde memoria
     asistencias = todas_reservas.filter(estado='asistida').select_related('asistencia')
 
     lista_espera_usuarios = ListaEspera.objects.filter(clase=clase).select_related('usuario').order_by('fecha_ingreso')
     cant_espera = lista_espera_usuarios.count()
     
     pagos = Pago.objects.filter(reserva__clase=clase).select_related('reserva__usuario').order_by('-fecha_pago')
-
     resenas = Resena.objects.filter(clase=clase).select_related('usuario').order_by('-fecha')[:5]
-
     promedio_resenas = Resena.objects.filter(clase=clase).aggregate(promedio=Avg('puntuacion'))['promedio']
 
+    # 3. Agregamos los ausentes a las estadísticas agregadas por las dudas
     stats = todas_reservas.aggregate(
         total=Count('id'),
         confirmadas=Count('id', filter=Q(estado='confirmada')),
         pendientes=Count('id', filter=Q(estado='pendiente_pago')),
-        canceladas=Count('id', filter=Q(estado='cancelada')),
+        canceladas=Count('id', filter=Q(estado='cancelada')), # 🚀 CORREGIDO: de 'escape' a 'estado'
         asistidas=Count('id', filter=Q(estado='asistida')),
+        ausentes=Count('id', filter=Q(estado='ausente')),
     )
 
     cupos_disponibles = clase.cupo_maximo - (stats['confirmadas'] + stats['pendientes'])
-
     total_recaudado = pagos.filter(estado_pago='aprobado').aggregate(total=Sum('monto'))['total'] or 0
 
     ahora = timezone.localtime()
@@ -639,6 +677,7 @@ def detalle_clase(request, clase_id):
         'clase': clase,
         'reservas_activas': reservas_activas,
         'reservas_canceladas': reservas_canceladas,
+        'reservas_ausentes': reservas_ausentes, # 🚀 ¡AHORA SÍ LA MANDAMOS AL TEMPLATE!
         'lista_espera_usuarios': lista_espera_usuarios,
         'cant_espera': cant_espera,
         'asistencias': asistencias,
@@ -1096,7 +1135,7 @@ def _calcular_info_abono_para_turnos(usuario, turno_fijo_ids, mes, anio):
         monto_total += turno.actividad.precio * len(todas)
 
     n = len(turnos_fijos)
-    descuento = 20 if n >= 3 else (10 if n == 2 else 0)
+    descuento = 25
     factor = Decimal(str(1 - descuento / 100))
     monto_final = (monto_total * factor).quantize(Decimal('0.01'))
     monto_por_clase_por_turno = {
@@ -1157,12 +1196,7 @@ def _calcular_info_abono(usuario, mes, anio):
         monto_total += turno.actividad.precio * len(todas)
 
     n = len(turnos_fijos)
-    if n >= 3:
-        descuento = 20
-    elif n == 2:
-        descuento = 10
-    else:
-        descuento = 0
+    descuento = 25
 
     factor = Decimal(str(1 - descuento / 100))
     monto_final = (monto_total * factor).quantize(Decimal('0.01'))
@@ -1408,7 +1442,7 @@ def hacerse_abonado(request):
         # Para esto creamos TurnoFijo temporales en memoria sin guardarlos
         from decimal import Decimal as D
         n = len(reservas_sel)
-        descuento = 20 if n >= 3 else (10 if n == 2 else 0)
+        descuento = 25
         precio_estimado = sum(r.clase.actividad.precio for r in reservas_sel)
         precio_final_estimado = (precio_estimado * D(str(1 - descuento / 100))).quantize(D('0.01'))
 
@@ -1522,7 +1556,7 @@ def abonar_nuevo_turno_fijo(request):
             return redirect('user:perfil')
 
         n = len(reservas_sel)
-        descuento = 20 if n >= 3 else (10 if n == 2 else 0)
+        descuento = 25
         precio_estimado = sum(r.clase.actividad.precio for r in reservas_sel)
         precio_final_estimado = (precio_estimado * Decimal(str(1 - descuento / 100))).quantize(Decimal('0.01'))
 
@@ -1726,7 +1760,7 @@ def registrar_pago_abono_admin(request, user_id):
                 nuevos_tf_ids.append(tf.id)
 
             n = len(nuevos_tf_ids)
-            descuento = 20 if n >= 3 else (10 if n == 2 else 0)
+            descuento = 25
             precio_total = sum(r.clase.actividad.precio for r in reservas_sel)
             factor = Decimal(str(1 - descuento / 100))
             precio_final = (precio_total * factor).quantize(Decimal('0.01'))
@@ -1794,3 +1828,62 @@ def historial_clases(request):
     return render(request, 'turno/historial_clases.html', {
         'clases': clases,
     })
+def actualizar_ausentes_y_penalizar():
+    """
+    Busca clases finalizadas hace más de 30 minutos y pasa las reservas 
+    no asistidas a 'ausente', aplicando penalizaciones condicionales.
+    """
+    ahora = timezone.localtime(timezone.now())
+    hoy = ahora.date()
+    
+    # 1. Traemos las reservas activas de clases que son de HOY o de días anteriores
+    # y cuyo estado sea 'confirmada' o 'pendiente_pago'
+    reservas_potenciales = Reserva.objects.filter(
+        estado__in=['confirmada', 'pendiente_pago'],
+        clase__fecha__lte=hoy
+    ).select_related('clase', 'usuario')
+
+    reservas_a_ausentes = []
+
+    for reserva in reservas_potenciales:
+        clase = reserva.clase
+        
+        # Combinamos fecha y hora de fin de la clase para comparar con precisión
+        clase_fin_dt = datetime.combine(clase.fecha, clase.hora_fin)
+        clase_fin_dt = timezone.make_aware(clase_fin_dt)
+        
+        # Sumamos los 30 minutos de tolerancia después de finalizada la clase
+        limite_tolerancia = clase_fin_dt + timedelta(minutes=30)
+        
+        # Si ya pasó ese tiempo límite, se lo considera Ausente
+        if ahora > limite_tolerancia:
+            reservas_a_ausentes.append(reserva)
+
+    # 2. Procesamos los ausentes y aplicamos las penalizaciones en un bloque seguro
+    if reservas_a_ausentes:
+        with transaction.atomic():
+            for reserva in reservas_a_ausentes:
+                usuario = reserva.usuario
+                
+                # Pasamos la reserva al estado 'ausente' (que ya lo tenés en tus CHOICES)
+                reserva.estado = 'ausente'
+                reserva.save()
+                
+                # Contamos cuántas penalizaciones ACTIVAS tiene actualmente este usuario
+                penalizaciones_actuales = Penalizacion.objects.filter(
+                    usuario=usuario, 
+                    activa=True
+                ).count()
+                
+                # 🚀 REGLA DE NEGOCIO: Si tiene 0 o 1, le sumamos una. Si tiene 2, no hacemos nada.
+                if penalizaciones_actuales < 2:
+                    Penalizacion.objects.create(
+                        usuario=usuario,
+                        motivo=f"Ausencia no justificada a la clase de {clase.actividad.nombre} del día {clase.fecha.strftime('%d/%m/%Y')}.",
+                        activa=True
+                    )
+                    print(f"Penalización aplicada al usuario {usuario.username} por ausentarse.")
+                else:
+                    print(f"El usuario {usuario.username} ya tiene {penalizaciones_actuales} penalizaciones. No se agrega otra.")
+
+    return len(reservas_a_ausentes)

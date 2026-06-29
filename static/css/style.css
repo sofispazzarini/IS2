@@ -37,6 +37,14 @@
     background-color: #7a1d3a;
 }
 
+.bg-bordo-700 {
+    background-color: #5c1830;
+}
+
+.bg-bordo-50 {
+    background-color: #fef1f4;
+}
+
 .text-bordo-500 {
     color: #7a1d3a;
 }
@@ -47,4 +55,34 @@
 
 .focus\:border-bordo-500:focus {
     border-color: #7a1d3a;
+}
+
+/* Home page specific */
+.text-coral { color: #E07B54; }
+.bg-coral { background: #E07B54; }
+.bg-coral-soft { background: #F5CBA7; }
+.border-coral { border-color: #E07B54; }
+
+.service-card {
+    transition: all 0.25s ease;
+}
+.service-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 50px -24px rgba(122, 29, 58, 0.25);
+}
+
+.step-arrow::after {
+    content: '→';
+    position: absolute;
+    top: 12px;
+    right: -1rem;
+    color: #E07B54;
+    font-size: 1.4rem;
+    opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+    .step-arrow::after {
+        display: none;
+    }
 }

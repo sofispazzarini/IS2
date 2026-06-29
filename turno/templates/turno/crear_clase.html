@@ -84,7 +84,7 @@
                         <option value="">Seleccionar salón...</option>
                         {% for salon in form.fields.salon.queryset %}
                             <option value="{{ salon.id }}" {% if form.salon.value == salon.id|stringformat:"i" %}selected{% endif %}>
-                                {{ salon.nombre }}
+                                {{ salon.nombre }} (Capacidad 50 personas)
                             </option>
                         {% endfor %}
                     </select>
