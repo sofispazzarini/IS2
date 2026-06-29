@@ -88,7 +88,7 @@ class ClaseForm(forms.ModelForm):
 
         if conficto_salon:
             errores_globales.append(
-                f"El {salon.nombre} no está disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
+                f"Salón no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
 
         # 2. Validación de Profesor

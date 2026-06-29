@@ -164,7 +164,7 @@ def pagar_con_creditos(request, reserva_id):
             reserva.estado = 'confirmada'
             reserva.save()
 
-            messages.success(request, f"Pago exitoso. Se descontaron {precio_clase} créditos de tu cuenta.")
+            messages.success(request, f"Pago exitoso. Se descontaron ${precio_clase} créditos de tu cuenta.")
             return redirect('reservas')
         else:
             return render(request, 'pago/pagar_creditos.html', {
@@ -172,7 +172,7 @@ def pagar_con_creditos(request, reserva_id):
                 'creditos_usuario': usuario.creditos,
                 'precio_clase': precio_clase,
                 'creditos_restantes': 0,
-                'error': 'No tiene suficientes créditos para esta clase'
+                'error': f"Créditos insuficientes. Necesitás {str(precio_clase)} créditos"
             })
 
     creditos_restantes = usuario.creditos - precio_clase if usuario.creditos >= precio_clase else 0
@@ -334,7 +334,7 @@ def acumular_creditos(request, reserva_id):
         monto_devolver = reserva.monto_pagado if reserva.monto_pagado is not None else reserva.clase.actividad.precio
         usuario.creditos += monto_devolver
         usuario.save()
-        messages.success(request, f"Se han acumulado {reserva.clase.actividad.precio} créditos en tu cuenta.")
+        messages.success(request, f"Se acreditaron ${monto_devolver} a tu saldo en créditos")
     else:
         messages.error(request, "Solo se pueden acumular créditos de reservas canceladas.")
 
@@ -345,7 +345,7 @@ def solicitar_reembolso(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
 
     if reserva.estado == 'cancelada':
-        messages.success(request, "Tu solicitud de reembolso ha sido enviada.")
+        messages.success(request, "Solicitud de devolución registrada. Nos contactaremos contigo.")
     else:
         messages.error(request, "Solo se pueden solicitar reembolsos de reservas canceladas.")
 

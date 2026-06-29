@@ -34,7 +34,7 @@ class ActividadForm(forms.ModelForm):
             
         if queryset.exists():
             raise forms.ValidationError(
-                f"Ya existe una actividad registrada con el nombre '{nombre}'."
+                f"Ya existe una actividad con el nombre '{nombre}'."
             )
             
         return nombre
