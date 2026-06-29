@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de Clases - SIRCA{% endblock %}
+
+{% block content %}
+<div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
+    <div class="max-w-5xl mx-auto">
+
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">Gestión del sistema</p>
+                <h1 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">Historial de Clases</h1>
+            </div>
+            <a href="{% url 'admin_clases' %}"
+               class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5M12 5l-7 7 7 7"/>
+                </svg>
+                Volver
+            </a>
+        </div>
+
+        {% if clases %}
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-100">
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actividad</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Fecha</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Horario</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Profesor</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Salón</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Estado</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for clase in clases %}
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ clase.actividad.nombre }}</td>
+                            <td class="px-6 py-4 text-gray-600">{{ clase.fecha|date:"d/m/Y" }}</td>
+                            <td class="px-6 py-4 text-gray-600">{{ clase.hora_inicio|time:"H:i" }} - {{ clase.hora_fin|time:"H:i" }}</td>
+                            <td class="px-6 py-4 text-gray-600">{{ clase.profesor }}</td>
+                            <td class="px-6 py-4 text-gray-600">{{ clase.salon.nombre }}</td>
+                            <td class="px-6 py-4">
+                                {% if clase.cancelada %}
+                                    <span class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">Cancelada</span>
+                                {% else %}
+                                    <span class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">Finalizada</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <a href="{% url 'detalle_clase' clase.id %}" class="text-blue-600 hover:text-blue-800" title="Ver detalle">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white shadow-lg rounded-2xl p-12 border border-gray-100 text-center">
+            <svg class="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-gray-500 text-lg">No hay clases anteriores</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

@@ -18,6 +18,7 @@ urlpatterns = [
 
     # Admin de clases
     path('admin/clases/', views.admin_clases, name='admin_clases'),
+    path('admin/clases/historial/', views.historial_clases, name='historial_clases'),
     path('admin/clases/crear/', views.crear_clase, name='crear_clase'),
     path('admin/clases/<int:clase_id>/modificar/', views.modificar_clase, name='modificar_clase'),
     path('admin/clases/<int:clase_id>/cancelar/', views.cancelar_clase, name='cancelar_clase'),
