@@ -426,7 +426,7 @@ def cancelar_reserva(request, reserva_id):
                 mensaje = (
                     f"Hola,\n\n"
                     f"¡Se liberó un cupo para {clase.actividad.nombre}!\n\n"
-                    f"Fecha: {clase.fecha_hora.strftime('%d/%m/%Y %H:%M')}\n\n"
+                    f"Fecha: {clase.fecha.strftime('%d/%m/%Y')} {clase.hora_inicio.strftime('%H:%M')}\n\n"
                     f"Si te interesa, entrá al sistema y reservalo:\n{link_sistema}\n\n"
                     f"¡El primero que reserve se queda con el cupo!"
                 )
