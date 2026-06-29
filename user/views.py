@@ -677,25 +677,61 @@ def dar_baja_cliente(request, user_id):
 
 @login_required(login_url='user:login')
 def mi_historial(request):
-    """Mostrar historial de clases del cliente (más recientes primero)."""
-    if not request.user.is_authenticated:
-        return HttpResponseForbidden("Acceso denegado")
+    """Mostrar historial de clases del cliente."""
 
     if getattr(request.user, 'rol', None) != 'cliente':
         return HttpResponseForbidden("Acceso denegado")
 
-    # Obtener reservas del usuario ordenadas por fecha de la clase (más recientes primero)
+    ahora = timezone.localtime(timezone.now())
+
     reservas = (
         request.user.reservas
-        .select_related('clase', 'clase__actividad')
-        .order_by('-clase__fecha', '-clase__hora_inicio')
+        .select_related(
+            'clase',
+            'clase__actividad',
+            'clase__profesor'
+        )
     )
 
+    historial = []
+
+    for reserva in reservas:
+
+        fecha_hora_fin = timezone.make_aware(
+            datetime.combine(
+                reserva.clase.fecha,
+                reserva.clase.hora_fin
+            )
+        )
+
+        if fecha_hora_fin <= ahora:
+            historial.append(reserva)
+                   
+
+    historial.sort(
+        key=lambda r: (
+            r.clase.fecha,
+            r.clase.hora_inicio
+        ),
+        reverse=True
+    )
+
+    print("========== HISTORIAL ==========")
+
+    for reserva in historial:
+        print(
+            reserva.id,
+            reserva.clase.fecha,
+            reserva.clase.hora_inicio,
+            reserva.clase.hora_fin,
+            reserva.estado 
+        )
+
+    print("===============================")
+
     return render(request, 'user/mi_historial.html', {
-        'reservas': reservas,
+        'reservas': historial,
     })
-
-
 
 def recuperar_contrasena_view(request):
     User = get_user_model()

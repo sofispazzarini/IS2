@@ -179,6 +179,11 @@ class Reserva(models.Model):
         from resena.models import Resena
         return Resena.objects.filter(usuario=self.usuario, clase=self.clase).exists()
 
+    @property
+    def resena_clase(self):
+        from resena.models import Resena
+        return Resena.objects.filter(usuario=self.usuario, clase=self.clase).first()
+
 class Asistencia(models.Model):
 
     reserva = models.OneToOneField(

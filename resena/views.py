@@ -102,15 +102,11 @@ def eliminar_resena(request, resena_id):
         messages.error(request, 'No tienes permiso para eliminar esta reseña.')
         return redirect('core:home')
     
-    clase = resena.clase
     resena.delete()
     messages.success(request, 'Reseña eliminada exitosamente.')
-    if clase:
-        return redirect('ver_clase', clase_id=clase.id)
-    return redirect('core:home')
+    return redirect('user:mi_historial')
 
 @login_required(login_url='user:login')
-@require_http_methods(["POST"])
 def crear_resena_clase(request, clase_id):
     """
     Crear reseña de una clase específica.
@@ -148,18 +144,32 @@ def crear_resena_clase(request, clase_id):
         messages.error(request, 'Ya enviaste una reseña para esta clase.')
         return redirect('core:home')
 
-    form = ResenaForm(request.POST)
-    if form.is_valid():
-        resena = form.save(commit=False)
-        resena.usuario = request.user
-        resena.clase = clase
-        resena.actividad = clase.actividad
-        resena.puntuacion = 5
-        resena.save()
-        messages.success(request, 'Tu reseña fue enviada exitosamente.')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                messages.error(request, error)
+    if request.method == "POST":
 
-    return redirect('core:home')
+        form = ResenaForm(request.POST)
+
+        if form.is_valid():
+            resena = form.save(commit=False)
+            resena.usuario = request.user
+            resena.clase = clase
+            resena.actividad = clase.actividad
+            resena.puntuacion = 5
+            resena.save()
+
+            messages.success(request, 'Tu reseña fue enviada exitosamente.')
+            return redirect("user:mi_historial")
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
+    else:
+        form = ResenaForm()
+
+    return render(
+        request,
+        "resena/crear_resena_clase.html",
+        {
+            "form": form,
+            "clase": clase,
+        },
+    )
