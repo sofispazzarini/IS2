@@ -265,7 +265,7 @@ def pedir_turno(request, clase_id):
         if reservas_activas >= clase.cupo_maximo:
             # Escenario II: Lista de espera
             ListaEspera.objects.get_or_create(usuario=usuario, clase=clase)
-            messages.info(request, "No hay cupos disponibles. Has sido agregado a la lista de espera.")
+            messages.warning(request, "No hay cupos disponibles. Has sido agregado a la lista de espera.")
             return redirect('lista_clases')
 
         # 3. Escenario I: Reserva exitosa
@@ -1078,7 +1078,7 @@ def _calcular_info_abono_para_turnos(usuario, turno_fijo_ids, mes, anio):
         monto_total += turno.actividad.precio * len(todas)
 
     n = len(turnos_fijos)
-    descuento = 20 if n >= 3 else (10 if n == 2 else 0)
+    descuento = 25
     factor = Decimal(str(1 - descuento / 100))
     monto_final = (monto_total * factor).quantize(Decimal('0.01'))
     monto_por_clase_por_turno = {
@@ -1139,12 +1139,7 @@ def _calcular_info_abono(usuario, mes, anio):
         monto_total += turno.actividad.precio * len(todas)
 
     n = len(turnos_fijos)
-    if n >= 3:
-        descuento = 20
-    elif n == 2:
-        descuento = 10
-    else:
-        descuento = 0
+    descuento = 25
 
     factor = Decimal(str(1 - descuento / 100))
     monto_final = (monto_total * factor).quantize(Decimal('0.01'))
@@ -1390,7 +1385,7 @@ def hacerse_abonado(request):
         # Para esto creamos TurnoFijo temporales en memoria sin guardarlos
         from decimal import Decimal as D
         n = len(reservas_sel)
-        descuento = 20 if n >= 3 else (10 if n == 2 else 0)
+        descuento = 25
         precio_estimado = sum(r.clase.actividad.precio for r in reservas_sel)
         precio_final_estimado = (precio_estimado * D(str(1 - descuento / 100))).quantize(D('0.01'))
 
@@ -1504,7 +1499,7 @@ def abonar_nuevo_turno_fijo(request):
             return redirect('user:perfil')
 
         n = len(reservas_sel)
-        descuento = 20 if n >= 3 else (10 if n == 2 else 0)
+        descuento = 25
         precio_estimado = sum(r.clase.actividad.precio for r in reservas_sel)
         precio_final_estimado = (precio_estimado * Decimal(str(1 - descuento / 100))).quantize(Decimal('0.01'))
 
@@ -1708,7 +1703,7 @@ def registrar_pago_abono_admin(request, user_id):
                 nuevos_tf_ids.append(tf.id)
 
             n = len(nuevos_tf_ids)
-            descuento = 20 if n >= 3 else (10 if n == 2 else 0)
+            descuento = 25
             precio_total = sum(r.clase.actividad.precio for r in reservas_sel)
             factor = Decimal(str(1 - descuento / 100))
             precio_final = (precio_total * factor).quantize(Decimal('0.01'))

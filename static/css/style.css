@@ -37,6 +37,14 @@
     background-color: #7a1d3a;
 }
 
+.bg-bordo-700 {
+    background-color: #5c1830;
+}
+
+.bg-bordo-50 {
+    background-color: #fef1f4;
+}
+
 .text-bordo-500 {
     color: #7a1d3a;
 }

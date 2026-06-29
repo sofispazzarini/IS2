@@ -835,6 +835,12 @@ def estadisticas_usuario(request):
     total_asistencias = reservas_periodo.filter(estado='asistida').count()
     total_recaudado = pagos_periodo.aggregate(total=Sum('monto'))['total'] or 0
 
+    # Recaudado por método de pago
+    recaudado_efectivo = pagos_periodo.filter(metodo_pago='efectivo').aggregate(total=Sum('monto'))['total'] or 0
+    recaudado_posnet = pagos_periodo.filter(metodo_pago='posnet').aggregate(total=Sum('monto'))['total'] or 0
+    recaudado_tarjeta = pagos_periodo.filter(metodo_pago='tarjeta').aggregate(total=Sum('monto'))['total'] or 0
+    recaudado_mercadopago = pagos_periodo.filter(metodo_pago='mercado_pago').aggregate(total=Sum('monto'))['total'] or 0
+
     # Por actividad
     stats_por_actividad = reservas_periodo.values('clase__actividad__nombre').annotate(
         cantidad=Count('id'),
@@ -890,6 +896,10 @@ def estadisticas_usuario(request):
         'total_reservas': total_reservas,
         'total_asistencias': total_asistencias,
         'total_recaudado': total_recaudado,
+        'recaudado_efectivo': recaudado_efectivo,
+        'recaudado_posnet': recaudado_posnet,
+        'recaudado_tarjeta': recaudado_tarjeta,
+        'recaudado_mercadopago': recaudado_mercadopago,
         'stats_por_actividad': stats_por_actividad,
         'recaudado_por_actividad': recaudado_por_actividad,
         'grafico_data': grafico_data,
