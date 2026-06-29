@@ -53,25 +53,23 @@ class Command(BaseCommand):
             usuario_espera.save()
         self.stdout.write(f'  Usuario en espera: sofiaspazzarini@gmail.com / demo1234')
 
-        # Profesor
-        profesor, _ = Profesor.objects.get_or_create(
-            nombre='Profe Test',
-            defaults={'especialidad': 'Yoga'}
-        )
+        # Usar actividad existente (Zona Media, Tren Superior o Tren Inferior)
+        actividad = Actividad.objects.filter(activa=True).first()
+        if not actividad:
+            self.stdout.write(self.style.ERROR('No hay actividades en el sistema. Corré primero el seed principal.'))
+            return
 
-        # Actividad
-        actividad, _ = Actividad.objects.get_or_create(
-            nombre='Yoga Test Cupo',
-            defaults={
-                'descripcion': 'Clase de prueba para testear cupos',
-                'duracion_min': 60,
-                'precio': Decimal('1500'),
-                'activa': True,
-            }
-        )
+        # Usar profesor existente
+        profesor = Profesor.objects.first()
+        if not profesor:
+            self.stdout.write(self.style.ERROR('No hay profesores en el sistema. Corré primero el seed principal.'))
+            return
 
-        # Salón
-        salon, _ = Salon.objects.get_or_create(nombre='Sala Test Cupo')
+        # Usar salón existente
+        salon = Salon.objects.first()
+        if not salon:
+            self.stdout.write(self.style.ERROR('No hay salones en el sistema. Corré primero el seed principal.'))
+            return
 
         # Clase con cupo = 1 (mañana a las 10:00)
         manana = date.today() + timedelta(days=1)
@@ -117,7 +115,7 @@ class Command(BaseCommand):
         self.stdout.write('=' * 60)
         self.stdout.write('\n1. Iniciá el servidor: python manage.py runserver')
         self.stdout.write('\n2. Logueate como: cancela@demo.com / demo1234')
-        self.stdout.write('\n3. Andá a "Mis Reservas" y cancelá la reserva de "Yoga Test Cupo"')
+        self.stdout.write(f'\n3. Andá a "Mis Reservas" y cancelá la reserva de "{actividad.nombre}"')
         self.stdout.write('\n4. Revisá tu email sofiaspazzarini@gmail.com')
         self.stdout.write('   Deberías recibir un aviso de cupo liberado con link a la home')
         self.stdout.write('\n' + '=' * 60 + '\n')
