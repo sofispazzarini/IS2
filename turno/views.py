@@ -1,6 +1,5 @@
 
 from datetime import datetime, timedelta
-from datetime import timedelta
 import io
 import base64
 
@@ -72,16 +71,36 @@ def mis_turnos(request):
     ahora = timezone.localtime(timezone.now())
     hoy = ahora.date()
 
+
     reservas = Reserva.objects.filter(
-        usuario=request.user,
-        clase__fecha__gte=hoy
+        usuario=request.user
     ).exclude(
         estado='cancelada'
-    ).select_related('clase', 'clase__actividad', 'clase__profesor').order_by('clase__fecha', 'clase__hora_inicio')
+    ).select_related(
+        'clase',
+        'clase__actividad',
+        'clase__profesor'
+    ).order_by(
+        'clase__fecha',
+        'clase__hora_inicio'
+    )
 
     reservas_con_info = []
     for reserva in reservas:
+
+        fecha_hora_fin = timezone.make_aware(
+            datetime.combine(
+                reserva.clase.fecha,
+                reserva.clase.hora_fin
+            )
+        )
+
+        # Si la clase ya terminó, NO aparece en Mis Turnos
+        if ahora >= fecha_hora_fin:
+            continue
+
         dias_anticipacion = (reserva.clase.fecha - hoy).days
+
         puede_cancelar = dias_anticipacion >= 2
 
         # Determinar si mostrar QR (30 min antes hasta fin de clase)
@@ -90,7 +109,6 @@ def mis_turnos(request):
         if reserva.estado == 'confirmada' and not reserva.qr_usado:
             clase = reserva.clase
             if clase.fecha == hoy:
-                from datetime import datetime, timedelta
                 hora_inicio = datetime.combine(hoy, clase.hora_inicio)
                 hora_fin = datetime.combine(hoy, clase.hora_fin)
                 ahora_dt = datetime.combine(hoy, ahora.time())
@@ -148,13 +166,31 @@ def calendario_api(request):
     actividad_id = request.GET.get('actividad')
     profesor_id = request.GET.get('profesor')
     horario = request.GET.get('horario')
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+
+    # Validación: fecha_desde no puede ser mayor a fecha_hasta
+    if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+        return JsonResponse({
+            'year': year,
+            'month': month,
+            'dias': {},
+            'mensaje_vacio': 'La fecha "desde" no puede ser mayor a la fecha "hasta"',
+        })
 
     # OPTIMIZACIÓN: Se agregó 'salon' al select_related
     clases = Clase.objects.filter(
         cancelada=False,
-        fecha__year=year,
-        fecha__month=month,
     ).select_related('actividad', 'profesor', 'salon')
+
+    # Aplicar filtro de rango de fechas O filtro por mes
+    if fecha_desde or fecha_hasta:
+        if fecha_desde:
+            clases = clases.filter(fecha__gte=fecha_desde)
+        if fecha_hasta:
+            clases = clases.filter(fecha__lte=fecha_hasta)
+    else:
+        clases = clases.filter(fecha__year=year, fecha__month=month)
 
     if actividad_id:
         clases = clases.filter(actividad_id=actividad_id)
@@ -191,7 +227,9 @@ def calendario_api(request):
     # Mensaje vacío cuando se filtra sin resultados
     mensaje_vacio = None
     if not dias:
-        if horario:
+        if fecha_desde or fecha_hasta:
+            mensaje_vacio = "No hay actividades programadas para las fechas seleccionadas"
+        elif horario:
             mensaje_vacio = "no existen actividades en el horario seleccionado"
         elif profesor_id:
             mensaje_vacio = "este profesor no tiene actividades programadas"
@@ -533,8 +571,7 @@ def cancelar_clase(request, clase_id):
                     pass
 
         todas_las_reservas.update(estado='cancelada')
-        clase.cancelada = True
-        clase.save()
+        Clase.objects.filter(pk=clase.pk).update(cancelada=True)
 
         messages.success(
             request,
@@ -596,7 +633,8 @@ def detalle_clase(request, clase_id):
     clase_finalizada = clase_finalizada and not clase.cancelada
 
     inicio_clase_dt = timezone.make_aware(datetime.combine(clase.fecha, clase.hora_inicio))
-    puede_registrar_asistencia = ahora >= inicio_clase_dt - timedelta(minutes=30)
+    fin_ventana_dt = inicio_clase_dt + timedelta(hours=1,minutes=30)
+    puede_registrar_asistencia = (inicio_clase_dt - timedelta(minutes=30))<= ahora <= fin_ventana_dt
     return render(request, 'turno/detalle_clase.html', {
         'clase': clase,
         'reservas_activas': reservas_activas,
@@ -709,7 +747,7 @@ def ver_clase(request, clase_id):
             resena.clase = clase
             resena.puntuacion = int(request.POST.get('puntuacion', 5))
             resena.save()
-            messages.success(request, '¡Gracias por tu reseña!')
+            messages.success(request, 'Tu reseña fue enviada exitosamente.')
             return redirect('ver_clase', clase_id=clase.id)
 
     return render(request, 'turno/ver_clase.html', {

@@ -103,7 +103,13 @@ def registrar_asistencia_manual(reserva_id):
     reserva = Reserva.objects.select_related('clase').get(id=reserva_id)
 
     # REGLA DE NEGOCIO: No registrar asistencia a clases que ya terminaron
-    if reserva.clase.ya_paso:
+    ahora_local = timezone.localtime(timezone.now())
+    clase = reserva.clase
+    fin_ventana = timezone.make_aware(
+        datetime.combine(clase.fecha, clase.hora_inicio) + timedelta(hours=1, minutes=30),
+        ahora_local.tzinfo
+    )
+    if ahora_local > fin_ventana:
         raise ValidationError("No se puede registrar asistencia a una clase que ya finalizo.")
 
     # REGLA DE NEGOCIO: El turno debe estar registrado como Abonado (Confirmada)

@@ -75,8 +75,8 @@
                            class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500">
                 </div>
                 <input type="hidden" name="rango" value="personalizado">
-                <button type="submit" class="px-4 py-2 rounded-full text-sm font-semibold transition {% if rango == 'personalizado' %}bg-bordo-700 text-white{% else %}border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
-                    Aplicar
+                <button type="submit" style="background-color:#8B001E; color:white;" class="px-4 py-2 rounded-full text-sm font-semibold transition">
+                     Ver Estadisticas
                 </button>
             </form>
             <p class="text-sm text-gray-500 mt-4">Mostrando datos del {{ fecha_inicio|date:"d/m/Y" }} al {{ fecha_fin|date:"d/m/Y" }}</p>
@@ -101,6 +101,11 @@
                 <p class="text-3xl font-bold text-gray-900">${{ total_recaudado }}</p>
             </div>
         </div>
+        {% if sin_pagos_en_rango %}
+        <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 text-center text-yellow-800 font-semibold mb-6">
+            No hay registros de pago en las fechas ingresadas
+        </div>
+        {% endif %}
 
         <!-- Gráfico -->
         <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 mb-6">
@@ -181,71 +186,70 @@
             <p class="text-gray-400 text-sm mt-1">{{ cliente.get_full_name }} — {{ cliente.email }}</p>
         </div>
 
-        {% elif cliente %}
-        <p class="text-gray-700 font-semibold text-lg mb-4">{{ cliente.get_full_name }} — {{ cliente.email }}</p>
+{% elif cliente %}
 
-        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100 mb-6">
-            <div class="px-6 py-4 border-b border-gray-100">
-                <h2 class="font-heading text-lg font-semibold text-gray-900">Reservas y Asistencias</h2>
+        <!-- Encabezado del cliente -->
+        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-bordo-100 flex items-center justify-center flex-shrink-0">
+                <span class="text-bordo-700 font-bold text-lg">{{ cliente.first_name|first|upper }}</span>
             </div>
-            <div class="divide-y divide-gray-100">
-                {% for reserva in reservas %}
-                <div class="px-6 py-4 flex items-center justify-between">
-                    <div>
-                        <p class="font-semibold text-gray-900">{{ reserva.clase.actividad.nombre }}</p>
-                        <p class="text-sm text-gray-500">{{ reserva.clase.fecha }} — {{ reserva.clase.hora_inicio }}</p>
-                    </div>
-                    <span class="px-3 py-1 rounded-full text-xs font-semibold
-                        {% if reserva.estado == 'asistida' %}bg-green-100 text-green-700
-                        {% elif reserva.estado == 'ausente' %}bg-red-100 text-red-700
-                        {% elif reserva.estado == 'confirmada' %}bg-blue-100 text-blue-700
-                        {% elif reserva.estado == 'cancelada' %}bg-gray-100 text-gray-600
-                        {% else %}bg-yellow-100 text-yellow-700{% endif %}">
-                        {{ reserva.get_estado_display }}
-                    </span>
-                </div>
-                {% empty %}
-                <div class="px-6 py-8 text-center text-gray-400">Sin reservas registradas</div>
-                {% endfor %}
+            <div>
+                <p class="font-heading text-xl font-bold text-gray-900">{{ cliente.get_full_name }}</p>
+                <p class="text-sm text-gray-500">{{ cliente.email }}</p>
             </div>
         </div>
 
-        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
-            <div class="px-6 py-4 border-b border-gray-100">
-                <h2 class="font-heading text-lg font-semibold text-gray-900">Pagos</h2>
+        <!-- Métricas rápidas del cliente -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total reservas</p>
+                <p class="text-3xl font-bold text-blue-600" id="stat-total-reservas">—</p>
             </div>
-            <div class="divide-y divide-gray-100">
-                {% for pago in pagos_usuario %}
-                <div class="px-6 py-4 flex items-center justify-between">
-                    <div>
-                        <p class="font-semibold text-gray-900">{{ pago.reserva.clase.actividad.nombre }}</p>
-                        <p class="text-sm text-gray-500">{{ pago.fecha_pago|date:"d/m/Y H:i" }} — {{ pago.get_metodo_pago_display }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold text-gray-900">${{ pago.monto }}</p>
-                        <span class="text-xs font-semibold
-                            {% if pago.estado_pago == 'aprobado' %}text-green-600
-                            {% elif pago.estado_pago == 'rechazado' %}text-red-600
-                            {% elif pago.estado_pago == 'reembolsado' %}text-yellow-600
-                            {% else %}text-gray-500{% endif %}">
-                            {{ pago.get_estado_pago_display }}
-                        </span>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="px-6 py-8 text-center text-gray-400">Sin pagos registrados</div>
-                {% endfor %}
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Asistencias</p>
+                <p class="text-3xl font-bold text-green-600" id="stat-asistencias">—</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Tasa de asistencia</p>
+                <p class="text-3xl font-bold text-bordo-700" id="stat-tasa">—</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total pagado</p>
+                <p class="text-3xl font-bold text-gray-900" id="stat-pagado">—</p>
             </div>
         </div>
+
+        <!-- Gráficos del cliente: torta + barras -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
+                <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Estado de reservas</h3>
+                <div class="flex justify-center">
+                    <canvas id="graficoPie" style="max-height:240px; max-width:240px;"></canvas>
+                </div>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
+                <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Reservas por actividad</h3>
+                <canvas id="graficoBarrasCliente" style="max-height:240px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Línea: pagos en el tiempo -->
+        <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 mb-6">
+            <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Historial de pagos</h3>
+            <canvas id="graficoLinea" height="120"></canvas>
+        </div>
+
+       <!-- Datos para JS -->
+        <script id="reservas-data" type="application/json">{{ reservas_json|safe }}</script>
+        <script id="pagos-data" type="application/json">{{ pagos_json|safe }}</script>
         {% endif %}
-
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Gráfico general del gimnasio
     const data = {{ grafico_data|safe }};
-
     const ctx = document.getElementById('graficoActividades').getContext('2d');
     new Chart(ctx, {
         type: 'bar',
@@ -270,17 +274,72 @@
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
+            plugins: { legend: { position: 'top' } },
+            scales: { y: { beginAtZero: true } }
         }
     });
+
+    // Gráficos del cliente individual
+    const reservasDataEl = document.getElementById('reservas-data');
+    const pagosDataEl    = document.getElementById('pagos-data');
+
+    if (reservasDataEl && pagosDataEl) {
+        const reservas = JSON.parse(reservasDataEl.textContent);
+        const pagos    = JSON.parse(pagosDataEl.textContent);
+
+        const totalReservas = reservas.length;
+        const asistencias   = reservas.filter(r => r.estado === 'asistida').length;
+        const tasa          = totalReservas > 0 ? Math.round((asistencias / totalReservas) * 100) + '%' : '0%';
+        const totalPagado   = pagos.filter(p => p.estado === 'aprobado').reduce((sum, p) => sum + parseFloat(p.monto), 0);
+
+        document.getElementById('stat-total-reservas').textContent = totalReservas;
+        document.getElementById('stat-asistencias').textContent    = asistencias;
+        document.getElementById('stat-tasa').textContent           = tasa;
+        document.getElementById('stat-pagado').textContent         = '$' + totalPagado.toLocaleString('es-AR');
+
+        const estadoLabels = ['Asistida', 'Ausente', 'Confirmada', 'Cancelada', 'Pendiente'];
+        const estadoKeys   = ['asistida', 'ausente', 'confirmada', 'cancelada', 'pendiente'];
+        const estadoColors = ['rgba(16,185,129,0.8)','rgba(239,68,68,0.8)','rgba(59,130,246,0.8)','rgba(156,163,175,0.8)','rgba(251,191,36,0.8)'];
+        const estadoCounts = estadoKeys.map(k => reservas.filter(r => r.estado === k).length);
+        const pieIndices   = estadoCounts.map((v,i) => i).filter(i => estadoCounts[i] > 0);
+
+        new Chart(document.getElementById('graficoPie'), {
+            type: 'doughnut',
+            data: {
+                labels: pieIndices.map(i => estadoLabels[i]),
+                datasets: [{ data: pieIndices.map(i => estadoCounts[i]), backgroundColor: pieIndices.map(i => estadoColors[i]), borderWidth: 2, borderColor: '#fff' }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } } }
+        });
+
+        const actividadMap = {};
+        reservas.forEach(r => { actividadMap[r.actividad] = (actividadMap[r.actividad] || 0) + 1; });
+        const actLabels = Object.keys(actividadMap);
+        const barColors = ['rgba(139,0,30,0.75)','rgba(59,130,246,0.75)','rgba(16,185,129,0.75)','rgba(251,191,36,0.75)','rgba(168,85,247,0.75)','rgba(249,115,22,0.75)'];
+
+        new Chart(document.getElementById('graficoBarrasCliente'), {
+            type: 'bar',
+            data: {
+                labels: actLabels,
+                datasets: [{ label: 'Reservas', data: Object.values(actividadMap), backgroundColor: actLabels.map((_, i) => barColors[i % barColors.length]), borderRadius: 6, borderWidth: 0 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+
+        const pagosPorMes = {};
+        pagos.forEach(p => { if (p.estado === 'aprobado') { pagosPorMes[p.fecha] = (pagosPorMes[p.fecha] || 0) + parseFloat(p.monto); } });
+        const mesesOrdenados = Object.keys(pagosPorMes).sort();
+        const nombresMes = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        const labelsMes  = mesesOrdenados.map(m => { const [y, mo] = m.split('-'); return nombresMes[parseInt(mo,10)-1] + ' ' + y; });
+
+        new Chart(document.getElementById('graficoLinea'), {
+            type: 'line',
+            data: {
+                labels: labelsMes.length ? labelsMes : ['Sin pagos'],
+                datasets: [{ label: 'Monto pagado ($)', data: mesesOrdenados.map(m => pagosPorMes[m]), borderColor: 'rgba(139,0,30,1)', backgroundColor: 'rgba(139,0,30,0.08)', borderWidth: 2, pointBackgroundColor: 'rgba(139,0,30,1)', pointRadius: 5, tension: 0.4, fill: true }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+        });
+    }
 </script>
 {% endblock %}

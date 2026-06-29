@@ -677,25 +677,61 @@ def dar_baja_cliente(request, user_id):
 
 @login_required(login_url='user:login')
 def mi_historial(request):
-    """Mostrar historial de clases del cliente (más recientes primero)."""
-    if not request.user.is_authenticated:
-        return HttpResponseForbidden("Acceso denegado")
+    """Mostrar historial de clases del cliente."""
 
     if getattr(request.user, 'rol', None) != 'cliente':
         return HttpResponseForbidden("Acceso denegado")
 
-    # Obtener reservas del usuario ordenadas por fecha de la clase (más recientes primero)
+    ahora = timezone.localtime(timezone.now())
+
     reservas = (
         request.user.reservas
-        .select_related('clase', 'clase__actividad')
-        .order_by('-clase__fecha', '-clase__hora_inicio')
+        .select_related(
+            'clase',
+            'clase__actividad',
+            'clase__profesor'
+        )
     )
 
+    historial = []
+
+    for reserva in reservas:
+
+        fecha_hora_fin = timezone.make_aware(
+            datetime.combine(
+                reserva.clase.fecha,
+                reserva.clase.hora_fin
+            )
+        )
+
+        if fecha_hora_fin <= ahora:
+            historial.append(reserva)
+                   
+
+    historial.sort(
+        key=lambda r: (
+            r.clase.fecha,
+            r.clase.hora_inicio
+        ),
+        reverse=True
+    )
+
+    print("========== HISTORIAL ==========")
+
+    for reserva in historial:
+        print(
+            reserva.id,
+            reserva.clase.fecha,
+            reserva.clase.hora_inicio,
+            reserva.clase.hora_fin,
+            reserva.estado 
+        )
+
+    print("===============================")
+
     return render(request, 'user/mi_historial.html', {
-        'reservas': reservas,
+        'reservas': historial,
     })
-
-
 
 def recuperar_contrasena_view(request):
     User = get_user_model()
@@ -804,13 +840,16 @@ def estadisticas_usuario(request):
         fecha_inicio = hoy - timedelta(days=180)
         fecha_fin = hoy
     elif rango == 'personalizado' and fecha_desde and fecha_hasta:
-        fecha_inicio = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
-        fecha_fin = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+        try:
+            fecha_inicio = datetime.strptime(fecha_desde, '%Y-%m-%d').date()
+            fecha_fin = datetime.strptime(fecha_hasta, '%Y-%m-%d').date()
+        except ValueError:
+            fecha_inicio = hoy - timedelta(days=30)
+            fecha_fin = hoy
+            rango = '1mes'
     else:
         fecha_inicio = hoy - timedelta(days=30)
         fecha_fin = hoy
-        rango = '1mes'
-
     # --- Estadísticas generales del gimnasio (por default) ---
     clases_periodo = Clase.objects.filter(
         fecha__gte=fecha_inicio,
@@ -850,7 +889,7 @@ def estadisticas_usuario(request):
     data_reservas = [item['cantidad'] for item in stats_por_actividad]
     data_asistencias = [item['asistencias'] for item in stats_por_actividad]
     data_recaudado = [float(item['total'] or 0) for item in recaudado_por_actividad]
-
+    sin_pagos_en_rango = (total_recaudado == 0 and total_reservas == 0)
     grafico_data = json.dumps({
         'labels': labels,
         'reservas': data_reservas,
@@ -865,6 +904,8 @@ def estadisticas_usuario(request):
     pagos_usuario = []
     error_usuario = None
     sin_historial = False
+    reservas_json = json.dumps([])
+    pagos_json = json.dumps([])
 
     # Lista de clientes para autocompletar
     User = get_user_model()
@@ -877,6 +918,22 @@ def estadisticas_usuario(request):
             pagos_usuario = Pago.objects.filter(reserva__usuario=cliente).select_related('reserva__clase__actividad').order_by('-fecha_pago')[:100]
             if not reservas.exists() and not pagos_usuario.exists():
                 sin_historial = True
+            reservas_json = json.dumps([
+                {
+                    'actividad': r.clase.actividad.nombre,
+                    'estado': r.estado,
+                    'fecha': str(r.clase.fecha),
+                }
+                for r in reservas
+            ])
+            pagos_json = json.dumps([
+                {
+                    'fecha': p.fecha_pago.strftime('%Y-%m'),
+                    'monto': float(p.monto),
+                    'estado': p.estado_pago,
+                }
+                for p in pagos_usuario
+            ])
         except User.DoesNotExist:
             error_usuario = "El usuario es inexistente"
 
@@ -893,11 +950,14 @@ def estadisticas_usuario(request):
         'stats_por_actividad': stats_por_actividad,
         'recaudado_por_actividad': recaudado_por_actividad,
         'grafico_data': grafico_data,
+        'sin_pagos_en_rango': sin_pagos_en_rango,
         'clientes_lista': clientes_lista,
         'email_buscado': email,
         'cliente': cliente,
         'reservas': reservas,
         'pagos_usuario': pagos_usuario,
+        'reservas_json': reservas_json,
+        'pagos_json': pagos_json,
         'error_usuario': error_usuario,
         'sin_historial': sin_historial,
         'es_dueno': es_dueno,
