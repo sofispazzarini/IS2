@@ -172,6 +172,20 @@ class Reserva(models.Model):
     def __str__(self):
         return f"{self.usuario.username} - {self.clase}"
 
+    @property
+    def tiene_pago_aprobado(self):
+        return self.pagos.filter(estado_pago='aprobado').exists()
+
+    @property
+    def ya_reseno(self):
+        from resena.models import Resena
+        return Resena.objects.filter(usuario=self.usuario, clase=self.clase).exists()
+
+    @property
+    def resena_clase(self):
+        from resena.models import Resena
+        return Resena.objects.filter(usuario=self.usuario, clase=self.clase).first()
+
 class Asistencia(models.Model):
 
     reserva = models.OneToOneField(

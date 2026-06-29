@@ -49,24 +49,6 @@
             </div>
         </div>
 
-        <!-- Modo Mantenimiento -->
-        {% if es_dueno %}
-        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100 mb-8">
-            <div class="p-6 flex items-center justify-between">
-                <div>
-                    <p class="font-semibold text-gray-900">Modo mantenimiento</p>
-                    <p class="text-sm text-gray-600 mt-1">Presioná para {% if modo_mantenimiento_activo %}desactivar{% else %}activar{% endif %} el modo mantenimiento.</p>
-                </div>
-                <form method="POST" action="{% url 'user:toggle_modo_mantenimiento' %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-bordo px-6 py-3 rounded-full font-semibold">
-                        {% if modo_mantenimiento_activo %}Desactivar{% else %}Activar{% endif %} modo mantenimiento
-                    </button>
-                </form>
-            </div>
-        </div>
-        {% endif %}
-
         <!-- Filtros -->
         <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
             <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Filtros</h3>

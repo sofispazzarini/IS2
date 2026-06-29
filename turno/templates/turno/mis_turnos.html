@@ -5,13 +5,21 @@
 {% block content %}
 <div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
     <div class="max-w-4xl mx-auto">
-        <div class="text-center mb-10">
-            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
-                Tus reservas
-            </p>
-            <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
-                Mis Turnos
-            </h2>
+        <div class="flex items-center justify-between mb-10">
+            <div>
+                <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
+                    Tus reservas
+                </p>
+                <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
+                    Mis Turnos
+                </h2>
+            </div>
+            <a href="{% url 'user:mi_historial' %}" class="inline-flex items-center gap-2 btn-bordo px-6 py-2.5 rounded-full font-semibold text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Ver mi historial
+            </a>
         </div>
 
         {% if tiene_turnos %}

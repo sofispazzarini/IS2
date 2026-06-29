@@ -32,23 +32,63 @@
   .stats-tab:hover { background: var(--cream); color: var(--text); }
   .stats-tab.active { background: var(--wine); color: white; }
 
-  /* PERIODO */
-  .period-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem 1.4rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
-  .period-pills { display: flex; gap: 6px; }
-  .pill { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1.5px solid var(--border); background: var(--cream); color: var(--text-muted); cursor: pointer; transition: all 0.15s; text-decoration: none; }
-  .pill.active { border-color: var(--wine); background: var(--wine-light); color: var(--wine); }
-  .pill:hover { border-color: var(--wine); }
-  .period-divider { width: 1px; height: 28px; background: var(--border); }
-  .period-range { display: flex; align-items: center; gap: 8px; }
-  .period-range label { font-size: 11px; font-weight: 600; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.05em; }
-  .period-range input[type="date"] { height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--cream); color: var(--text); font-size: 12px; padding: 0 10px; outline: none; }
-  .period-range input[type="date"]:focus { border-color: var(--wine); }
-  .btn-apply { height: 32px; padding: 0 16px; background: var(--wine); color: white; border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; }
-  .btn-apply:hover { background: var(--wine-dark); }
-  .period-note { font-size: 11px; color: var(--text-hint); margin-left: auto; }
+        <!-- Filtros de rango -->
+        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
+            <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Período</h3>
+            <div class="flex flex-wrap gap-2 mb-4">
+                <a href="?rango=1mes" class="px-4 py-2 rounded-full text-sm font-semibold transition {% if rango == '1mes' %}bg-bordo-700 text-white{% else %}border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                    Último mes
+                </a>
+                <a href="?rango=2meses" class="px-4 py-2 rounded-full text-sm font-semibold transition {% if rango == '2meses' %}bg-bordo-700 text-white{% else %}border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                    2 meses
+                </a>
+                <a href="?rango=6meses" class="px-4 py-2 rounded-full text-sm font-semibold transition {% if rango == '6meses' %}bg-bordo-700 text-white{% else %}border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                    6 meses
+                </a>
+            </div>
+            <form method="GET" class="flex flex-wrap items-end gap-3 mt-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Desde</label>
+                    <input type="date" name="fecha_desde" value="{{ fecha_desde }}"
+                           class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
+                    <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}"
+                           class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500">
+                </div>
+                <input type="hidden" name="rango" value="personalizado">
+                <button type="submit" style="background-color:#8B001E; color:white;" class="px-4 py-2 rounded-full text-sm font-semibold transition">
+                     Ver Estadisticas
+                </button>
+            </form>
+            <p class="text-sm text-gray-500 mt-4">Mostrando datos del {{ fecha_inicio|date:"d/m/Y" }} al {{ fecha_fin|date:"d/m/Y" }}</p>
+        </div>
 
-  /* SECTION LABEL */
-  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-hint); margin-bottom: 10px; }
+        <!-- Resumen general -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 text-center">
+                <p class="text-sm text-gray-500 mb-1">Clases</p>
+                <p class="text-3xl font-bold text-bordo-700">{{ total_clases }}</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 text-center">
+                <p class="text-sm text-gray-500 mb-1">Reservas</p>
+                <p class="text-3xl font-bold text-blue-600">{{ total_reservas }}</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 text-center">
+                <p class="text-sm text-gray-500 mb-1">Asistencias</p>
+                <p class="text-3xl font-bold text-green-600">{{ total_asistencias }}</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 text-center">
+                <p class="text-sm text-gray-500 mb-1">Recaudado</p>
+                <p class="text-3xl font-bold text-gray-900">${{ total_recaudado }}</p>
+            </div>
+        </div>
+        {% if sin_pagos_en_rango %}
+        <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 text-center text-yellow-800 font-semibold mb-6">
+            No hay registros de pago en las fechas ingresadas
+        </div>
+        {% endif %}
 
   /* KPI ROW */
   .kpi-row { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); display: grid; grid-template-columns: repeat(4,1fr); margin-bottom: 1.5rem; overflow: hidden; }
@@ -114,25 +154,63 @@
   }
 </style>
 
-<div class="stats-page">
-  <div class="stats-wrapper">
-    <p class="page-eyebrow">Gestión del sistema</p>
-    <h1 class="page-title">Panel de administración</h1>
+{% elif cliente %}
 
-    <!-- TABS -->
-    <div class="stats-tabs">
-      <a href="{% url 'user:client_list' %}" class="stats-tab">Clientes</a>
-      <a href="{% url 'admin_clases' %}" class="stats-tab">Gestión de clases</a>
-      {% if user.rol == 'dueno' %}
-      <a href="{% url 'actividad:admin_actividades' %}" class="stats-tab">Actividades</a>
-      {% endif %}
-      <a href="{% url 'user:admin_profesores' %}" class="stats-tab">Profesores</a>
-      {% if user.rol == 'dueno' %}
-      <span class="stats-tab active">Estadísticas</span>
-      {% endif %}
-      {% if user.rol == 'dueno' %}
-      <a href="{% url 'user:admin_secretarios' %}" class="stats-tab">Secretarios</a>
-      {% endif %}
+        <!-- Encabezado del cliente -->
+        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-bordo-100 flex items-center justify-center flex-shrink-0">
+                <span class="text-bordo-700 font-bold text-lg">{{ cliente.first_name|first|upper }}</span>
+            </div>
+            <div>
+                <p class="font-heading text-xl font-bold text-gray-900">{{ cliente.get_full_name }}</p>
+                <p class="text-sm text-gray-500">{{ cliente.email }}</p>
+            </div>
+        </div>
+
+        <!-- Métricas rápidas del cliente -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total reservas</p>
+                <p class="text-3xl font-bold text-blue-600" id="stat-total-reservas">—</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Asistencias</p>
+                <p class="text-3xl font-bold text-green-600" id="stat-asistencias">—</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Tasa de asistencia</p>
+                <p class="text-3xl font-bold text-bordo-700" id="stat-tasa">—</p>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-5 border border-gray-100 text-center">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total pagado</p>
+                <p class="text-3xl font-bold text-gray-900" id="stat-pagado">—</p>
+            </div>
+        </div>
+
+        <!-- Gráficos del cliente: torta + barras -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
+                <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Estado de reservas</h3>
+                <div class="flex justify-center">
+                    <canvas id="graficoPie" style="max-height:240px; max-width:240px;"></canvas>
+                </div>
+            </div>
+            <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100">
+                <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Reservas por actividad</h3>
+                <canvas id="graficoBarrasCliente" style="max-height:240px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Línea: pagos en el tiempo -->
+        <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-100 mb-6">
+            <h3 class="font-heading text-base font-semibold text-gray-900 mb-4">Historial de pagos</h3>
+            <canvas id="graficoLinea" height="120"></canvas>
+        </div>
+
+       <!-- Datos para JS -->
+        <script id="reservas-data" type="application/json">{{ reservas_json|safe }}</script>
+        <script id="pagos-data" type="application/json">{{ pagos_json|safe }}</script>
+        {% endif %}
     </div>
 
     <!-- PERÍODO -->

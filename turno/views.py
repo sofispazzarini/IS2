@@ -1,6 +1,5 @@
 
 from datetime import datetime, timedelta
-from datetime import timedelta
 import io
 import base64
 
@@ -72,16 +71,36 @@ def mis_turnos(request):
     ahora = timezone.localtime(timezone.now())
     hoy = ahora.date()
 
+
     reservas = Reserva.objects.filter(
-        usuario=request.user,
-        clase__fecha__gte=hoy
+        usuario=request.user
     ).exclude(
         estado='cancelada'
-    ).select_related('clase', 'clase__actividad', 'clase__profesor').order_by('clase__fecha', 'clase__hora_inicio')
+    ).select_related(
+        'clase',
+        'clase__actividad',
+        'clase__profesor'
+    ).order_by(
+        'clase__fecha',
+        'clase__hora_inicio'
+    )
 
     reservas_con_info = []
     for reserva in reservas:
+
+        fecha_hora_fin = timezone.make_aware(
+            datetime.combine(
+                reserva.clase.fecha,
+                reserva.clase.hora_fin
+            )
+        )
+
+        # Si la clase ya terminó, NO aparece en Mis Turnos
+        if ahora >= fecha_hora_fin:
+            continue
+
         dias_anticipacion = (reserva.clase.fecha - hoy).days
+
         puede_cancelar = dias_anticipacion >= 2
 
         # Determinar si mostrar QR (30 min antes hasta fin de clase)
@@ -90,7 +109,6 @@ def mis_turnos(request):
         if reserva.estado == 'confirmada' and not reserva.qr_usado:
             clase = reserva.clase
             if clase.fecha == hoy:
-                from datetime import datetime, timedelta
                 hora_inicio = datetime.combine(hoy, clase.hora_inicio)
                 hora_fin = datetime.combine(hoy, clase.hora_fin)
                 ahora_dt = datetime.combine(hoy, ahora.time())
@@ -766,7 +784,7 @@ def ver_clase(request, clase_id):
             resena.clase = clase
             resena.puntuacion = int(request.POST.get('puntuacion', 5))
             resena.save()
-            messages.success(request, '¡Gracias por tu reseña!')
+            messages.success(request, 'Tu reseña fue enviada exitosamente.')
             return redirect('ver_clase', clase_id=clase.id)
 
     return render(request, 'turno/ver_clase.html', {
