@@ -343,6 +343,52 @@ class Command(BaseCommand):
         self.stdout.write(f'  ✓ Clase J: {zona_superior.nombre} - {en_7_dias} 10:00hs')
 
         # ═══════════════════════════════════════════════════════════
+        # 📅 CLASES SEMANALES FIJAS (para abonados)
+        # ═══════════════════════════════════════════════════════════
+        self.stdout.write('\n📅 CLASES SEMANALES FIJAS')
+        self.stdout.write('-' * 40)
+
+        def proximos_dias_semana(dia_semana, cantidad=4):
+            """Retorna las próximas N fechas de un día de la semana.
+            dia_semana: 0=lunes, 1=martes, ..., 6=domingo
+            """
+            dias = []
+            fecha = hoy
+            while len(dias) < cantidad:
+                fecha += timedelta(days=1)
+                if fecha.weekday() == dia_semana:
+                    dias.append(fecha)
+            return dias
+
+        # Martes 17:00hs - ZONA MEDIA (4 semanas)
+        for fecha in proximos_dias_semana(1, 4):
+            self._crear_clase_si_no_existe(
+                actividad=zona_media,
+                profesor=profesor_zona_media,
+                fecha=fecha,
+                hora_inicio=time(17, 0),
+                hora_fin=time(18, 0),
+                cupo_maximo=12,
+                salon=salon_a,
+                nombre='Semanal Martes 17hs'
+            )
+        self.stdout.write(f'  ✓ 4 clases: ZONA MEDIA - Martes 17:00hs')
+
+        # Jueves 10:00hs - ZONA INFERIOR (4 semanas)
+        for fecha in proximos_dias_semana(3, 4):
+            self._crear_clase_si_no_existe(
+                actividad=zona_inferior,
+                profesor=profesor_zona_inferior,
+                fecha=fecha,
+                hora_inicio=time(10, 0),
+                hora_fin=time(11, 0),
+                cupo_maximo=12,
+                salon=salon_b,
+                nombre='Semanal Jueves 10hs'
+            )
+        self.stdout.write(f'  ✓ 4 clases: ZONA INFERIOR - Jueves 10:00hs')
+
+        # ═══════════════════════════════════════════════════════════
         # 🎟️ TURNOS Y RESERVAS
         # ═══════════════════════════════════════════════════════════
         self.stdout.write('\n🎟️ TURNOS Y RESERVAS')

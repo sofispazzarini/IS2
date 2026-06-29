@@ -1352,7 +1352,9 @@ def abonar_mes(request):
 
 @login_required
 def hacerse_abonado(request):
-    """Un cliente sin turnos fijos convierte reservas pendientes en turnos fijos y paga con MercadoPago (1-10 del mes)."""
+    """Un cliente sin turnos fijos elige turnos semanales y paga con MercadoPago (1-10 del mes)."""
+    from collections import defaultdict
+
     hoy = timezone.localdate()
 
     if not (1 <= hoy.day <= 30):
@@ -1369,6 +1371,37 @@ def hacerse_abonado(request):
         messages.info(request, "Ya pagaste el abono de este mes.")
         return redirect('user:perfil')
 
+    # Buscar clases futuras y agrupar por (actividad, día_semana, hora_inicio)
+    clases_futuras = Clase.objects.filter(
+        fecha__gte=hoy,
+        cancelada=False
+    ).select_related('actividad')
+
+    grupos = defaultdict(list)
+    for clase in clases_futuras:
+        key = (clase.actividad_id, clase.fecha.weekday(), clase.hora_inicio)
+        grupos[key].append(clase)
+
+    # Filtrar solo los que tienen clases en 2+ fechas diferentes (patrón semanal real)
+    DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+    turnos_semanales = []
+    for (act_id, dia, hora), clases in grupos.items():
+        fechas_unicas = set(c.fecha for c in clases)
+        if len(fechas_unicas) >= 2:
+            primera = clases[0]
+            turnos_semanales.append({
+                'actividad': primera.actividad,
+                'actividad_id': act_id,
+                'dia_semana': dia,
+                'dia_nombre': DIAS_SEMANA[dia],
+                'hora_inicio': hora,
+                'cantidad_clases': len(clases),
+                'key': f"{act_id}_{dia}_{hora.strftime('%H%M')}",
+            })
+
+    turnos_semanales.sort(key=lambda x: (x['dia_semana'], x['hora_inicio']))
+
+    # Mantener reservas pendientes como fallback
     reservas_pendientes = Reserva.objects.filter(
         usuario=usuario,
         estado='pendiente_pago',
@@ -1376,39 +1409,49 @@ def hacerse_abonado(request):
     ).select_related('clase', 'clase__actividad').order_by('clase__fecha', 'clase__hora_inicio')
 
     if request.method == 'POST':
-        reserva_ids = request.POST.getlist('reservas')
-        ctx = {'reservas_pendientes': reservas_pendientes}
+        turno_keys = request.POST.getlist('turnos')
+        ctx = {
+            'turnos_semanales': turnos_semanales,
+            'reservas_pendientes': reservas_pendientes,
+        }
 
-        if not reserva_ids:
-            ctx['error'] = 'Seleccioná al menos una reserva para hacerte abonado.'
+        if not turno_keys:
+            ctx['error'] = 'Seleccioná al menos un turno semanal.'
             return render(request, 'turno/hacerse_abonado.html', ctx)
 
-        reservas_sel = list(Reserva.objects.filter(
-            id__in=reserva_ids,
-            usuario=usuario,
-            estado='pendiente_pago',
-        ).select_related('clase', 'clase__actividad'))
+        # Parsear las keys seleccionadas y obtener las actividades
+        from actividad.models import Actividad
+        turnos_seleccionados = []
+        for key in turno_keys:
+            parts = key.split('_')
+            if len(parts) == 3:
+                act_id, dia, hora_str = parts
+                actividad = Actividad.objects.filter(id=act_id).first()
+                if actividad:
+                    hora = datetime.strptime(hora_str, '%H%M').time()
+                    turnos_seleccionados.append({
+                        'actividad': actividad,
+                        'dia_semana': int(dia),
+                        'hora_inicio': hora,
+                    })
 
-        # Validación backend: no dos reservas con mismo (dia_semana, hora_inicio)
+        if not turnos_seleccionados:
+            ctx['error'] = 'No se pudieron procesar los turnos seleccionados.'
+            return render(request, 'turno/hacerse_abonado.html', ctx)
+
+        # Validación: no dos turnos con mismo (dia_semana, hora_inicio)
         vistos = set()
-        for r in reservas_sel:
-            clave = (r.clase.fecha.weekday(), r.clase.hora_inicio)
+        for t in turnos_seleccionados:
+            clave = (t['dia_semana'], t['hora_inicio'])
             if clave in vistos:
                 ctx['error'] = (
-                    'Seleccionaste dos reservas del mismo día de la semana y horario. '
+                    'Seleccionaste dos turnos del mismo día y horario. '
                     'Solo podés elegir un turno por combinación día/horario.'
                 )
                 return render(request, 'turno/hacerse_abonado.html', ctx)
             vistos.add(clave)
 
-        # Validación: no abonar clases que ya pasaron
-        for r in reservas_sel:
-            if r.clase.ya_paso:
-                ctx['error'] = f'La clase de {r.clase.actividad.nombre} del {r.clase.fecha.strftime("%d/%m")} ya ha pasado y no puede ser abonada.'
-                return render(request, 'turno/hacerse_abonado.html', ctx)
-
-        # Crear Abono en estado pendiente guardando los IDs seleccionados
-        # (el webhook creará los TurnoFijos y las Reservas al confirmar el pago)
+        # Crear Abono en estado pendiente
         abono_existente = Abono.objects.filter(
             usuario=usuario,
             mes=hoy.month,
@@ -1419,9 +1462,13 @@ def hacerse_abonado(request):
             messages.info(request, "Ya pagaste el abono de este mes.")
             return redirect('user:perfil')
 
+        # Guardar info de turnos seleccionados en reservas_origen_ids con prefijo TURNOS:
+        # Formato: TURNOS:act_id:dia:hora,act_id:dia:hora,...
+        turnos_info = 'TURNOS:' + ','.join(f"{t['actividad'].id}:{t['dia_semana']}:{t['hora_inicio'].strftime('%H%M')}" for t in turnos_seleccionados)
+
         if abono_existente:
             abono = abono_existente
-            abono.reservas_origen_ids = ','.join(str(r.id) for r in reservas_sel)
+            abono.reservas_origen_ids = turnos_info
             abono.estado_pago = 'pendiente'
             abono.save()
         else:
@@ -1429,21 +1476,19 @@ def hacerse_abonado(request):
                 usuario=usuario,
                 mes=hoy.month,
                 anio=hoy.year,
-                cantidad_turnos_fijos=len(reservas_sel),
-                descuento_porcentaje=0,
+                cantidad_turnos_fijos=len(turnos_seleccionados),
+                descuento_porcentaje=25,
                 monto_total=Decimal('0'),
                 monto_final=Decimal('0'),
-                metodo_pago='mercado_pago',
+                metodo_pago='transferencia',
                 estado_pago='pendiente',
-                reservas_origen_ids=','.join(str(r.id) for r in reservas_sel),
-        )
+                reservas_origen_ids=turnos_info,
+            )
 
-        # Calcular precio estimado para mostrárselo a MP (el definitivo lo calcula el webhook)
-        # Para esto creamos TurnoFijo temporales en memoria sin guardarlos
+        # Calcular precio con 25% descuento
         from decimal import Decimal as D
-        n = len(reservas_sel)
         descuento = 25
-        precio_estimado = sum(r.clase.actividad.precio for r in reservas_sel)
+        precio_estimado = sum(t['actividad'].precio for t in turnos_seleccionados)
         precio_final_estimado = (precio_estimado * D(str(1 - descuento / 100))).quantize(D('0.01'))
 
         sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
@@ -1468,6 +1513,7 @@ def hacerse_abonado(request):
         preference = preference_response.get("response", {})
         if "id" not in preference:
             return render(request, 'turno/hacerse_abonado.html', {
+                'turnos_semanales': turnos_semanales,
                 'reservas_pendientes': reservas_pendientes,
                 'error': 'No fue posible conectarse con la billetera virtual. Intente nuevamente más tarde',
             })
@@ -1478,6 +1524,7 @@ def hacerse_abonado(request):
         return redirect(preference["init_point"])
 
     return render(request, 'turno/hacerse_abonado.html', {
+        'turnos_semanales': turnos_semanales,
         'reservas_pendientes': reservas_pendientes,
     })
 

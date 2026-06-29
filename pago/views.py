@@ -214,9 +214,34 @@ def webhook_mercadopago(request):
             abono.payment_id = payment_id
 
             if estado_mp == "approved":
-                # Flujo hacerse_abonado / abonar_nuevo_turno_fijo: crear TurnoFijo desde reservas origen
+                from actividad.models import Actividad
+                from datetime import datetime
+
                 nuevos_tf_ids = []
-                if abono.reservas_origen_ids:
+
+                # Detectar formato de reservas_origen_ids
+                if abono.reservas_origen_ids and abono.reservas_origen_ids.startswith('TURNOS:'):
+                    # Nuevo flujo: turnos semanales seleccionados directamente
+                    # Formato: TURNOS:act_id:dia:hora,act_id:dia:hora,...
+                    turnos_data = abono.reservas_origen_ids[7:]  # quitar "TURNOS:"
+
+                    for turno_str in turnos_data.split(','):
+                        parts = turno_str.split(':')
+                        if len(parts) == 3:
+                            act_id, dia, hora_str = parts
+                            actividad = Actividad.objects.filter(id=act_id).first()
+                            if actividad:
+                                hora = datetime.strptime(hora_str, '%H%M').time()
+                                tf, created = TurnoFijo.objects.get_or_create(
+                                    usuario=abono.usuario,
+                                    dia_semana=int(dia),
+                                    hora_inicio=hora,
+                                    defaults={'actividad': actividad, 'activo': True}
+                                )
+                                nuevos_tf_ids.append(tf.id)
+
+                elif abono.reservas_origen_ids:
+                    # Flujo original: IDs de reservas pendientes
                     ids = [int(x) for x in abono.reservas_origen_ids.split(',') if x]
                     for r in Reserva_.objects.filter(id__in=ids).select_related('clase', 'clase__actividad'):
                         tf, _ = TurnoFijo.objects.get_or_create(
@@ -227,16 +252,9 @@ def webhook_mercadopago(request):
                         )
                         nuevos_tf_ids.append(tf.id)
 
-                # Combinar con turnos_fijos_ids del flujo abonar_mes
-                existing_tf_ids = set()
-                if abono.turnos_fijos_ids:
-                    existing_tf_ids = {int(x) for x in abono.turnos_fijos_ids.split(',') if x}
-                all_tf_ids = existing_tf_ids | set(nuevos_tf_ids)
-
-                if all_tf_ids:
-                    abono.turnos_fijos_ids = ','.join(str(x) for x in all_tf_ids)
-
                 # Calcular monto definitivo y generar reservas
+                all_tf_ids = set(nuevos_tf_ids)
+
                 if all_tf_ids:
                     info = _calcular_info_abono_para_turnos(
                         abono.usuario, list(all_tf_ids), abono.mes, abono.anio

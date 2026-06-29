@@ -22,6 +22,21 @@
             </a>
         </div>
 
+        {% if not tiene_turnos_fijos %}
+        <div class="rounded-2xl p-5 mb-8 text-white shadow-lg" style="background: linear-gradient(to right, #7a1d3a, #E07B54);">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h3 class="font-heading text-lg font-semibold">¿Querés clases fijas con 25% de descuento?</h3>
+                    <p class="text-sm opacity-90 mt-1">Convertí tus reservas en turnos fijos semanales</p>
+                </div>
+                <a href="{% url 'hacerse_abonado' %}"
+                   class="inline-flex items-center justify-center bg-white px-6 py-2.5 rounded-full font-semibold text-sm hover:bg-gray-100 transition whitespace-nowrap" style="color: #7a1d3a;">
+                    Quiero ser abonado
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
         {% if tiene_turnos %}
             <div class="space-y-4">
                 {% for item in reservas_con_info %}
