@@ -189,7 +189,7 @@
             </div>
 
             <!-- Rango personalizado -->
-            <form method="GET" class="period-form">
+            <form method="GET" id="form-periodo" class="period-form">
                 <div class="period-field">
                     <label>Desde</label>
                     <input type="date" name="fecha_desde" value="{{ fecha_desde }}">
@@ -578,6 +578,25 @@ new Chart(document.getElementById('hbarChart'), {
                 ticks: { color: '#6b7280', font: { size: 12, weight: '500' } }
             }
         }
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.getElementById('form-periodo').addEventListener('submit', function(e) {
+    const desde = document.querySelector('input[name="fecha_desde"]').value;
+    const hasta = document.querySelector('input[name="fecha_hasta"]').value;
+    if (desde && hasta && desde > hasta) {
+        e.preventDefault();
+        Swal.fire({
+            icon: 'error',
+            title: 'Fechas inválidas',
+            text: 'La fecha "desde" no puede ser mayor a la fecha "hasta"',
+            confirmButtonColor: '#8b1c26'
+        });
     }
 });
 </script>
