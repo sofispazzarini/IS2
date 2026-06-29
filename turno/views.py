@@ -410,31 +410,31 @@ def cancelar_reserva(request, reserva_id):
             
             reserva.save()
 
-            # =========================================================================
-            # LÓGICA DE LISTA DE ESPERA MASIVA (Tu código intacto)
-            # =========================================================================
-            from django.core.mail import send_mail
-            from django.conf import settings
-            
-            usuarios_espera = ListaEspera.objects.filter(clase=clase).select_related('usuario')
-            if usuarios_espera.exists():
-                lista_emails = list(usuarios_espera.values_list('usuario__email', flat=True))
-                base_url = getattr(settings, 'NGROK_URL', 'http://127.0.0.1:8000')
-                link_sistema = f"{base_url}/"
+        # =========================================================================
+        # LÓGICA DE LISTA DE ESPERA MASIVA (fuera de transaction.atomic para no bloquear DB)
+        # =========================================================================
+        from django.core.mail import send_mail
+        from django.conf import settings
 
-                asunto = f"¡Se liberó un cupo para {clase.actividad.nombre}!"
-                mensaje = (
-                    f"Hola,\n\n"
-                    f"¡Se liberó un cupo para {clase.actividad.nombre}!\n\n"
-                    f"Fecha: {clase.fecha.strftime('%d/%m/%Y')} {clase.hora_inicio.strftime('%H:%M')}\n\n"
-                    f"Si te interesa, entrá al sistema y reservalo:\n{link_sistema}\n\n"
-                    f"¡El primero que reserve se queda con el cupo!"
-                )
-                try:
-                    send_mail(asunto, mensaje, settings.DEFAULT_FROM_EMAIL, lista_emails, fail_silently=False)
-                except Exception as e:
-                    print(f"Error al enviar correos: {e}")
-            # =========================================================================
+        usuarios_espera = ListaEspera.objects.filter(clase=clase).select_related('usuario')
+        if usuarios_espera.exists():
+            lista_emails = list(usuarios_espera.values_list('usuario__email', flat=True))
+            base_url = getattr(settings, 'NGROK_URL', 'http://127.0.0.1:8000')
+            link_sistema = f"{base_url}/"
+
+            asunto = f"¡Se liberó un cupo para {clase.actividad.nombre}!"
+            mensaje = (
+                f"Hola,\n\n"
+                f"¡Se liberó un cupo para {clase.actividad.nombre}!\n\n"
+                f"Fecha: {clase.fecha.strftime('%d/%m/%Y')} {clase.hora_inicio.strftime('%H:%M')}\n\n"
+                f"Si te interesa, entrá al sistema y reservalo:\n{link_sistema}\n\n"
+                f"¡El primero que reserve se queda con el cupo!"
+            )
+            try:
+                send_mail(asunto, mensaje, settings.DEFAULT_FROM_EMAIL, lista_emails, fail_silently=False)
+            except Exception as e:
+                print(f"Error al enviar correos: {e}")
+        # =========================================================================
 
         if era_abonada:
             return redirect('opciones_reembolso', reserva_id=reserva.id)
