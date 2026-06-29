@@ -215,6 +215,16 @@
                                 Asistencias
                                 <span class="ml-1 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-600">{{ asistencias|length }}</span>
                             </button>
+                            <button type="button" onclick="showTab('ausentes')" id="tab-ausentes"
+                                    class="tab-btn flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Ausentes
+                                <span class="ml-1 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-600 font-semibold">
+                                    {{ reservas_ausentes|length }}
+                                </span>
+                            </button>
                         </div>
                     </div>
 
@@ -433,7 +443,61 @@
                         {% endif %}
                     </div>
                 </div>
+                
+                <div id="panel-ausentes" class="tab-panel">
+                        {% if reservas_ausentes %}
+                        <div class="divide-y divide-gray-100">
+                            {% for reserva in reservas_ausentes %}
+                            <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center border border-red-100">
+                                        <span class="text-red-700 font-semibold text-sm">
+                                            {{ reserva.usuario.first_name|slice:":1" }}{{ reserva.usuario.last_name|slice:":1" }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-900">{{ reserva.usuario.get_full_name }}</p>
+                                        <p class="text-sm text-gray-500">{{ reserva.usuario.email }}</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center gap-3">
+                                    <span class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
+                                        {{ reserva.get_estado_display }}
+                                    </span>
 
+                                    {% if reserva.monto_pagado %}
+                                        {% with pago=reserva.pagos.first %}
+                                            {% if pago %}
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600" title="Método de pago original">
+                                                {{ pago.get_metodo_pago_display }}
+                                            </span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'user:client_profile' reserva.usuario.pk %}"
+                                    class="text-bordo-700 hover:text-bordo-800" title="Ver perfil">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="px-6 py-12 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-gray-500">Asistencia perfecta. No hay clientes ausentes en esta clase.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+            
                 <!-- Historial de pagos -->
                 <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-100">

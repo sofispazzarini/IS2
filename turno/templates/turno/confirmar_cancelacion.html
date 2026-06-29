@@ -47,25 +47,40 @@
             </div>
 
             <form method="POST" class="p-6">
-                {% csrf_token %}
-                
-                {% if corresponde_penalizar %}
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-xl text-left text-sm text-red-800">
-                        <strong class="font-bold">¡Atención!</strong> Al cancelar con menos de 48 horas de anticipación, se aplicará una sanción a la hora de solicitar un pack de clases.
-                    </div>
-                {% endif %}
+    {% csrf_token %}
+    
+    {% if not tiene_anticipacion_48hs %}
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4 rounded-r-xl text-left text-sm text-amber-800 space-y-1">
+            <p><strong class="font-bold">⚠️ Cancelación Tardía (Menos de 48hs)</strong></p>
+            <p>Estás cancelando esta clase con poca anticipación.</p>
+            
+            {% if cancelaciones_tardias_seguidas == 2 %}
+                <p class="text-red-700 font-bold mt-1 bg-red-50 p-2 rounded-lg border border-red-200">
+                    ¡Cuidado! Ya tenés 2 cancelaciones tardías seguidas. Si confirmás esta cancelación, llegarás a la 3ra consecutiva y se te aplicará una penalización activa.
+                </p>
+            {% else %}
+                <p class="mt-1">
+                    Tenés <span class="font-bold text-gray-900">{{ racha_restante }}</span> cancelaciones tardías permitidas antes de recibir una penalización en la compra de packs.
+                </p>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-4 rounded-r-xl text-left text-sm text-green-800">
+            <strong class="font-bold">Cancelación libre:</strong> Faltan más de 48 horas para el inicio de la clase. Devolveremos el crédito correspondiente a tu cuenta sin penalizaciones.
+        </div>
+    {% endif %}
 
-                <div class="flex gap-3">
-                    <a href="{% url 'reservas' %}"
-                       class="flex-1 text-center py-3 rounded-full font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50">
-                        Volver
-                    </a>
-                    <button type="submit"
-                            class="flex-1 py-3 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700">
-                        Cancelar reserva
-                    </button>
-                </div>
-            </form>
+    <div class="flex gap-3">
+        <a href="{% url 'reservas' %}"
+            class="flex-1 text-center py-3 rounded-full font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50">
+            Volver
+        </a>
+        <button type="submit"
+                class="flex-1 py-3 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700">
+            Confirmar Cancelación
+        </button>
+    </div>
+</form>
         </div>
     </div>
 </div>

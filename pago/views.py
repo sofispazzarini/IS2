@@ -288,6 +288,30 @@ def webhook_mercadopago(request):
 
 @login_required
 def pago_exito(request):
+    payment_id = request.GET.get('payment_id')
+
+    if payment_id:
+        payment_response = sdk.payment().get(payment_id)
+        payment_data = payment_response.get("response", {})
+
+        if payment_data.get("status") == "approved":
+            external_reference = payment_data.get("external_reference")
+            try:
+                pago = Pago.objects.get(id=external_reference)
+                if pago.estado_pago != 'aprobado':
+                    pago.payment_id = payment_id
+                    pago.estado_pago = 'aprobado'
+                    pago.save()
+
+                    reserva = pago.reserva
+                    reserva.estado = 'confirmada'
+                    reserva.save()
+
+                messages.success(request, "¡Pago exitoso! Tu reserva ha sido confirmada.")
+                return redirect('detalle_reserva', reserva_id=pago.reserva.id)
+            except Pago.DoesNotExist:
+                pass
+
     messages.success(request, "¡Pago exitoso! Tu reserva ha sido confirmada.")
     return redirect('reservas')
 
@@ -332,38 +356,39 @@ def comprar_paquete(request):
     usuario = request.user
 
     if request.method == 'POST':
-        form = CompraPaqueteForm(request.POST)
-        if form.is_valid():
-            total_clases = 0
-            subtotal = Decimal('0.00')
-            items_comprados = []
+        total_clases = 0
+        subtotal = Decimal('0.00')
+        items_comprados = []
 
-            # 1. Recorrer los campos para calcular totales y días
-            for campo, valor in form.cleaned_data.items():
-                if campo.startswith('actividad_') and valor > 0:
+        # 1. Recorrer los campos enviados para calcular los créditos solicitados
+        for campo, valor in request.POST.items():
+            if campo.startswith('actividad_'):
+                try:
+                    cantidad = int(valor)
+                except ValueError:
+                    cantidad = 0
+
+                if cantidad > 0:
                     actividad_id = campo.split('_')[1]
-                    actividad = Actividad.objects.get(id=actividad_id)
-                    cantidad = valor
+                    try:
+                        actividad = Actividad.objects.get(id=actividad_id)
+                        total_clases += cantidad
+                        subtotal += actividad.precio * cantidad
+                        
+                        # Guardamos la actividad y cuántos créditos/clases compra
+                        items_comprados.append({
+                            'actividad': actividad,
+                            'cantidad': cantidad
+                        })
+                    except Actividad.DoesNotExist:
+                        continue
 
-                    # Obtener días seleccionados para esta actividad
-                    dias_key = f'dias_{actividad_id}'
-                    dias = form.cleaned_data.get(dias_key, [])
-
-                    total_clases += cantidad
-                    subtotal += actividad.precio * cantidad
-                    items_comprados.append({
-                        'actividad': actividad,
-                        'cantidad': cantidad,
-                        'dias': dias
-                    })
-
-            if total_clases == 0:
-                messages.error(request, "Tenés que seleccionar al menos 1 clase para armar un paquete.")
-                return render(request, 'pago/comprar_paquete.html', {'form': form, 'usuario': usuario})
-
-            # 2. Aplicar Reglas de Negocio (Descuentos)
+        if total_clases == 0:
+            messages.error(request, "Tenés que seleccionar al menos 1 clase para armar un paquete.")
+            # Si da error, el flujo continúa abajo y vuelve a mostrar la página con los datos
+        else:
+            # 2. Aplicar Reglas de Negocio (Descuentos según cantidad de créditos)
             descuento_porcentaje = 0
-
             usuario_penalizado = Penalizacion.objects.filter(usuario=usuario, activa=True).exists()
 
             if usuario_penalizado:
@@ -378,7 +403,7 @@ def comprar_paquete(request):
             monto_descuento = subtotal * Decimal(descuento_porcentaje / 100)
             total_final = subtotal - monto_descuento
 
-            # 3. Guardar en sesión los datos de la compra
+            # 3. Guardar en sesión los datos limpios para la pantalla de confirmación
             request.session['paquete_compra'] = {
                 'total_final': float(total_final),
                 'subtotal': float(subtotal),
@@ -386,60 +411,20 @@ def comprar_paquete(request):
                 'porcentaje_aplicado': descuento_porcentaje,
                 'items': [{
                     'actividad_id': item['actividad'].id,
-                    'cantidad': item['cantidad'],
-                    'dias': item['dias']
+                    'cantidad': item['cantidad'] # Cantidad de créditos a acreditar
                 } for item in items_comprados]
             }
 
             return redirect('confirmar_pago_paquete')
 
-    else:
-        form = CompraPaqueteForm()
-
-    # Obtener clases futuras no canceladas
-    clases_futuras = Clase.objects.filter(
-        fecha__gte=timezone.now().date(),
-        cancelada=False,
-        actividad__isnull=False
-    ).select_related('actividad')
-
-    # Nombres de días
-    DIAS_NOMBRE = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-
-    # Construir diccionario de actividades con sus horarios disponibles
-    actividades_con_horarios = {}
-    for clase in clases_futuras:
-        act_id = clase.actividad.id
-        dia_semana = clase.fecha.weekday()  # 0=Lunes, 6=Domingo
-        hora = clase.hora_inicio.strftime('%H:%M')
-
-        if act_id not in actividades_con_horarios:
-            actividades_con_horarios[act_id] = {
-                'actividad': clase.actividad,
-                'horarios': set()
-            }
-        # Guardar tupla (día, hora) como string único para el value del checkbox
-        actividades_con_horarios[act_id]['horarios'].add((dia_semana, hora))
-
-    # Convertir a lista con horarios formateados
-    actividades_disponibles = []
-    for data in actividades_con_horarios.values():
-        horarios_lista = []
-        for dia, hora in sorted(data['horarios']):
-            horarios_lista.append({
-                'value': f"{dia}_{hora}",
-                'label': f"{DIAS_NOMBRE[dia]} {hora}"
-            })
-        actividades_disponibles.append({
-            'actividad': data['actividad'],
-            'horarios': horarios_lista
-        })
-
-    # Ordenar por nombre de actividad
-    actividades_disponibles.sort(key=lambda x: x['actividad'].nombre)
+    # --- LÓGICA GET: Mucho más simple sin procesamiento de horarios ---
+    # Traemos las actividades de la base de datos (podés filtrarlas si tenés un campo 'activa=True')
+    actividades = Actividad.objects.all().order_by('nombre')
+    
+    # Estructuramos una lista simple para que el template mantenga la compatibilidad
+    actividades_disponibles = [{'actividad': act} for act in actividades]
 
     return render(request, 'pago/comprar_paquete.html', {
-        'form': form,
         'usuario': usuario,
         'actividades_disponibles': actividades_disponibles
     })
@@ -490,41 +475,39 @@ def confirmar_pago_paquete(request):
 
 @login_required
 def paquete_exito(request):
-    """Callback de éxito de MercadoPago para paquetes."""
-    from datetime import time
-
+    """Callback de éxito de MercadoPago para paquetes puros de créditos."""
     datos_paquete = request.session.get('paquete_compra')
     if not datos_paquete:
-        messages.info(request, "El paquete ya fue procesado.")
+        messages.info(request, "El paquete ya fue procesado o la sesión expiró.")
         return redirect('reservas')
 
     usuario = request.user
-    turnos_creados = 0
+    total_creditos_comprados = 0
 
+    # 1. Recorrer los ítems comprados y acreditar la cantidad exacta de clases
     for item in datos_paquete['items']:
-        actividad = Actividad.objects.get(id=item['actividad_id'])
-        usuario.creditos += (actividad.precio * item['cantidad'])
+        try:
+            actividad = Actividad.objects.get(id=item['actividad_id'])
+            cantidad_creditos = item['cantidad'] # Cantidad de clases/créditos comprados
+            
+            # 🚀 CORRECCIÓN CLAVE: Sumamos la cantidad de clases físicas, no el precio.
+            # (Si tu modelo tiene una lógica de créditos general, se suma directo. Si 
+            # tus créditos están separados por tipo de actividad, adaptá esta línea).
+            usuario.creditos += cantidad_creditos
+            total_creditos_comprados += cantidad_creditos
+        except Actividad.DoesNotExist:
+            continue
 
-        # Crear TurnoFijo si hay días seleccionados
-        dias = item.get('dias', [])
-        for dia in dias:
-            TurnoFijo.objects.get_or_create(
-                usuario=usuario,
-                actividad=actividad,
-                dia_semana=int(dia),
-                hora_inicio=time(10, 0),
-                defaults={'activo': True}
-            )
-            turnos_creados += 1
-
+    # 2. Guardar los cambios del usuario en la base de datos
     usuario.save()
 
+    # 3. Limpiar la sesión para evitar duplicaciones si el usuario refresca la página
     del request.session['paquete_compra']
 
-    if turnos_creados > 0:
-        messages.success(request, f"¡Paquete comprado con éxito! Los créditos fueron acreditados y se crearon {turnos_creados} turno(s) fijo(s).")
-    else:
-        messages.success(request, "¡Paquete comprado con éxito! Los créditos fueron acreditados en tu cuenta.")
+    messages.success(
+        request, 
+        f"¡Paquete comprado con éxito! Se acreditaron {total_creditos_comprados} créditos en tu cuenta."
+    )
     return redirect('reservas')
 
 

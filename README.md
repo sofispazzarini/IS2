@@ -155,6 +155,24 @@ python manage.py seed
 - `cliente@demo.com` tiene turno fijo los Lunes 10:00 (Yoga)
 - Abono del mes actual aprobado
 
+### Seed para probar liberación de cupos
+
+Para probar el flujo de notificación cuando se libera un cupo:
+
+```bash
+python manage.py seed_cupo
+```
+
+Esto crea:
+- `cancela@demo.com` / `demo1234` - Usuario con reserva confirmada
+- `sofiaspazzarini@gmail.com` / `demo1234` - Usuario en lista de espera
+- Una clase para mañana con cupo=1 (llena)
+
+**Para probar:**
+1. Logueate como `cancela@demo.com`
+2. Cancelá la reserva
+3. El usuario en lista de espera recibirá un email avisando que se liberó un cupo
+
 ---
 
 ## Crear usuarios administradores
