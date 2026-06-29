@@ -24,7 +24,7 @@
                 Fecha: <strong>{{ reserva.clase.fecha }}</strong> a las <strong>{{ reserva.clase.hora_inicio }}</strong>
             </p>
 
-            {% if qr_image %}
+            {% if qr_image and reserva.estado == 'confirmada' %}
             <div class="bg-gray-50 rounded-xl p-6 mb-6">
                 <p class="text-sm text-gray-600 mb-3">Tu código QR para registrar asistencia:</p>
                 <img src="{{ qr_image }}" alt="Código QR" class="mx-auto w-48 h-48">
@@ -51,7 +51,7 @@
                     Pagar con créditos
                 </a>
 
-                <a href="{% url 'lista_clases' %}"
+                <a href="{% url 'reservas' %}"
                    class="block w-full py-3 rounded-full font-semibold text-center border-2 border-gray-300 text-gray-700 hover:bg-gray-100 transition">
                     Pagar en la sede
                 </a>

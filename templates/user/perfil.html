@@ -52,13 +52,51 @@
                             {{ perfil_form.last_name }}
                         </div>
 
-                        <div>
-                            <label for="id_telefono" class="block text-sm font-medium text-gray-700">
-                                Teléfono
-                            </label>
-                            {{ perfil_form.telefono }}
-                        </div>
+                                                <div>
+                                                        <label for="id_telefono" class="block text-sm font-medium text-gray-700">
+                                                                Teléfono
+                                                        </label>
+                                                        {{ perfil_form.telefono }}
+                                                </div>
+                                                <script>
+                                                // Bloquea letras en el input de teléfono (por si el navegador no lo hace)
+                                                document.addEventListener('DOMContentLoaded', function() {
+                                                    var telInput = document.getElementById('id_telefono');
+                                                    if (telInput) {
+                                                        telInput.addEventListener('input', function(e) {
+                                                            this.value = this.value.replace(/[^0-9]/g, '');
+                                                        });
+                                                    }
+                                                });
+                                                </script>
                     </div>
+
+                    <script>
+                        // Validación en tiempo real para nombre y apellido (solo letras)
+                        const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]*$/;
+                        
+                        document.getElementById('id_first_name').addEventListener('keypress', function(e) {
+                            const char = String.fromCharCode(e.which);
+                            if (!soloLetrasRegex.test(this.value + char)) {
+                                e.preventDefault();
+                            }
+                        });
+
+                        document.getElementById('id_last_name').addEventListener('keypress', function(e) {
+                            const char = String.fromCharCode(e.which);
+                            if (!soloLetrasRegex.test(this.value + char)) {
+                                e.preventDefault();
+                            }
+                        });
+
+                        // Validación en tiempo real para teléfono (solo números)
+                        document.getElementById('id_telefono').addEventListener('keypress', function(e) {
+                            const char = String.fromCharCode(e.which);
+                            if (!/^\d$/.test(char)) {
+                                e.preventDefault();
+                            }
+                        });
+                    </script>
 
                     <div class="mt-6 flex gap-3">
                         <button
@@ -197,6 +235,49 @@
                 </div>
             </div>
         </div>
+        {% if user.rol == 'cliente' %}
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100 p-6">
+            <h3 class="font-heading text-xl font-semibold text-gray-900 mb-2">Abono mensual</h3>
+
+            {% if tiene_turnos_fijos %}
+                {% if abono_pagado_mes %}
+                    <p class="text-green-700 font-semibold mb-4">Abono de este mes abonado.</p>
+                {% elif es_ventana_pago %}
+                    <p class="text-sm text-gray-500 mb-4">Seleccioná los turnos fijos que querés pagar este mes.</p>
+                    <a href="{% url 'abonar_mes' %}"
+                       class="block w-full text-center btn-bordo py-3 rounded-full font-semibold mb-3">
+                        Abonar mis turnos fijos
+                    </a>
+                {% else %}
+                    <p class="text-gray-500 text-sm mb-3">El período de pago del abono (del 1 al 10) ya cerró este mes.</p>
+                {% endif %}
+            {% endif %}
+
+            <div class="{% if tiene_turnos_fijos %}mt-4 pt-4 border-t border-gray-100{% endif %}">
+                {% if es_ventana_pago %}
+                    {% if tiene_reservas_para_nuevo_tf %}
+                        <p class="text-sm text-gray-500 mb-3">Convertí una reserva pendiente en turno fijo.</p>
+                        <a href="{% url 'abonar_nuevo_turno_fijo' %}"
+                           class="block w-full text-center btn-bordo py-3 rounded-full font-semibold">
+                            Abonar nuevo turno fijo
+                        </a>
+                    {% else %}
+                        <p class="text-xs text-gray-400 mb-2">Para abonar un turno fijo, debés tener al menos una reserva pendiente para este mes</p>
+                        <button disabled
+                                class="block w-full text-center py-3 rounded-full font-semibold bg-gray-200 text-gray-400 cursor-not-allowed">
+                            Abonar nuevo turno fijo
+                        </button>
+                    {% endif %}
+                {% else %}
+                    <p class="text-xs text-gray-400 mb-2">Para abonar un nuevo turno fijo, debés hacerlo entre el 1 y el 10 de cada mes</p>
+                    <button disabled
+                            class="block w-full text-center py-3 rounded-full font-semibold bg-gray-200 text-gray-400 cursor-not-allowed">
+                        Abonar nuevo turno fijo
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 

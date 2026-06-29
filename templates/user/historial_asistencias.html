@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de asistencias - SIRCA{% endblock %}
+
+{% block content %}
+<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28" style="background: #fafaf9;">
+    <div class="max-w-3xl mx-auto">
+
+        <header class="mb-8">
+            <p class="text-xs font-semibold tracking-widest uppercase text-bordo-600 mb-2">
+                Historial de asistencias
+            </p>
+            <h1 class="font-heading text-3xl font-bold text-gray-900">
+                {{ client.get_full_name }}
+            </h1>
+        </header>
+
+        <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-lg divide-y divide-gray-100">
+            {% for reserva in asistencias %}
+                <div class="p-5 flex justify-between items-center">
+                    <div>
+                        <p class="font-semibold text-gray-900">{{ reserva.clase.actividad.nombre }}</p>
+                        <p class="text-sm text-gray-500">
+                            {{ reserva.clase.fecha|date:"d/m/Y" }} - {{ reserva.clase.hora_inicio|time:"H:i" }} hs
+                            con {{ reserva.clase.profesor }}
+                        </p>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="p-8 text-center text-gray-500">
+                    Este cliente todavía no registró asistencias.
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-6">
+            <a href="{% url 'user:client_profile' client.pk %}" class="btn-action btn-action-ghost">
+                Volver al perfil
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

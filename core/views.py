@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from resena.models import Resena
 from resena.forms import ResenaForm
+from .models import ConfiguracionSistema
 
 
 def home(request):
@@ -24,3 +25,11 @@ def home(request):
         'core/home.html',
         context
     )
+
+
+def mantenimiento(request):
+    """Página de mantenimiento del sistema."""
+    configuracion = ConfiguracionSistema.obtener()
+    return render(request, 'core/mantenimiento.html', {
+        'modo_mantenimiento': configuracion.modo_mantenimiento,
+    })

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m py_compile /home/sofia/Desktop/IS2/turno/views.py)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/django-admin version *)"
+    ]
+  }
+}

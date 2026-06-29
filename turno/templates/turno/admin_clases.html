@@ -33,6 +33,12 @@
                    class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
                     Profesores
                 </a>
+                {% if user.rol == 'dueno' %}
+                <a href="{% url 'user:admin_secretarios' %}"
+                   class="flex-1 text-center px-6 py-4 text-sm font-medium text-gray-600 hover:text-bordo-700 hover:bg-gray-50 transition border-b-2 border-transparent">
+                    Secretarios
+                </a>
+                {% endif %}
             </div>
         </div>
 
@@ -97,8 +103,12 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Salón</label>
-                    <input type="text" name="salon" value="{{ filtro_salon }}" placeholder="Buscar salón..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                    <select name="salon" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
+                        <option value="">Todos</option>
+                        {% for salon in salones %}
+                            <option value="{{ salon.id }}" {% if filtro_salon == salon.id|stringformat:"i" %}selected{% endif %}>{{ salon.nombre }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="md:col-span-3 flex gap-2">
                     <button type="submit" class="btn-bordo px-4 py-2 rounded-xl text-sm font-semibold">
@@ -136,7 +146,7 @@
                                 <td class="px-6 py-4 text-gray-600">{{ clase.fecha|date:"d/m/Y" }}</td>
                                 <td class="px-6 py-4 text-gray-600">{{ clase.hora_inicio|time:"H:i" }} - {{ clase.hora_fin|time:"H:i" }}</td>
                                 <td class="px-6 py-4 text-gray-600">{{ clase.profesor }}</td>
-                                <td class="px-6 py-4 text-gray-600">{{ clase.salon }}</td>
+                                <td class="px-6 py-4 text-gray-600">{{ clase.salon.nombre }}</td>
                                 <td class="px-6 py-4 text-gray-600">{{ clase.cupo_maximo }}</td>
                                 
                                 <td class="px-6 py-4">

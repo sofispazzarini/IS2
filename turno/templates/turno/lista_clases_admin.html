@@ -38,7 +38,7 @@
                             <span class="block font-medium">{{ clase.fecha }}</span>
                             <span class="text-xs text-gray-400">{{ clase.hora_inicio }} - {{ clase.hora_fin }}</span>
                         </td>
-                        <td class="px-6 py-4 text-gray-600">{{ clase.salon }}</td>
+                        <td class="px-6 py-4 text-gray-600">{{ clase.salon.nombre }}</td>
                         <td class="px-6 py-4">
                             {% if clase.cancelada %}
                                 <span class="px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold uppercase">Cancelada</span>

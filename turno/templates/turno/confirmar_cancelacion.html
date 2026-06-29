@@ -48,6 +48,13 @@
 
             <form method="POST" class="p-6">
                 {% csrf_token %}
+                
+                {% if corresponde_penalizar %}
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-xl text-left text-sm text-red-800">
+                        <strong class="font-bold">¡Atención!</strong> Al cancelar con menos de 48 horas de anticipación, se aplicará una sanción a la hora de solicitar un pack de clases.
+                    </div>
+                {% endif %}
+
                 <div class="flex gap-3">
                     <a href="{% url 'reservas' %}"
                        class="flex-1 text-center py-3 rounded-full font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50">

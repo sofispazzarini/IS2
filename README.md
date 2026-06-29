@@ -35,6 +35,7 @@ python3 -m venv .venv
 
 ```bash
 source .venv/bin/activate
+source .venv/Scripts/activate
 ```
 
 3. Instalar dependencias:
@@ -109,9 +110,56 @@ python manage.py test
 python manage.py makemigrations --check
 ```
 
+## Cargar datos de prueba (Seed)
+
+Para cargar datos de prueba completos para demo y testing:
+
+```bash
+python manage.py seed
+```
+
+### Usuarios de prueba
+
+| Email | Password | Rol | Descripción |
+|-------|----------|-----|-------------|
+| `cliente@demo.com` | `demo1234` | Cliente | Cliente abonado con $15000 créditos, turno fijo activo |
+| `espera@demo.com` | `demo1234` | Cliente | Cliente en lista de espera |
+| `secretario@demo.com` | `demo1234` | Secretario | Control de inscriptos y asistencia |
+| `dueno@demo.com` | `demo1234` | Dueño | Estadísticas y administración completa |
+
+### Datos cargados por el seed
+
+**Actividades:**
+- Yoga ($5000, 60 min)
+- Funcional ($4500, 45 min)
+
+**Profesores:**
+- Laura García (Yoga)
+- Martín Pérez (Funcional)
+
+**Clases pre-cargadas:**
+
+| Clase | Actividad | Cuándo | Estado | Para testear |
+|-------|-----------|--------|--------|--------------|
+| Clase A | Yoga | Mañana 10:00 | Cupo disponible | Pedir turno → confirmar → pagar |
+| Clase B | Funcional | Mañana 18:00 | LLENA (5/5) | Lista de espera |
+| Clase C | Yoga | Pasado mañana 09:00 | Con reserva | Cancelar turno |
+| Clase D | Funcional | En 3 días 17:00 | Con reserva | Registrar asistencia (QR/UUID) |
+
+**Turnos pre-cargados:**
+- `cliente@demo.com` tiene turno confirmado en Clase C (para cancelar en demo)
+- `cliente@demo.com` tiene turno en Clase D (para registrar asistencia)
+- `espera@demo.com` está en lista de espera de Clase B
+
+**Abono activo:**
+- `cliente@demo.com` tiene turno fijo los Lunes 10:00 (Yoga)
+- Abono del mes actual aprobado
+
+---
+
 ## Crear usuarios administradores
 
-Para probar funcionalidades de secretario o dueño, usar el comando `crearadmin`:
+Para crear usuarios manualmente (sin seed):
 
 ```bash
 # Crear secretario
