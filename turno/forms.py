@@ -28,6 +28,7 @@ class ClaseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['actividad'].queryset = Actividad.objects.filter(activa=True)
         self.fields['profesor'].queryset = Profesor.objects.filter(activo=True)
+        self.fields['salon'].label_from_instance = lambda obj: f"{obj.nombre} (Capacidad 50 cupos)"
 
         for field in self.fields.values():
             field.widget.attrs.setdefault('class', 'form-input')
@@ -87,7 +88,7 @@ class ClaseForm(forms.ModelForm):
 
         if conficto_salon:
             errores_globales.append(
-                f"El {salon.nombre} no está disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
+                f"Salón no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
             )
 
         # 2. Validación de Profesor

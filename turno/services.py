@@ -49,7 +49,7 @@ def validar_qr(qr_uuid, registrado_por=None):
 
             # QR vencido (fecha de clase pasada)
             if clase.fecha < fecha_actual:
-                return ResultadoValidacionQR(False, "Error: QR vencido (la clase ya paso).")
+                return ResultadoValidacionQR(False, "Este QR perdió su tiempo de validez.")
 
             # QR no habilitado (fecha futura)
             if clase.fecha > fecha_actual:
@@ -75,7 +75,7 @@ def validar_qr(qr_uuid, registrado_por=None):
             if ahora_dt > hora_fin_clase:
                 return ResultadoValidacionQR(
                     False,
-                    "Error: QR vencido (la clase ya termino)."
+                    "Este QR perdió su tiempo de validez."
                 )
 
             # Registro exitoso
@@ -103,7 +103,13 @@ def registrar_asistencia_manual(reserva_id):
     reserva = Reserva.objects.select_related('clase').get(id=reserva_id)
 
     # REGLA DE NEGOCIO: No registrar asistencia a clases que ya terminaron
-    if reserva.clase.ya_paso:
+    ahora_local = timezone.localtime(timezone.now())
+    clase = reserva.clase
+    fin_ventana = timezone.make_aware(
+        datetime.combine(clase.fecha, clase.hora_inicio) + timedelta(hours=1, minutes=30),
+        ahora_local.tzinfo
+    )
+    if ahora_local > fin_ventana:
         raise ValidationError("No se puede registrar asistencia a una clase que ya finalizo.")
 
     # REGLA DE NEGOCIO: El turno debe estar registrado como Abonado (Confirmada)

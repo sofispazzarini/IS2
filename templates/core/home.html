@@ -1,175 +1,402 @@
 {% extends 'base.html' %}
 
 {% block title %}
-    Inicio | SIRCA
+    Inicio | Endereza2
 {% endblock %}
 
 {% block content %}
 
-<section id="inicio"
-         class="hero-pattern pt-28 pb-20 md:pt-36 md:pb-28 px-6">
-
-    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
-
-        <div class="flex-1 fade-up">
-
-            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-4">
+<!-- HERO -->
+<section id="inicio" class="hero-pattern pt-28 pb-20 md:pt-36 md:pb-28 px-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="fade-up max-w-2xl">
+            <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-4 flex items-center gap-2">
+                <span class="w-7 h-0.5 bg-coral"></span>
                 Tu bienestar, nuestra prioridad
             </p>
 
             <h1 class="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-
-                Recuperá tu
-                <span class="text-bordo-700">
-                    movimiento
-                </span>
-
+                Recuperá tu <em class="text-bordo-700 italic">movimiento</em>
             </h1>
 
             <p class="text-lg text-gray-500 leading-relaxed mb-8 max-w-lg">
-
-                Tratamientos personalizados con profesionales especializados.
-
+                Tratamientos de rehabilitación personalizados, con profesionales que te acompañan en cada etapa de tu recuperación.
             </p>
 
-            <div class="flex flex-wrap gap-4">
-
-                <a href="{% url 'lista_clases' %}"
-                   class="btn-bordo px-8 py-3 rounded-full font-semibold text-base">
-
+            <div class="flex flex-wrap gap-4 items-center">
+                <a href="{% url 'lista_clases' %}" class="btn-bordo px-8 py-3 rounded-full font-semibold text-base inline-flex items-center gap-2 shadow-lg hover:shadow-xl transition-all">
                     Reservá tu turno
-
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
                 </a>
-
+                <a href="#servicios" class="text-bordo-700 font-semibold inline-flex items-center gap-2 hover:gap-3 transition-all">
+                    Ver servicios
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
             </div>
-
         </div>
-
     </div>
-
 </section>
 
-<!-- SECCIÓN DE RESEÑAS -->
-<section id="resenas" class="py-16 px-6 bg-gray-50">
-    
-    <div class="max-w-6xl mx-auto">
-        
-        <h2 class="font-heading text-4xl font-bold text-gray-900 mb-2 text-center">
-            Lo que dicen nuestros usuarios
-        </h2>
-        
-        <p class="text-center text-gray-600 mb-12">
-            Opiniones reales de personas que han visitado nuestro centro
-        </p>
-        
-        <!-- FORMULARIO PARA CREAR RESEÑA (solo si está logueado) -->
-        {% if user.is_authenticated and form %}
-        
-        <div class="mb-12 bg-white p-8 rounded-lg shadow-sm border border-bordo-100">
-            
-            <h3 class="text-2xl font-bold text-gray-900 mb-6">
-                Compartí tu experiencia
-            </h3>
-            
-            <form method="POST" action="{% url 'resena:crear' %}" class="space-y-4">
-                {% csrf_token %}
-                
-                <!-- Campo de comentario -->
-                <div>
-                    {{ form.comentario }}
-                </div>
-                
-                <!-- Mostrar errores del formulario -->
-                {% if form.non_field_errors %}
-                    <div class="text-red-600 text-sm">
-                        {% for error in form.non_field_errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                
-                <!-- Botón enviar -->
-                <div class="flex gap-4">
-                    <button type="submit"
-                            class="btn-bordo px-6 py-2 rounded-lg font-semibold">
-                        Enviar reseña
-                    </button>
-                </div>
-            </form>
-            
+<!-- STATS -->
+<section class="bg-bordo-500 py-10 px-6">
+    <div class="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
+        <div>
+            <p class="font-heading text-4xl font-bold">+8<span class="text-coral-soft">años</span></p>
+            <p class="text-sm text-white/70 mt-1">de experiencia</p>
         </div>
-        
-        {% endif %}
-        
-        <!-- HISTORIAL DE RESEÑAS -->
-        {% if resenas %}
-        
-        <div class="grid gap-6">
-            
-            {% for resena in resenas %}
-            
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
-                
-                <div class="flex items-start justify-between mb-3">
-                    
-                    <div>
-                        <p class="font-semibold text-gray-900">
-                            {{ resena.usuario.first_name|default:resena.usuario.username }}
-                        </p>
-                        <p class="text-sm text-gray-500">
-                            {{ resena.fecha|date:"d/m/Y H:i" }}
-                        </p>
-                    </div>
-                    
+        <div>
+            <p class="font-heading text-4xl font-bold">+2<span class="text-coral-soft">mil</span></p>
+            <p class="text-sm text-white/70 mt-1">pacientes tratados</p>
+        </div>
+        <div>
+            <p class="font-heading text-4xl font-bold">6</p>
+            <p class="text-sm text-white/70 mt-1">especialidades</p>
+        </div>
+        <div>
+            <p class="font-heading text-4xl font-bold">98<span class="text-coral-soft">%</span></p>
+            <p class="text-sm text-white/70 mt-1">recomiendan el centro</p>
+        </div>
+    </div>
+</section>
+
+<!-- SERVICIOS -->
+<section id="servicios" class="py-20 px-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center max-w-xl mx-auto mb-14">
+            <p class="text-coral font-semibold tracking-wide uppercase text-sm mb-3">Lo que hacemos</p>
+            <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900 mb-4">Nuestros servicios</h2>
+            <p class="text-gray-500">Cada tratamiento se adapta a vos. Estas son las áreas en las que te podemos acompañar.</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- Kinesiología -->
+            <div class="service-card bg-white border border-gray-100 rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-bordo-500 to-coral scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300"></div>
+                <div class="w-12 h-12 rounded-xl bg-gray-50 mb-5 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-bordo-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M12 2v6m0 0l3-3m-3 3L9 5M6 12H2m20 0h-4M12 16v6m0-6l3 3m-3-3l-3 3"/>
+                    </svg>
                 </div>
-                
-                <p class="text-gray-700">
-                    {{ resena.comentario }}
-                </p>
-                
-                <!-- Botones del autor: modificar y eliminar -->
+                <h3 class="font-heading text-xl font-semibold text-gray-900 mb-2">Kinesiología</h3>
+                <p class="text-sm text-gray-500">Recuperación funcional tras lesiones, cirugías o dolores crónicos con planes a medida.</p>
+            </div>
+
+            <!-- Fisioterapia -->
+            <div class="service-card bg-white border border-gray-100 rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-bordo-500 to-coral scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300"></div>
+                <div class="w-12 h-12 rounded-xl bg-gray-50 mb-5 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-bordo-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/>
+                    </svg>
+                </div>
+                <h3 class="font-heading text-xl font-semibold text-gray-900 mb-2">Fisioterapia</h3>
+                <p class="text-sm text-gray-500">Tratamiento del dolor y la inflamación con tecnología y terapias manuales especializadas.</p>
+            </div>
+
+            <!-- Pilates -->
+            <div class="service-card bg-white border border-gray-100 rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-bordo-500 to-coral scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300"></div>
+                <div class="w-12 h-12 rounded-xl bg-gray-50 mb-5 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-bordo-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="12" cy="5" r="2.5"/>
+                        <path d="M12 7.5v6m0 0l-4 6m4-6l4 6M8 10l4 1 4-1"/>
+                    </svg>
+                </div>
+                <h3 class="font-heading text-xl font-semibold text-gray-900 mb-2">Pilates terapéutico</h3>
+                <p class="text-sm text-gray-500">Fortalecimiento y movilidad controlada para prevenir lesiones y mejorar la postura.</p>
+            </div>
+
+            <!-- Rehabilitación deportiva -->
+            <div class="service-card bg-white border border-gray-100 rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-bordo-500 to-coral scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300"></div>
+                <div class="w-12 h-12 rounded-xl bg-gray-50 mb-5 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-bordo-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M4 13h3l2 5 4-12 2 7h5"/>
+                    </svg>
+                </div>
+                <h3 class="font-heading text-xl font-semibold text-gray-900 mb-2">Rehabilitación deportiva</h3>
+                <p class="text-sm text-gray-500">Volvé a tu deporte de forma segura con un programa orientado a tu disciplina.</p>
+            </div>
+
+            <!-- Reeducación postural -->
+            <div class="service-card bg-white border border-gray-100 rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-bordo-500 to-coral scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300"></div>
+                <div class="w-12 h-12 rounded-xl bg-gray-50 mb-5 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-bordo-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M12 2a7 7 0 00-7 7c0 3 2 5 2 8h10c0-3 2-5 2-8a7 7 0 00-7-7z"/>
+                        <path d="M9 21h6"/>
+                    </svg>
+                </div>
+                <h3 class="font-heading text-xl font-semibold text-gray-900 mb-2">Reeducación postural</h3>
+                <p class="text-sm text-gray-500">Corregí desbalances y dolores de espalda con un abordaje global del cuerpo.</p>
+            </div>
+
+            <!-- Electroterapia -->
+            <div class="service-card bg-white border border-gray-100 rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-bordo-500 to-coral scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300"></div>
+                <div class="w-12 h-12 rounded-xl bg-gray-50 mb-5 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-bordo-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M3 12h4l3-9 4 18 3-9h4"/>
+                    </svg>
+                </div>
+                <h3 class="font-heading text-xl font-semibold text-gray-900 mb-2">Electroterapia</h3>
+                <p class="text-sm text-gray-500">Estimulación para aliviar el dolor y acelerar la recuperación muscular.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PROCESO -->
+<section id="proceso" class="py-20 px-6 bg-gray-50">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center max-w-xl mx-auto mb-14">
+            <p class="text-coral font-semibold tracking-wide uppercase text-sm mb-3">Simple y claro</p>
+            <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900 mb-4">Cómo funciona</h2>
+            <p class="text-gray-500">Cuatro pasos para empezar a sentirte mejor.</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="relative step-arrow">
+                <p class="font-heading text-5xl font-bold text-coral-soft leading-none mb-3">01</p>
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">Reservá online</h4>
+                <p class="text-sm text-gray-500">Elegí día y horario desde la web, en menos de un minuto.</p>
+            </div>
+            <div class="relative step-arrow">
+                <p class="font-heading text-5xl font-bold text-coral-soft leading-none mb-3">02</p>
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">Evaluación</h4>
+                <p class="text-sm text-gray-500">Un profesional analiza tu caso y arma un diagnóstico.</p>
+            </div>
+            <div class="relative step-arrow">
+                <p class="font-heading text-5xl font-bold text-coral-soft leading-none mb-3">03</p>
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">Tu tratamiento</h4>
+                <p class="text-sm text-gray-500">Seguís un plan personalizado, sesión a sesión.</p>
+            </div>
+            <div class="relative">
+                <p class="font-heading text-5xl font-bold text-coral-soft leading-none mb-3">04</p>
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">Recuperación</h4>
+                <p class="text-sm text-gray-500">Volvés a moverte con libertad y sin dolor.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- OPINIONES -->
+<section id="opiniones" class="py-20 px-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center max-w-xl mx-auto mb-14">
+            <p class="text-coral font-semibold tracking-wide uppercase text-sm mb-3">Testimonios</p>
+            <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900 mb-4">Lo que dicen nuestros usuarios</h2>
+            <p class="text-gray-500">Opiniones reales de personas que pasaron por el centro.</p>
+        </div>
+
+        <!-- HISTORIAL DE RESEÑAS DINÁMICAS -->
+        {% if resenas %}
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
+            {% for resena in resenas %}
+            <div class="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-lg transition">
+                <div class="text-coral text-lg tracking-wider mb-4">★★★★★</div>
+                <p class="font-heading text-gray-700 italic mb-5">"{{ resena.comentario }}"</p>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-bordo-500 text-white flex items-center justify-center font-semibold text-sm">
+                        {{ resena.usuario.first_name|slice:":1"|upper }}{{ resena.usuario.last_name|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">{{ resena.usuario.first_name|default:resena.usuario.username }}</p>
+                        <p class="text-xs text-gray-400">{{ resena.fecha|date:"d/m/Y" }}</p>
+                    </div>
+                </div>
+
                 {% if user.is_authenticated and user == resena.usuario %}
-                <div class="mt-4 flex justify-end gap-4">
+                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-4">
                     <button type="button"
                             onclick="openEditModal({{ resena.id }}, &quot;{{ resena.comentario|escapejs }}&quot;)"
-                            class="text-bordo-700 hover:text-bordo-900 text-sm font-medium underline">
+                            class="text-bordo-700 hover:text-bordo-900 text-sm font-medium">
                         Modificar
                     </button>
                     <button type="button"
                             onclick="openDeleteModal({{ resena.id }})"
-                            class="text-red-600 hover:text-red-800 text-sm font-medium underline">
+                            class="text-red-600 hover:text-red-800 text-sm font-medium">
                         Borrar
                     </button>
                 </div>
                 {% endif %}
-                
             </div>
-            
             {% endfor %}
-            
         </div>
-        
         {% else %}
-        
-        <div class="text-center py-12 bg-white rounded-lg">
-            <p class="text-gray-600 text-lg">
+        <div class="text-center py-12 bg-white rounded-2xl border border-gray-100 mb-12">
+            <p class="text-gray-500 text-lg">
                 {% if user.is_authenticated %}
                     Sé el primero en compartir tu experiencia
                 {% else %}
-                    Inicia sesión para ver las reseñas
+                    Todavia no hay reseñas. Inicia sesion para ser el primero en dejar una.
                 {% endif %}
             </p>
         </div>
-        
         {% endif %}
-        
+
+        <!-- FORMULARIO PARA CREAR RESEÑA -->
+        {% if user.is_authenticated and form %}
+        <div class="bg-white border border-gray-100 rounded-2xl p-8 max-w-2xl mx-auto">
+            <h3 class="font-heading text-2xl font-bold text-gray-900 mb-6">Compartí tu experiencia</h3>
+
+            <form method="POST" action="{% url 'resena:crear' %}" class="space-y-4">
+                {% csrf_token %}
+
+                <div>
+                    {{ form.comentario }}
+                </div>
+
+                {% if form.non_field_errors %}
+                <div class="text-red-600 text-sm">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn-bordo w-full py-3 rounded-xl font-semibold text-center">
+                    Enviar reseña
+                </button>
+            </form>
+        </div>
+        {% endif %}
     </div>
-    
 </section>
+
+<!-- CONTACTO -->
+<section id="contacto" class="py-20 px-6 bg-gray-900 text-white">
+    <div class="max-w-6xl mx-auto">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <!-- Info -->
+            <div>
+                <p class="text-coral font-semibold tracking-wide uppercase text-sm mb-3">Estamos para ayudarte</p>
+                <h2 class="font-heading text-3xl md:text-4xl font-bold mb-4">Contactanos</h2>
+                <p class="text-gray-400 mb-8 max-w-md">¿Tenés dudas o querés más información? Escribinos y te respondemos a la brevedad.</p>
+
+                <div class="space-y-5">
+                    <div class="flex items-center gap-4">
+                        <div class="w-11 h-11 rounded-xl bg-coral/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-coral-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Dirección</p>
+                            <p class="text-sm font-medium">Av. Siempre Viva 1234, La Plata</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="w-11 h-11 rounded-xl bg-coral/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-coral-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Teléfono</p>
+                            <p class="text-sm font-medium">+54 221 555-1234</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="w-11 h-11 rounded-xl bg-coral/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-coral-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                <path d="M22 6l-10 7L2 6"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Email</p>
+                            <p class="text-sm font-medium">hola@endereza2.com.ar</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="w-11 h-11 rounded-xl bg-coral/20 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-coral-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Horario</p>
+                            <p class="text-sm font-medium">Lun a Vie · 8 a 20 hs</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-8">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">Nombre</label>
+                        <input type="text" placeholder="Tu nombre completo" class="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-coral focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">Email</label>
+                        <input type="email" placeholder="tu@email.com" class="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-coral focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">Mensaje</label>
+                        <textarea rows="4" placeholder="¿En qué te podemos ayudar?" class="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-coral focus:outline-none resize-none"></textarea>
+                    </div>
+                    <button class="btn-bordo w-full py-3 rounded-xl font-semibold">Enviar mensaje</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER EXTENDIDO -->
+<footer class="bg-gray-950 py-12 px-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start gap-8 pb-8 border-b border-white/10">
+            <!-- Brand -->
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                        <span class="font-heading font-bold text-white">E2</span>
+                    </div>
+                    <span class="font-heading text-xl font-bold text-white">Endereza2</span>
+                </div>
+                <p class="text-sm text-gray-500 max-w-xs">Tu centro de rehabilitación en La Plata. Movimiento que te transforma.</p>
+            </div>
+
+            <!-- Links -->
+            <div class="flex gap-12">
+                <div>
+                    <h5 class="text-xs font-semibold text-white uppercase tracking-wide mb-4">Navegación</h5>
+                    <div class="space-y-2">
+                        <a href="#inicio" class="block text-sm text-gray-500 hover:text-coral-soft transition">Inicio</a>
+                        <a href="#servicios" class="block text-sm text-gray-500 hover:text-coral-soft transition">Servicios</a>
+                        <a href="#proceso" class="block text-sm text-gray-500 hover:text-coral-soft transition">Cómo funciona</a>
+                        <a href="#contacto" class="block text-sm text-gray-500 hover:text-coral-soft transition">Contacto</a>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="text-xs font-semibold text-white uppercase tracking-wide mb-4">Mi cuenta</h5>
+                    <div class="space-y-2">
+                        <a href="{% url 'reservas' %}" class="block text-sm text-gray-500 hover:text-coral-soft transition">Mis turnos</a>
+                        <a href="{% url 'comprar_paquete' %}" class="block text-sm text-gray-500 hover:text-coral-soft transition">Comprar pack</a>
+                        <a href="{% url 'user:perfil' %}" class="block text-sm text-gray-500 hover:text-coral-soft transition">Mi perfil</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-6 text-center">
+            <p class="text-xs text-gray-600">© 2026 Endereza2. Todos los derechos reservados.</p>
+        </div>
+    </div>
+</footer>
 
 <!-- MODAL DE CONFIRMACIÓN PARA ELIMINAR RESEÑA -->
 <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-2xl bg-white">
         <div class="mt-3 text-center">
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
                 <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -183,12 +410,12 @@
                 </p>
             </div>
             <div class="flex items-center px-4 py-3">
-                <button id="cancelDelete" class="px-4 py-2 bg-gray-300 text-gray-900 text-base font-medium rounded-md w-full mr-2 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                <button id="cancelDelete" class="px-4 py-2 bg-gray-200 text-gray-900 text-base font-medium rounded-xl w-full mr-2 hover:bg-gray-300 transition">
                     Cancelar
                 </button>
                 <form id="deleteForm" method="POST" action="" class="w-full ml-2">
                     {% csrf_token %}
-                    <button type="submit" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-xl w-full hover:bg-red-700 transition">
                         Confirmar
                     </button>
                 </form>
@@ -199,31 +426,27 @@
 
 <!-- MODAL PARA MODIFICAR RESEÑA -->
 <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-16 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-left">
-            <div class="flex items-center gap-3">
-                <div class="h-12 w-12 rounded-full bg-bordo-100 flex items-center justify-center text-white font-bold">E</div>
-                <div>
-                    <h3 class="text-xl font-semibold text-gray-900">Modificar reseña</h3>
-                    <p class="text-sm text-gray-500">Solo tú puedes editar tu reseña.</p>
-                </div>
-            </div>
-            <div class="mt-6">
-                <form id="editForm" method="POST" action="">
-                    {% csrf_token %}
-                    <label for="editComentario" class="block text-sm font-medium text-gray-700">Tu reseña</label>
-                    <textarea id="editComentario" name="comentario" rows="4" maxlength="60" class="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-bordo-700" placeholder="Escribe tu reseña (máx 60 caracteres)"></textarea>
-                    <div class="mt-4 flex justify-end gap-3">
-                        <button type="button" id="cancelEdit" class="px-4 py-2 bg-gray-300 text-gray-900 font-medium rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
-                            Cancelar
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-                            Confirmar
-                        </button>
-                    </div>
-                </form>
+    <div class="relative top-16 mx-auto p-6 border w-full max-w-lg shadow-lg rounded-2xl bg-white">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="h-10 w-10 rounded-full bg-bordo-100 flex items-center justify-center text-bordo-700 font-bold">E</div>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Modificar reseña</h3>
+                <p class="text-sm text-gray-500">Solo vos podés editar tu reseña.</p>
             </div>
         </div>
+        <form id="editForm" method="POST" action="">
+            {% csrf_token %}
+            <label for="editComentario" class="block text-sm font-medium text-gray-700 mb-2">Tu reseña</label>
+            <textarea id="editComentario" name="comentario" rows="4" maxlength="60" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-transparent" placeholder="Escribe tu reseña (máx 60 caracteres)"></textarea>
+            <div class="mt-5 flex justify-end gap-3">
+                <button type="button" id="cancelEdit" class="px-5 py-2 bg-gray-200 text-gray-900 font-medium rounded-xl hover:bg-gray-300 transition">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition">
+                    Confirmar
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -256,7 +479,6 @@ document.getElementById('cancelEdit').addEventListener('click', function() {
     closeModal('editModal');
 });
 
-// Cerrar modal al hacer click fuera
 [['deleteModal', 'deleteModal'], ['editModal', 'editModal']].forEach(([id]) => {
     document.getElementById(id).addEventListener('click', function(e) {
         if (e.target === this) {

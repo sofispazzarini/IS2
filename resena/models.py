@@ -33,7 +33,10 @@ class Resena(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['usuario', 'actividad'], name='unique_usuario_actividad')
+            models.UniqueConstraint(
+                fields=['usuario', 'clase'],
+                name='unique_usuario_clase'
+            )
         ]
 
     def __str__(self):

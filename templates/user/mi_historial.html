@@ -11,7 +11,7 @@
         </header>
 
         <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-lg p-6">
-            {% if reservas.exists %}
+            {% if reservas %}
                 <ul class="space-y-4">
                     {% for reserva in reservas %}
                         <li class="border p-4 rounded-lg">
@@ -25,6 +25,21 @@
                                     <p class="text-sm">Estado: <strong>{{ reserva.estado }}</strong></p>
                                     {% if reserva.asistencia %}
                                         <p class="text-sm text-green-600">Asistió el {{ reserva.asistencia.fecha_registro|date:"d/m/Y H:i" }}</p>
+                                    {% endif %}
+
+                                    {% if reserva.estado == 'asistida' and reserva.tiene_pago_aprobado and not reserva.ya_reseno %}
+                                        <a href="{% url 'resena:crear_clase' reserva.clase.id %}"
+                                           class="mt-2 inline-block text-xs font-semibold px-4 py-1.5 rounded-full bg-red-800 text-white hover:bg-red-900 transition">
+                                            Dejar reseña
+                                        </a>
+                                    {% endif %}
+
+                                    {% if reserva.resena_clase %}
+                                        <button type="button"
+                                                onclick="openDeleteModal({{ reserva.resena_clase.id }})"
+                                                class="mt-2 inline-block text-xs font-semibold px-4 py-1.5 rounded-full border border-red-600 text-red-600 hover:bg-red-50 transition">
+                                            Borrar reseña
+                                        </button>
                                     {% endif %}
                                 </div>
                             </div>
@@ -46,7 +61,38 @@
                 Volver a mis turnos
             </a>
         </div>
-
     </div>
 </div>
+
+<!-- Modal eliminar reseña -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-xl text-center">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">¿Eliminar reseña?</h3>
+        <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+        <div class="flex gap-3 justify-center">
+            <button onclick="closeDeleteModal()"
+                    class="px-5 py-2 rounded-full border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
+                Cancelar
+            </button>
+            <form id="deleteForm" method="POST" action="">
+                {% csrf_token %}
+                <button type="submit"
+                        class="px-5 py-2 rounded-full bg-red-600 text-white text-sm font-semibold hover:bg-red-700">
+                    Confirmar
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openDeleteModal(resenaId) {
+    document.getElementById('deleteForm').action = `/resena/eliminar/${resenaId}/`;
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+}
+</script>
+
 {% endblock %}

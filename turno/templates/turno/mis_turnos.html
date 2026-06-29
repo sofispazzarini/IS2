@@ -5,29 +5,21 @@
 {% block content %}
 <div class="hero-pattern min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-28">
     <div class="max-w-4xl mx-auto">
-        {% if tiene_turnos_fijos %}
-        <div class="flex justify-end mb-4">
-            <a href="{% url 'ver_turnos_fijos' %}"
-               class="btn-bordo px-6 py-2.5 rounded-full font-semibold text-sm">
-                Ver mis turnos fijos
-            </a>
-        </div>
-        {% endif %}
-        <div class="text-center mb-10">
-            <div class="flex items-center justify-between mb-3">
-                <div>
-                    <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">Tus reservas</p>
-                    <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">Mis Turnos</h2>
-                </div>
-                <div>
-                    <a href="{% url 'user:mi_historial' %}" class="inline-flex items-center gap-2 btn-bordo px-6 py-2.5 rounded-full font-semibold text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Ver mi historial
-                    </a>
-                </div>
+        <div class="flex items-center justify-between mb-10">
+            <div>
+                <p class="text-bordo-700 font-semibold tracking-wide uppercase text-sm mb-2">
+                    Tus reservas
+                </p>
+                <h2 class="font-heading text-3xl md:text-4xl font-bold text-gray-900">
+                    Mis Turnos
+                </h2>
             </div>
+            <a href="{% url 'user:mi_historial' %}" class="inline-flex items-center gap-2 btn-bordo px-6 py-2.5 rounded-full font-semibold text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Ver mi historial
+            </a>
         </div>
 
         {% if tiene_turnos %}
@@ -62,7 +54,7 @@
                                         <svg class="w-4 h-4 text-bordo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                         </svg>
-                                        <span>{{ item.reserva.clase.salon.nombre }}</span>
+                                        <span>{{ item.reserva.clase.salon }}</span>
                                     </div>
                                 </div>
                                 <div class="mt-3">
@@ -75,29 +67,48 @@
                                 </div>
                                 {% if item.mostrar_qr %}
                                 <div class="mt-2 flex flex-col gap-1">
-                                    <button type="button" onclick="openQRModal('{{ item.qr_image }}', '{{ item.reserva.qr_uuid }}')" class="btn-bordo px-4 py-2 rounded-full text-xs font-semibold max-w-[120px]">Ver mi QR</button>
+                                    <button type="button" onclick="openQRModal('{{ item.qr_image }}', '{{ item.reserva.qr_uuid }}')" class="btn-bordo px-4 py-2 rounded-full text-xs font-semibold">Ver mi QR</button>
                                     <span class="text-xs text-gray-500">UUID: <span class="font-mono select-all">{{ item.reserva.qr_uuid }}</span></span>
                                 </div>
                                 {% endif %}
+                            {% block extra_js %}
+                            <script>
+                            function openQRModal(qrImage, qrUuid) {
+                                    const modalHtml = `
+                                    <div id="qrModalOverlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;">
+                                        <div style="background:#fff;padding:2rem 2rem 1rem 2rem;border-radius:1rem;max-width:90vw;max-height:90vh;text-align:center;position:relative;">
+                                            <button onclick="document.getElementById('qrModalOverlay').remove()" style="position:absolute;top:0.5rem;right:0.5rem;font-size:1.5rem;background:none;border:none;cursor:pointer;">&times;</button>
+                                            <h2 style="font-size:1.25rem;font-weight:bold;margin-bottom:0.5rem;">Mi código QR</h2>
+                                            <img src="${qrImage}" alt="Código QR" style="width:200px;height:200px;max-width:80vw;max-height:60vh;" />
+                                            <div style="margin-top:1.2rem;font-size:1rem;color:#222;font-family:monospace;word-break:break-all;user-select:all;">
+                                                <strong>UUID:</strong> ${qrUuid}
+                                            </div>
+                                            <div style="margin-top:0.5rem;font-size:0.85rem;color:#888;">En caso de que no funcione el QR, mostrar el UUID al secretario presencialmente</div>
+                                        </div>
+                                    </div>
+                                    `;
+                                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                            }
+                            </script>
+                            {% endblock %}
                             </div>
 
-                            <div class="flex flex-col gap-3 min-w-[140px] items-end justify-center">
-                                <a href="{% url 'detalle_reserva' item.reserva.id %}" class="inline-flex items-center gap-1 text-sm text-bordo-700 font-medium hover:underline">
-                                    Ver detalle
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                    </svg>
-                                </a>
+                            <div class="flex flex-col gap-2 min-w-[140px] items-end">
+                                <div class="flex flex-wrap gap-2 items-center justify-end">
+                                    
+                                    {% if item.reserva.estado == 'confirmada' or item.reserva.estado == 'pendiente_pago' %}
+                                        <a href="{% url 'cancelar_reserva' item.reserva.id %}" class="inline-flex items-center justify-center rounded-full border border-red-600 bg-red-50 text-red-700 px-4 py-2 text-sm font-semibold hover:bg-red-100 transition">
+                                            Cancelar
+                                        </a>
+                                    {% endif %}
 
-                                {% if item.reserva.estado != 'cancelada' %}
-                                    <a href="{% url 'cancelar_reserva' item.reserva.id %}"
-                                       class="inline-flex items-center gap-2 text-sm border-2 border-red-500 text-red-600 hover:bg-red-50 font-semibold px-4 py-2 rounded-full transition duration-200">
+                                    <a href="{% url 'detalle_reserva' item.reserva.id %}" class="inline-flex items-center gap-1 text-sm text-bordo-700 font-medium hover:underline">
+                                        Ver detalle
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                         </svg>
-                                        Cancelar reserva
                                     </a>
-                                {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -105,7 +116,7 @@
             </div>
         {% else %}
             <div class="bg-white shadow-lg rounded-2xl p-12 border border-gray-100 text-center">
-                <svg class="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24 " stroke="currentColor">
+                <svg class="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <h3 class="font-heading text-xl font-semibold text-gray-900 mb-2">No hay turnos próximos</h3>
@@ -120,25 +131,4 @@
         {% endif %}
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function openQRModal(qrImage, qrUuid) {
-    const modalHtml = `
-    <div id="qrModalOverlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;">
-        <div style="background:#fff;padding:2rem 2rem 1rem 2rem;border-radius:1rem;max-width:90vw;max-height:90vh;text-align:center;position:relative;">
-            <button onclick="document.getElementById('qrModalOverlay').remove()" style="position:absolute;top:0.5rem;right:0.5rem;font-size:1.5rem;background:none;border:none;cursor:pointer;">&times;</button>
-            <h2 style="font-size:1.25rem;font-weight:bold;margin-bottom:0.5rem;">Mi código QR</h2>
-            <img src="${qrImage}" alt="Código QR" style="width:200px;height:200px;max-width:80vw;max-height:60vh;" />
-            <div style="margin-top:1.2rem;font-size:1rem;color:#222;font-family:monospace;word-break:break-all;user-select:all;">
-                <strong>UUID:</strong> ${qrUuid}
-            </div>
-            <div style="margin-top:0.5rem;font-size:0.85rem;color:#888;">En caso de que no funcione el QR, mostrar el UUID al secretario presencialmente</div>
-        </div>
-    </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-}
-</script>
 {% endblock %}

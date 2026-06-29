@@ -212,6 +212,10 @@ class Command(BaseCommand):
         manana = hoy + timedelta(days=1)
         pasado = hoy + timedelta(days=2)
         en_3_dias = hoy + timedelta(days=3)
+        en_4_dias = hoy + timedelta(days=4)
+        en_5_dias = hoy + timedelta(days=5)
+        en_6_dias = hoy + timedelta(days=6)
+        en_7_dias = hoy + timedelta(days=7)
 
         # Clase A - CON CUPO DISPONIBLE, para demo en vivo (pedir turno → confirmar → pagar)
         clase_a = self._crear_clase_si_no_existe(
@@ -264,6 +268,79 @@ class Command(BaseCommand):
             nombre='Clase D'
         )
         self.stdout.write(f'  ✓ Clase D: {zona_superior.nombre} - {en_3_dias} 17:00hs (para registrar asistencia)')
+
+        # Clases E-J: Más clases próximas para probar
+        clase_e = self._crear_clase_si_no_existe(
+            actividad=zona_media,
+            profesor=profesor_zona_media,
+            fecha=en_4_dias,
+            hora_inicio=time(9, 0),
+            hora_fin=time(10, 0),
+            cupo_maximo=12,
+            salon=salon_a,
+            nombre='Clase E'
+        )
+        self.stdout.write(f'  ✓ Clase E: {zona_media.nombre} - {en_4_dias} 09:00hs')
+
+        clase_f = self._crear_clase_si_no_existe(
+            actividad=zona_inferior,
+            profesor=profesor_zona_inferior,
+            fecha=en_4_dias,
+            hora_inicio=time(18, 0),
+            hora_fin=time(19, 0),
+            cupo_maximo=10,
+            salon=salon_b,
+            nombre='Clase F'
+        )
+        self.stdout.write(f'  ✓ Clase F: {zona_inferior.nombre} - {en_4_dias} 18:00hs')
+
+        clase_g = self._crear_clase_si_no_existe(
+            actividad=zona_superior,
+            profesor=profesor_zona_superior,
+            fecha=en_5_dias,
+            hora_inicio=time(10, 0),
+            hora_fin=time(11, 0),
+            cupo_maximo=15,
+            salon=salon_a,
+            nombre='Clase G'
+        )
+        self.stdout.write(f'  ✓ Clase G: {zona_superior.nombre} - {en_5_dias} 10:00hs')
+
+        clase_h = self._crear_clase_si_no_existe(
+            actividad=zona_media,
+            profesor=profesor_zona_media,
+            fecha=en_5_dias,
+            hora_inicio=time(17, 0),
+            hora_fin=time(18, 0),
+            cupo_maximo=8,
+            salon=salon_b,
+            nombre='Clase H'
+        )
+        self.stdout.write(f'  ✓ Clase H: {zona_media.nombre} - {en_5_dias} 17:00hs')
+
+        clase_i = self._crear_clase_si_no_existe(
+            actividad=zona_inferior,
+            profesor=profesor_zona_inferior,
+            fecha=en_6_dias,
+            hora_inicio=time(9, 0),
+            hora_fin=time(10, 0),
+            cupo_maximo=12,
+            salon=salon_a,
+            nombre='Clase I'
+        )
+        self.stdout.write(f'  ✓ Clase I: {zona_inferior.nombre} - {en_6_dias} 09:00hs')
+
+        clase_j = self._crear_clase_si_no_existe(
+            actividad=zona_superior,
+            profesor=profesor_zona_superior,
+            fecha=en_7_dias,
+            hora_inicio=time(10, 0),
+            hora_fin=time(11, 0),
+            cupo_maximo=10,
+            salon=salon_b,
+            nombre='Clase J'
+        )
+        self.stdout.write(f'  ✓ Clase J: {zona_superior.nombre} - {en_7_dias} 10:00hs')
 
         # ═══════════════════════════════════════════════════════════
         # 🎟️ TURNOS Y RESERVAS
@@ -337,7 +414,54 @@ class Command(BaseCommand):
                     estado_pago='aprobado',
                 )
             self.stdout.write(f'  ✓ cliente@demo.com en Clase D (listo para registrar asistencia)')
-            self.stdout.write(f'    QR UUID: {reserva_asistencia.qr_uuid}')
+            #self.stdout.write(f'    QR UUID: {reserva_asistencia.qr_uuid}')
+
+        # ═══════════════════════════════════════════════════════════
+        # 💰 PAGOS HISTÓRICOS (para estadísticas)
+        # ═══════════════════════════════════════════════════════════
+        self.stdout.write('\n💰 PAGOS HISTÓRICOS (para estadísticas)')
+        self.stdout.write('-' * 40)
+
+        # Crear pagos adicionales con distintos métodos usando las reservas existentes de Clase B
+        # Los pagos ya existen en efectivo, agregamos más con otros métodos
+        reservas_clase_b = Reserva.objects.filter(clase=clase_b)
+        metodos_adicionales = ['posnet', 'tarjeta', 'mercado_pago']
+
+        for i, reserva in enumerate(reservas_clase_b[:3]):
+            metodo = metodos_adicionales[i]
+            # Verificar si ya existe un pago con este método para esta reserva
+            if not Pago.objects.filter(reserva=reserva, metodo_pago=metodo).exists():
+                Pago.objects.create(
+                    reserva=reserva,
+                    monto=Decimal('5000'),
+                    metodo_pago=metodo,
+                    estado_pago='aprobado',
+                    registrado_por=secretario,
+                )
+
+        # Agregar más pagos con distintos métodos a otras clases
+        if clase_a:
+            for i, metodo in enumerate(['efectivo', 'posnet', 'tarjeta', 'mercado_pago']):
+                cliente = clientes_relleno[i % len(clientes_relleno)]
+                reserva, created = Reserva.objects.get_or_create(
+                    usuario=cliente,
+                    clase=clase_a,
+                    defaults={
+                        'estado': 'confirmada',
+                        'monto_pagado': Decimal('5000'),
+                    }
+                )
+                if created:
+                    Pago.objects.create(
+                        reserva=reserva,
+                        monto=Decimal('5000'),
+                        metodo_pago=metodo,
+                        estado_pago='aprobado',
+                        registrado_por=secretario,
+                    )
+
+        self.stdout.write(f'  ✓ Pagos con distintos métodos agregados')
+        self.stdout.write(f'    Métodos: efectivo, posnet, tarjeta, mercado_pago')
 
         # ═══════════════════════════════════════════════════════════
         # 📦 TURNO FIJO Y ABONO (para cliente abonado)
@@ -388,9 +512,17 @@ class Command(BaseCommand):
         self.stdout.write('\n📌 PARA LA DEMO')
         self.stdout.write('-' * 40)
         self.stdout.write(f'  • Clase A ({manana}): cupo disponible → pedir turno')
-        self.stdout.write(f'  • Clase B ({manana}): cupo LLENO → lista de espera')
+        self.stdout.write(f'  • Clase B ({manana}): cupo LLENO → lista de espera (mensaje amarillo)')
         self.stdout.write(f'  • Clase C ({pasado}): turno cancelable')
         self.stdout.write(f'  • Clase D ({en_3_dias}): registrar asistencia')
+        self.stdout.write(f'  • Clases E-J: más clases próximas para probar')
+
+        self.stdout.write('\n📊 ESTADÍSTICAS')
+        self.stdout.write('-' * 40)
+        self.stdout.write(f'  • Efectivo: $15000')
+        self.stdout.write(f'  • Posnet: $10000')
+        self.stdout.write(f'  • Tarjeta: $10000')
+        self.stdout.write(f'  • MercadoPago: $15000')
         self.stdout.write('')
 
     def _crear_clase_si_no_existe(self, actividad, profesor, fecha, hora_inicio, hora_fin, cupo_maximo, salon, nombre):
