@@ -21,7 +21,8 @@ from django.views.decorators.cache import never_cache
 from .forms import RestablecerContrasenaForm
 from django.utils import timezone
 from datetime import timedelta, datetime
-from turno.models import Reserva, Clase
+from turno.models import Reserva, Clase, Abono
+from user.models import Penalizacion
 import json
 
 User = get_user_model()
@@ -904,44 +905,109 @@ def estadisticas_usuario(request):
     })
 
     # --- Estadísticas de usuario individual ---
-    email = request.GET.get('email', '').strip()
+    q = request.GET.get('q', '').strip()
+    cliente_id = request.GET.get('cliente_id', '').strip()
     cliente = None
-    reservas = []
-    pagos_usuario = []
+    clientes_encontrados = []
     error_usuario = None
-    sin_historial = False
-    reservas_json = json.dumps([])
-    pagos_json = json.dumps([])
+    metricas = None
 
-    # Lista de clientes para autocompletar
-    User = get_user_model()
-    clientes_lista = User.objects.filter(rol='cliente', activo=True).values('id', 'email', 'first_name', 'last_name')[:50]
-
-    if email:
+    if cliente_id: 
         try:
-            cliente = User.objects.get(email=email, rol='cliente')
-            reservas = Reserva.objects.filter(usuario=cliente).select_related('clase__actividad').order_by('-fecha_reserva')[:100]
-            pagos_usuario = Pago.objects.filter(reserva__usuario=cliente).select_related('reserva__clase__actividad').order_by('-fecha_pago')[:100]
-            if not reservas.exists() and not pagos_usuario.exists():
-                sin_historial = True
-            reservas_json = json.dumps([
-                {
-                    'actividad': r.clase.actividad.nombre,
-                    'estado': r.estado,
-                    'fecha': str(r.clase.fecha),
-                }
-                for r in reservas
-            ])
-            pagos_json = json.dumps([
-                {
-                    'fecha': p.fecha_pago.strftime('%Y-%m'),
-                    'monto': float(p.monto),
-                    'estado': p.estado_pago,
-                }
-                for p in pagos_usuario
-            ])
+            cliente = User.objects.get(pk=cliente_id, rol='cliente')
         except User.DoesNotExist:
-            error_usuario = "El usuario es inexistente"
+            error_usuario = "Usuario no encontrado"
+    elif q: 
+        clientes_encontrados= list(
+            User.objects.filter(rol='cliente').filter(
+                Q(email__icontains=q) |
+                Q(dni__icontains=q) |
+                Q(first_name__icontains=q) |
+                Q(last_name__icontains=q)
+            ).order_by('first_name', 'last_name')[:20]
+        )
+        if len(clientes_encontrados) == 1:
+            cliente = clientes_encontrados[0]
+            clientes_encontrados = []
+        elif len(clientes_encontrados) == 0:
+            error_usuario = "No se encontraron clientes con esa búsqueda"
+
+    if cliente:
+        anio_actual = hoy.year
+
+        # Métrica 1: Clases asistidas
+        reservas_pasadas = Reserva.objects.filter(
+            usuario=cliente,
+            estado__in=['confirmada', 'asistida', 'ausente'],
+            clase__fecha__lt=hoy,
+        )
+        total_pasadas = reservas_pasadas.count()
+        total_asistidas = reservas_pasadas.filter(estado='asistida').count()
+
+        # Métrica 2: Penalizaciones activas
+        penalizaciones_activas = Penalizacion.objects.filter(usuario=cliente, activa=True).count()
+
+        # Métrica 3: Total recaudado año actual (clases sueltas + abonos)
+        recaudado_clases = Pago.objects.filter(
+            reserva__usuario=cliente,
+            estado_pago='aprobado',
+            fecha_pago__year=anio_actual,
+        ).aggregate(total=Sum('monto'))['total'] or 0
+
+        recaudado_abonos = Abono.objects.filter(
+            usuario=cliente,
+            estado_pago='aprobado',
+            anio=anio_actual,
+        ).aggregate(total=Sum('monto_final'))['total'] or 0
+
+        total_recaudado_cliente = recaudado_clases + recaudado_abonos
+
+        # Métrica 4: Promedio de clases por mes
+        total_confirmadas = Reserva.objects.filter(
+            usuario=cliente,
+            estado__in=['confirmada', 'asistida', 'ausente'],
+        ).count()
+
+        primera_reserva = Reserva.objects.filter(usuario=cliente).order_by('fecha_reserva').first()
+        fecha_inicio_cliente = primera_reserva.fecha_reserva.date() if primera_reserva else cliente.fecha_registro.date()
+        meses_cliente = max(1, (hoy.year - fecha_inicio_cliente.year) * 12 + (hoy.month - fecha_inicio_cliente.month) + 1)
+        promedio_clases_mes = round(total_confirmadas / meses_cliente)
+
+        # Métrica 5: Porcentaje de inasistencias
+        porcentaje_inasistencias = round((total_pasadas - total_asistidas) / total_pasadas * 100) if total_pasadas > 0 else None
+
+        # Métrica 6: Antigüedad
+        fecha_reg = cliente.fecha_registro.date()
+        meses_antiguedad = (hoy.year - fecha_reg.year) * 12 + (hoy.month - fecha_reg.month)
+        if meses_antiguedad >= 12:
+            anios = meses_antiguedad // 12
+            resto = meses_antiguedad % 12
+            antiguedad_str = f"{anios} año{'s' if anios > 1 else ''}"
+            if resto:
+                antiguedad_str += f" y {resto} mes{'es' if resto > 1 else ''}"
+        elif meses_antiguedad > 0:
+            antiguedad_str = f"{meses_antiguedad} mes{'es' if meses_antiguedad > 1 else ''}"
+        else:
+            antiguedad_str = "menos de 1 mes"
+
+        # Métrica 7: Actividad favorita
+        actividad_fav = Reserva.objects.filter(
+            usuario=cliente,
+        ).values('clase__actividad__nombre').annotate(
+            count=Count('id')
+        ).order_by('-count').first()
+
+        metricas = {
+            'total_asistidas': total_asistidas,
+            'total_pasadas': total_pasadas,
+            'penalizaciones_activas': penalizaciones_activas,
+            'total_recaudado_cliente': total_recaudado_cliente,
+            'promedio_clases_mes': promedio_clases_mes,
+            'porcentaje_inasistencias': porcentaje_inasistencias,
+            'antiguedad_str': antiguedad_str,
+            'actividad_fav_nombre': actividad_fav['clase__actividad__nombre'] if actividad_fav else None,
+            'actividad_fav_count': actividad_fav['count'] if actividad_fav else None,
+        }
 
     return render(request, 'user/estadisticas_usuario.html', {
         'rango': rango,
@@ -961,14 +1027,11 @@ def estadisticas_usuario(request):
         'recaudado_por_actividad': recaudado_por_actividad,
         'grafico_data': grafico_data,
         'sin_pagos_en_rango': sin_pagos_en_rango,
-        'clientes_lista': clientes_lista,
-        'email_buscado': email,
+        'q_buscado': q,
+        'cliente_id': cliente_id,
         'cliente': cliente,
-        'reservas': reservas,
-        'pagos_usuario': pagos_usuario,
-        'reservas_json': reservas_json,
-        'pagos_json': pagos_json,
+        'clientes_encontrados': clientes_encontrados,
         'error_usuario': error_usuario,
-        'sin_historial': sin_historial,
+        'metricas': metricas,
         'es_dueno': es_dueno,
     })

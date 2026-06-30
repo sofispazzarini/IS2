@@ -114,50 +114,46 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Teléfono: solo dígitos, sin alertas ---
     const telefonoInput = document.getElementById('telefono');
 
-    // Bloquear cualquier caracter que no sea número
-    telefonoInput.addEventListener('keypress', function(e) {
-        if (!/[0-9]/.test(e.key)) {
+    telefonoInput.addEventListener('keydown', function(e) {
+        const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','Home','End'];
+        if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) {
             e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Caracter no permitido',
-                text: 'El teléfono solo puede contener números.',
-                confirmButtonColor: '#8b1c26'
-            });
         }
     });
 
-    // Prevenir pegar texto con letras
     telefonoInput.addEventListener('paste', function(e) {
-        const pastedData = (e.clipboardData || window.clipboardData).getData('text');
-        if (!/^\d*$/.test(pastedData)) {
+        const pasted = (e.clipboardData || window.clipboardData).getData('text');
+        if (!/^\d+$/.test(pasted)) {
             e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Contenido no permitido',
-                text: 'El teléfono solo puede contener números.',
-                confirmButtonColor: '#8b1c26'
-            });
         }
     });
 
-    // Validación al enviar el formulario
-    document.querySelector('form').addEventListener('submit', function(e) {
-        const telefono = telefonoInput.value;
-        if (!/^\d+$/.test(telefono)) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Teléfono inválido',
-                text: 'El teléfono solo puede contener números.',
-                confirmButtonColor: '#8b1c26'
-            });
-        }
+    // --- Nombre y Apellido: solo letras y espacio, sin alertas ---
+    const soloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]$/;
+    const navigationKeys = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','Home','End'];
+
+    ['nombre', 'apellido'].forEach(function(fieldName) {
+        const input = document.querySelector('input[name="' + fieldName + '"]');
+        if (!input) return;
+
+        input.addEventListener('keydown', function(e) {
+            if (navigationKeys.includes(e.key)) return;
+            if (!soloLetras.test(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        input.addEventListener('paste', function(e) {
+            const pasted = (e.clipboardData || window.clipboardData).getData('text');
+            if (!/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]+$/.test(pasted)) {
+                e.preventDefault();
+            }
+        });
     });
 });
 </script>

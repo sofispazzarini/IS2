@@ -50,7 +50,7 @@ class ProfesorForm(forms.ModelForm):
             
         # 4. Si el queryset todavía tiene algún resultado, tiramos el error
         if queryset.exists():
-            raise forms.ValidationError("Error: Ya existe un profesor asociado al correo electrónico ingresado.")
+            raise forms.ValidationError("Este correo electrónico ya está registrado en el sistema.")
             
         return email
 
@@ -66,7 +66,7 @@ class ProfesorForm(forms.ModelForm):
             queryset = queryset.exclude(pk=self.instance.pk)
 
         if queryset.exists():
-            raise forms.ValidationError(f"Error: Ya existe un profesor asociado al DNI {dni}.")
+            raise forms.ValidationError(f"Ya existe un profesor registrado con el DNI {dni}.")
 
         return dni
 
