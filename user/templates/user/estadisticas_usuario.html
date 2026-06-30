@@ -346,98 +346,139 @@
 
         <!-- Búsqueda de cliente -->
         <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
-            <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Buscar cliente</h3>
+            <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Estadísticas por cliente</h3>
             <form method="GET" class="flex flex-col sm:flex-row gap-3">
                 <input type="hidden" name="rango" value="{{ rango }}">
                 {% if rango == 'personalizado' %}
                 <input type="hidden" name="fecha_desde" value="{{ fecha_desde }}">
                 <input type="hidden" name="fecha_hasta" value="{{ fecha_hasta }}">
                 {% endif %}
-                <input type="email" name="email" value="{{ email_buscado }}"
-                       placeholder="Ingresá el email del cliente..."
-                       list="clientes_list"
+                <input type="text" name="q" value="{{ q_buscado }}"
+                       placeholder="Buscar por nombre, DNI o email..."
                        class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-bordo-500 focus:border-bordo-500">
-                <datalist id="clientes_list">
-                    {% for c in clientes_lista %}
-                    <option value="{{ c.email }}">{{ c.first_name }} {{ c.last_name }}</option>
-                    {% endfor %}
-                </datalist>
                 <button type="submit" class="btn-bordo px-6 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap">
                     Buscar
                 </button>
             </form>
         </div>
 
-        <!-- Resultados de búsqueda -->
+        <!-- Error de búsqueda -->
         {% if error_usuario %}
         <div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
             <p class="text-red-700 font-medium">{{ error_usuario }}</p>
         </div>
 
-        {% elif sin_historial %}
-        <div class="bg-white shadow-lg rounded-2xl p-8 border border-gray-100 text-center">
-            <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <p class="text-gray-500 mb-1">El usuario aún no cuenta con historial</p>
-            <p class="text-sm text-gray-400">{{ cliente.get_full_name }} — {{ cliente.email }}</p>
+        <!-- Lista de resultados cuando hay múltiples coincidencias -->
+        {% elif clientes_encontrados %}
+        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
+            <p class="text-sm text-gray-500 mb-4">Se encontraron {{ clientes_encontrados|length }} clientes. Seleccioná uno para ver sus métricas:</p>
+            <div class="space-y-2">
+                {% for c in clientes_encontrados %}
+                <a href="?rango={{ rango }}{% if rango == 'personalizado' %}&fecha_desde={{ fecha_desde }}&fecha_hasta={{ fecha_hasta }}{% endif %}&q={{ q_buscado }}&cliente_id={{ c.pk }}"
+                   class="flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-bordo-50 rounded-xl transition group">
+                    <div>
+                        <p class="font-medium text-gray-900 group-hover:text-bordo-700">{{ c.get_full_name }}</p>
+                        <p class="text-xs text-gray-500">{{ c.email }} — DNI: {{ c.dni }}</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 group-hover:text-bordo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                {% endfor %}
+            </div>
         </div>
 
-        {% elif cliente %}
-        <!-- Info del cliente -->
+        <!-- Métricas del cliente seleccionado -->
+        {% elif cliente and metricas %}
         <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
+
+            <!-- Header del cliente -->
             <div class="flex items-center gap-4 mb-6 pb-4 border-b border-gray-100">
                 <div class="w-12 h-12 rounded-full bg-bordo-100 flex items-center justify-center flex-shrink-0">
                     <span class="text-bordo-700 font-bold text-lg">{{ cliente.first_name|first|upper }}</span>
                 </div>
                 <div>
                     <p class="font-heading text-lg font-bold text-gray-900">{{ cliente.get_full_name }}</p>
-                    <p class="text-sm text-gray-500">{{ cliente.email }}</p>
+                    <p class="text-sm text-gray-500">{{ cliente.email }} — DNI: {{ cliente.dni }}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Cliente hace {{ metricas.antiguedad_str }}</p>
                 </div>
+                <a href="?rango={{ rango }}{% if rango == 'personalizado' %}&fecha_desde={{ fecha_desde }}&fecha_hasta={{ fecha_hasta }}{% endif %}&q={{ q_buscado }}"
+                   class="ml-auto text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Volver
+                </a>
             </div>
 
-            <!-- Reservas y Asistencias -->
-            <h4 class="font-semibold text-gray-900 mb-3">Reservas y Asistencias</h4>
-            <div class="space-y-2 mb-6">
-                {% for reserva in reservas %}
-                <div class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                    <div>
-                        <p class="font-medium text-gray-900">{{ reserva.clase.actividad.nombre }}</p>
-                        <p class="text-xs text-gray-500">{{ reserva.clase.fecha }} — {{ reserva.clase.hora_inicio }}</p>
-                    </div>
-                    <span class="px-3 py-1 rounded-full text-xs font-semibold
-                        {% if reserva.estado == 'asistida' %}bg-green-100 text-green-700
-                        {% elif reserva.estado == 'ausente' %}bg-red-100 text-red-700
-                        {% elif reserva.estado == 'confirmada' %}bg-blue-100 text-blue-700
-                        {% elif reserva.estado == 'cancelada' %}bg-gray-100 text-gray-600
-                        {% else %}bg-yellow-100 text-yellow-700{% endif %}">
-                        {{ reserva.get_estado_display }}
-                    </span>
+            <!-- Grid de métricas -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+                <!-- Clases asistidas -->
+                <div class="bg-gray-50 rounded-2xl p-4">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Clases asistidas</p>
+                    <p class="text-2xl font-bold text-green-600">{{ metricas.total_asistidas }}<span class="text-sm font-normal text-gray-400">/{{ metricas.total_pasadas }}</span></p>
+                    <p class="text-xs text-gray-400 mt-1">clases con fecha pasada</p>
                 </div>
-                {% empty %}
-                <p class="text-sm text-gray-400 text-center py-4">Sin reservas registradas</p>
-                {% endfor %}
+
+                <!-- Penalizaciones -->
+                <div class="bg-gray-50 rounded-2xl p-4">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Penalizaciones</p>
+                    <p class="text-2xl font-bold {% if metricas.penalizaciones_activas >= 2 %}text-red-600{% elif metricas.penalizaciones_activas == 1 %}text-yellow-600{% else %}text-gray-700{% endif %}">
+                        {{ metricas.penalizaciones_activas }}<span class="text-sm font-normal text-gray-400">/3</span>
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">activas actualmente</p>
+                </div>
+
+                <!-- Total recaudado -->
+                <div class="bg-gray-50 rounded-2xl p-4">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Recaudado {{ metricas.total_recaudado_cliente|date:"Y" }}</p>
+                    <p class="text-2xl font-bold text-bordo-700">${{ metricas.total_recaudado_cliente }}</p>
+                    <p class="text-xs text-gray-400 mt-1">clases + abonos este año</p>
+                </div>
+
+                <!-- Promedio clases/mes -->
+                <div class="bg-gray-50 rounded-2xl p-4">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Promedio mensual</p>
+                    <p class="text-2xl font-bold text-blue-600">{{ metricas.promedio_clases_mes }}</p>
+                    <p class="text-xs text-gray-400 mt-1">clases por mes</p>
+                </div>
+
             </div>
 
-            <!-- Pagos -->
-            <h4 class="font-semibold text-gray-900 mb-3">Pagos</h4>
-            <div class="space-y-2">
-                {% for pago in pagos_usuario %}
-                <div class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                    <div>
-                        <p class="font-medium text-gray-900">{{ pago.reserva.clase.actividad.nombre }}</p>
-                        <p class="text-xs text-gray-500">{{ pago.fecha_pago|date:"d/m/Y H:i" }} — {{ pago.get_metodo_pago_display }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-semibold text-gray-900">${{ pago.monto }}</p>
-                        <span class="text-xs {% if pago.estado_pago == 'aprobado' %}text-green-600{% elif pago.estado_pago == 'rechazado' %}text-red-600{% else %}text-yellow-600{% endif %}">
-                            {{ pago.get_estado_pago_display }}
-                        </span>
-                    </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+                <!-- % Inasistencias -->
+                <div class="bg-gray-50 rounded-2xl p-4">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Tasa de inasistencia</p>
+                    {% if metricas.porcentaje_inasistencias is not None %}
+                    <p class="text-2xl font-bold {% if metricas.porcentaje_inasistencias > 30 %}text-red-600{% elif metricas.porcentaje_inasistencias > 15 %}text-yellow-600{% else %}text-green-600{% endif %}">
+                        {{ metricas.porcentaje_inasistencias }}%
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">de clases pasadas sin asistir</p>
+                    {% else %}
+                    <p class="text-sm text-gray-400 mt-2">Sin clases pasadas aún</p>
+                    {% endif %}
                 </div>
-                {% empty %}
-                <p class="text-sm text-gray-400 text-center py-4">Sin pagos registrados</p>
-                {% endfor %}
+
+                <!-- Antigüedad -->
+                <div class="bg-gray-50 rounded-2xl p-4">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Antigüedad</p>
+                    <p class="text-xl font-bold text-gray-700">{{ metricas.antiguedad_str }}</p>
+                    <p class="text-xs text-gray-400 mt-1">desde el registro</p>
+                </div>
+
+                <!-- Actividad favorita -->
+                <div class="bg-gray-50 rounded-2xl p-4">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Actividad favorita</p>
+                    {% if metricas.actividad_fav_nombre %}
+                    <p class="text-base font-bold text-gray-800">{{ metricas.actividad_fav_nombre }}</p>
+                    <p class="text-xs text-gray-400 mt-1">{{ metricas.actividad_fav_count }} reserva{{ metricas.actividad_fav_count|pluralize:"s" }}</p>
+                    {% else %}
+                    <p class="text-sm text-gray-400 mt-2">Sin reservas aún</p>
+                    {% endif %}
+                </div>
+
             </div>
         </div>
         {% endif %}
