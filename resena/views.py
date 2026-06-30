@@ -35,7 +35,7 @@ def crear_resena(request):
         if ya_existe:
             messages.error(
                 request, 
-                'Ya has enviado una reseña anteriormente. No puedes dejar más de una.'
+                'Ya has enviado una reseña anteriormente.'
             )
             return redirect('core:home')
         
