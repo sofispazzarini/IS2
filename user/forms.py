@@ -253,17 +253,17 @@ class CrearSecretarioForm(forms.ModelForm):
 
     def clean_password(self):
         password = self.cleaned_data.get("password")
-        if len(password) < 8:
-            raise forms.ValidationError("La contraseña debe tener mínimo 8 caracteres")
+        if len(password) < 8 or len(password) > 20:
+            raise forms.ValidationError("La contraseña debe tener entre 8 y 20 caracteres")
         return password
 
     def clean(self):
         cleaned_data = super().clean()
         password = cleaned_data.get("password")
         password_confirm = cleaned_data.get("password_confirm")
-        
+
         if password and password_confirm and password != password_confirm:
-            raise forms.ValidationError("No coinciden")
+            raise forms.ValidationError("Las contraseñas no coinciden ")
         
         return cleaned_data
 
