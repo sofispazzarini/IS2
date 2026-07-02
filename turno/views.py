@@ -361,14 +361,20 @@ def detalle_reserva(request, reserva_id):
 def cancelar_reserva(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
     clase = reserva.clase
-    hoy = timezone.localdate()
     usuario = request.user
 
-    # 1. Calculamos si la cancelación actual es tardía (menos de 2 días)
-    dias_anticipacion = (clase.fecha - hoy).days
-    corresponde_penalizar = dias_anticipacion < 2
+    # 1. CÁLCULO DE LAS 48 HORAS EXACTAS (Usando fecha y hora de inicio de la clase)
+    from datetime import datetime, timedelta
+    inicio_clase = datetime.combine(clase.fecha, clase.hora_inicio)
+    if timezone.is_aware(timezone.now()):
+        inicio_clase = timezone.make_aware(inicio_clase)
+        
+    # Si la diferencia entre la clase y "ahora" es mayor a 48 horas, es True.
+    tiene_anticipacion_48hs = (inicio_clase - timezone.now()) > timedelta(hours=48)
+    
+    # Mantenemos tu lógica interna mapeada al nuevo cálculo
+    corresponde_penalizar = not tiene_anticipacion_48hs
 
-    # 2. Calculamos la racha previa recorriendo el historial del usuario de la más nueva a la más vieja
     historial_canceladas = Reserva.objects.filter(
         usuario=usuario, 
         estado='cancelada'
@@ -379,24 +385,18 @@ def cancelar_reserva(request, reserva_id):
         if r.cancelacion_tardia:
             tardias_seguidas_previas += 1
         else:
-            break # Si una fue a tiempo, se rompe la racha de consecutivas
+            break
 
-    # =========================================================================
-    # ACCIÓN AL CONFIRMAR LA CANCELACIÓN (POST)
-    # =========================================================================
     if request.method == 'POST':
         with transaction.atomic():
             era_abonada = reserva.estado == 'confirmada'
             reserva.estado = 'cancelada'
             
-            # Si cancela tarde, dejamos asentada la marca en esta reserva para la próxima vez
             if corresponde_penalizar:
                 reserva.cancelacion_tardia = True
                 
-                # Sumamos la actual a la racha previa
                 racha_total = tardias_seguidas_previas + 1
                 
-                # REGLA: Penaliza ÚNICAMENTE si llega a la 3ra consecutiva
                 if racha_total >= 3:
                     Penalizacion.objects.create(
                         usuario=usuario,
@@ -409,10 +409,7 @@ def cancelar_reserva(request, reserva_id):
                     messages.warning(request, f"Cancelación tardía registrada. Te quedan {chances_restantes} oportunidades.")
             
             reserva.save()
-
-        # =========================================================================
-        # LÓGICA DE LISTA DE ESPERA MASIVA (fuera de transaction.atomic para no bloquear DB)
-        # =========================================================================
+            
         from django.core.mail import send_mail
         from django.conf import settings
 
@@ -434,25 +431,21 @@ def cancelar_reserva(request, reserva_id):
                 send_mail(asunto, mensaje, settings.DEFAULT_FROM_EMAIL, lista_emails, fail_silently=False)
             except Exception as e:
                 print(f"Error al enviar correos: {e}")
-        # =========================================================================
 
         if era_abonada:
             return redirect('opciones_reembolso', reserva_id=reserva.id)
         else:
             messages.success(request, "Reserva cancelada exitosamente.")
             return redirect('reservas')
-
-    # =========================================================================
-    # RENDERIZAR LA PANTALLA INTERMEDIA (GET)
-    # =========================================================================
-    # Calculamos cuántas chances le quedan de las 2 permitidas antes del castigo
+            
     racha_restante = max(0, 2 - tardias_seguidas_previas)
 
+    # 2. ENVIAMOS LA VARIABLE QUE EL TEMPLATE ESPERA
     return render(request, 'turno/confirmar_cancelacion.html', {
         'reserva': reserva,
-        'corresponde_penalizar': corresponde_penalizar,
-        'tardias_seguidas_previas': tardias_seguidas_previas,
-        'racha_restante': racha_restante, # 🚀 ACÁ NACE LA VARIABLE QUE TE FALTABA
+        'tiene_anticipacion_48hs': tiene_anticipacion_48hs,  # <-- AGREGADO ACÁ
+        'cancelaciones_tardias_seguidas': tardias_seguidas_previas,  # <-- Ajustado para tu if del HTML
+        'racha_restante': racha_restante,
     })
 
 
