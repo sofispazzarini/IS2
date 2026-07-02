@@ -35,7 +35,7 @@ def crear_resena(request):
         if ya_existe:
             messages.error(
                 request, 
-                'Ya has enviado una reseña anteriormente. No puedes dejar más de una.'
+                'Ya has enviado una reseña anteriormente.'
             )
             return redirect('core:home')
         
@@ -60,33 +60,33 @@ def crear_resena(request):
 
 
 @login_required(login_url='user:login')
-@require_http_methods(["POST"])
+@require_http_methods(["GET", "POST"])
 def editar_resena(request, resena_id):
     """
-    Editar una reseña.
+    Editar una reseña de clase.
     Solo el autor de la reseña puede editarla.
     """
     resena = get_object_or_404(Resena, id=resena_id)
-    
-    # Verificar que el usuario sea el autor de la reseña
+
     if resena.usuario != request.user:
         messages.error(request, 'No tienes permiso para editar esta reseña.')
         return redirect('core:home')
-    
-    form = ResenaForm(request.POST, instance=resena)
-    
-    if form.is_valid():
-        form.save()
-        messages.success(request, 'Reseña modificada correctamente.')
+
+    if request.method == 'POST':
+        form = ResenaForm(request.POST, instance=resena)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Reseña modificada correctamente.')
+            return redirect('user:mi_historial')
+        else:
+            messages.error(request, 'No se pudo modificar la reseña.')
     else:
-        # Pasar errores al template
-        for field, errors in form.errors.items():
-            for error in errors:
-                messages.error(request, error)
-    
-    if resena.clase:
-        return redirect('ver_clase', clase_id=resena.clase.id)
-    return redirect('core:home')
+        form = ResenaForm(instance=resena)
+
+    return render(request, 'resena/editar_resena_clase.html', {
+        'form': form,
+        'resena': resena,
+    })
 
 
 @login_required(login_url='user:login')

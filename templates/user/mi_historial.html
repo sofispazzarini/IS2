@@ -35,6 +35,10 @@
                                     {% endif %}
 
                                     {% if reserva.resena_clase %}
+                                        <a href="{% url 'resena:editar' reserva.resena_clase.id %}"
+                                           class="mt-2 inline-block text-xs font-semibold px-4 py-1.5 rounded-full border border-gray-500 text-gray-600 hover:bg-gray-50 transition">
+                                            Modificar
+                                        </a>
                                         <button type="button"
                                                 onclick="openDeleteModal({{ reserva.resena_clase.id }})"
                                                 class="mt-2 inline-block text-xs font-semibold px-4 py-1.5 rounded-full border border-red-600 text-red-600 hover:bg-red-50 transition">

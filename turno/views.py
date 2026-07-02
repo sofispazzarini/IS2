@@ -1821,6 +1821,23 @@ def historial_clases(request):
     return render(request, 'turno/historial_clases.html', {
         'clases': clases,
     })
+@login_required
+def historial_clases(request):
+    """Historial de clases pasadas para el dueño."""
+    if not es_dueno(request.user):
+        messages.error(request, "Solo el dueño puede acceder al historial de clases.")
+        return redirect('admin_clases')
+
+    hoy = timezone.localdate()
+    clases = Clase.objects.filter(
+        fecha__lt=hoy
+    ).select_related('actividad', 'profesor', 'salon').order_by('-fecha', '-hora_inicio')
+
+    return render(request, 'turno/historial_clases.html', {
+        'clases': clases,
+    })
+
+
 def actualizar_ausentes_y_penalizar():
     """
     Busca clases finalizadas hace más de 30 minutos y pasa las reservas 
