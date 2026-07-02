@@ -114,14 +114,34 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-6 py-4">
-                                    {% if es_dueno %}
-                                        <div class="flex items-center gap-3">
+                                   {% if es_dueno %}
+                                        <div class="flex items-center gap-2">
                                             <a href="{% url 'actividad:modificar_actividad' actividad.id %}"
-                                               class="text-bordo-700 hover:text-bordo-800" title="Modificar">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-bordo-50 text-bordo-700 hover:bg-bordo-100 transition" title="Modificar">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                                 </svg>
+                                                Editar
                                             </a>
+                                            <form method="POST" action="{% url 'actividad:toggle_actividad' actividad.id %}">
+                                                {% csrf_token %}
+                                                <button type="button"
+                                                        onclick="confirmarToggle(this, '{{ actividad.nombre }}', {% if actividad.activa %}true{% else %}false{% endif %})"
+                                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition
+                                                        {% if actividad.activa %}bg-red-50 text-red-600 hover:bg-red-100{% else %}bg-green-50 text-green-700 hover:bg-green-100{% endif %}">
+                                                    {% if actividad.activa %}
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                                    </svg>
+                                                    Inhabilitar
+                                                    {% else %}
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    </svg>
+                                                    Habilitar
+                                                    {% endif %}
+                                                </button>
+                                            </form>
                                         </div>
                                     {% else %}
                                         <span class="text-gray-400 text-sm">-</span>
@@ -143,4 +163,30 @@
         {% endif %}
     </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function confirmarToggle(btn, nombre, estaActiva) {
+    const accion = estaActiva ? 'INACTIVA' : 'ACTIVA';
+    const color  = estaActiva ? '#dc2626' : '#16a34a';
+    const icono  = estaActiva ? 'warning' : 'question';
+    const texto  = estaActiva
+        ? 'La actividad no estará disponible para reservas.'
+        : 'La actividad volverá a estar disponible para reservas.';
+
+    Swal.fire({
+        title: '¿Cambiar estado?',
+        html: `¿Estás seguro que querés cambiar el estado de <strong>${nombre}</strong> a <span style="color:${color}; font-weight:700;">${accion}</span>?<br><small style="color:#6b7280; margin-top:6px; display:block;">${texto}</small>`,
+        icon: icono,
+        showCancelButton: true,
+        confirmButtonColor: color,
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: `Aceptar`,
+        cancelButtonText: 'Cancelar',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            btn.closest('form').submit();
+        }
+    });
+}
+</script>
 {% endblock %}

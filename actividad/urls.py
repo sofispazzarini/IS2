@@ -8,4 +8,5 @@ urlpatterns = [
     path('admin/crear/', views.crear_actividad, name='crear_actividad'),
     path('admin/<int:actividad_id>/modificar/', views.modificar_actividad, name='modificar_actividad'),
     path('admin/<int:actividad_id>/eliminar/', views.eliminar_actividad, name='eliminar_actividad'),
+    path('admin/<int:actividad_id>/toggle/', views.toggle_actividad, name='toggle_actividad'),
 ]

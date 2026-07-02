@@ -12,7 +12,7 @@ class ProfesorForm(forms.ModelForm):
     class Meta:
         model = Profesor
         # 🆕 Agregamos 'dni' a la lista de campos
-        fields = ['nombre', 'apellido', 'dni', 'telefono', 'email', 'especialidad', 'descripcion', 'activo']
+        fields = ['nombre', 'apellido', 'dni', 'telefono', 'email', 'especialidad', 'descripcion']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-input'}),
             'apellido': forms.TextInput(attrs={'class': 'form-input'}),

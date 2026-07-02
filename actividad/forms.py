@@ -11,7 +11,7 @@ class ActividadForm(forms.ModelForm):
 
     class Meta:
         model = Actividad
-        fields = ['nombre', 'descripcion', 'precio', 'activa']
+        fields = ['nombre', 'descripcion', 'precio']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-input'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),

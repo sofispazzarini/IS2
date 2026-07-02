@@ -117,3 +117,20 @@ def eliminar_actividad(request, actividad_id):
         'actividad': actividad,
         'tiene_clases': tiene_clases_activas,  # Mandamos el filtro corregido al template
     })
+
+@login_required
+def toggle_actividad(request, actividad_id):
+    """Habilitar o deshabilitar una actividad."""
+    if not es_dueno(request.user):
+        messages.error(request, "Solo el dueño puede modificar actividades.")
+        return redirect('actividad:admin_actividades')
+
+    actividad = get_object_or_404(Actividad, id=actividad_id)
+
+    if request.method == 'POST':
+        actividad.activa = not actividad.activa
+        actividad.save()
+        estado = "habilitada" if actividad.activa else "Inhabilitada"
+        messages.success(request, f"Actividad {estado} ")
+
+    return redirect('actividad:admin_actividades')

@@ -972,3 +972,20 @@ def estadisticas_usuario(request):
         'sin_historial': sin_historial,
         'es_dueno': es_dueno,
     })
+
+@login_required(login_url='user:login')
+def toggle_profesor(request, profesor_id):
+    """Habilitar o deshabilitar un profesor."""
+    if not _es_dueno(request):
+        return HttpResponseForbidden("Acceso denegado")
+
+    profesor = get_object_or_404(Profesor, id=profesor_id)
+
+    if request.method == 'POST':
+        profesor.activo = not profesor.activo
+        profesor.save()
+        estado = "habilitado" if profesor.activo else "Inhabilitado"
+        messages.success(request, f"Profesor {estado} ")
+
+    return redirect('user:admin_profesores')
+
