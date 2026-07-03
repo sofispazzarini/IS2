@@ -67,6 +67,18 @@
                     {% endif %}
                 </div>
 
+                <div class="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <input type="checkbox" name="es_recurrente" id="es_recurrente"
+                           class="w-5 h-5 text-bordo-600 border-gray-300 rounded focus:ring-bordo-500"
+                           {% if form.es_recurrente.value %}checked{% endif %}>
+                    <label for="es_recurrente" class="text-sm font-medium text-gray-700">
+                        Repetir semanalmente hasta fin de mes
+                    </label>
+                </div>
+                <p class="text-sm text-gray-500 -mt-3 ml-1">
+                    Se crearán clases para el mismo día de la semana desde la fecha seleccionada hasta fin de mes
+                </p>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Hora inicio</label>
                     <input type="time" name="hora_inicio" value="{{ form.hora_inicio.value|default:'' }}" required

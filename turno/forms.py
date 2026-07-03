@@ -15,6 +15,12 @@ class ClaseForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-input'})
     )
 
+    es_recurrente = forms.BooleanField(
+        required=False,
+        label="Repetir semanalmente hasta fin de mes",
+        widget=forms.CheckboxInput(attrs={'class': 'form-checkbox'})
+    )
+
     class Meta:
         model = Clase
         fields = ['actividad', 'profesor', 'fecha', 'hora_inicio', 'cupo_maximo', 'salon']

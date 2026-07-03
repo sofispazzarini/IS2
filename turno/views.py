@@ -529,13 +529,93 @@ def crear_clase(request):
     if request.method == 'POST':
         form = ClaseForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Clase creada con éxito.")
+            es_recurrente = form.cleaned_data.get('es_recurrente', False)
+
+            if not es_recurrente:
+                form.save()
+                messages.success(request, "Clase creada con éxito.")
+                return redirect('admin_clases')
+
+            # Modo recurrente: crear clases hasta fin de mes
+            fecha_inicio = form.cleaned_data['fecha']
+            hora_inicio = form.cleaned_data['hora_inicio']
+            hora_fin = form.cleaned_data['hora_fin']
+            salon = form.cleaned_data['salon']
+            profesor = form.cleaned_data['profesor']
+            actividad = form.cleaned_data['actividad']
+            cupo_maximo = form.cleaned_data['cupo_maximo']
+
+            # Generar fechas desde fecha_inicio hasta fin de mes (mismo día de semana)
+            fechas = _fechas_recurrentes_hasta_fin_mes(fecha_inicio)
+
+            # Validar disponibilidad para TODAS las fechas
+            errores = []
+            for fecha in fechas:
+                # Validar salón
+                conflicto_salon = Clase.objects.filter(
+                    fecha=fecha,
+                    salon=salon,
+                    cancelada=False,
+                    hora_inicio__lt=hora_fin,
+                    hora_fin__gt=hora_inicio
+                ).exists()
+                if conflicto_salon:
+                    errores.append(f"Salón {salon.nombre} no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs.")
+
+                # Validar profesor
+                conflicto_profesor = Clase.objects.filter(
+                    fecha=fecha,
+                    profesor=profesor,
+                    cancelada=False,
+                    hora_inicio__lt=hora_fin,
+                    hora_fin__gt=hora_inicio
+                ).exists()
+                if conflicto_profesor:
+                    errores.append(f"Profesor {profesor.nombre} {profesor.apellido} no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs.")
+
+            if errores:
+                for error in errores:
+                    messages.error(request, error)
+                messages.error(request, "No se creó ninguna clase.")
+                return render(request, 'turno/crear_clase.html', {'form': form})
+
+            # Crear todas las clases en una transacción
+            with transaction.atomic():
+                for fecha in fechas:
+                    Clase.objects.create(
+                        actividad=actividad,
+                        profesor=profesor,
+                        fecha=fecha,
+                        hora_inicio=hora_inicio,
+                        hora_fin=hora_fin,
+                        cupo_maximo=cupo_maximo,
+                        salon=salon,
+                    )
+
+            fechas_str = ", ".join(f.strftime('%d/%m') for f in fechas)
+            messages.success(request, f"Se crearon {len(fechas)} clases exitosamente: {fechas_str}")
             return redirect('admin_clases')
     else:
         form = ClaseForm()
 
     return render(request, 'turno/crear_clase.html', {'form': form})
+
+
+def _fechas_recurrentes_hasta_fin_mes(fecha_inicio):
+    """Retorna todas las fechas desde fecha_inicio hasta fin de mes con el mismo día de semana."""
+    from datetime import date
+    dia_semana = fecha_inicio.weekday()
+    mes = fecha_inicio.month
+    anio = fecha_inicio.year
+    total_dias = calendar.monthrange(anio, mes)[1]
+
+    fechas = []
+    fecha_actual = fecha_inicio
+    while fecha_actual.month == mes:
+        fechas.append(fecha_actual)
+        fecha_actual = fecha_actual + timedelta(days=7)
+
+    return fechas
 
 
 @login_required
