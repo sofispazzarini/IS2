@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db import transaction
 
-from .models import Reserva, Asistencia
+from .models import Reserva, Asistencia, Clase, ClaseFija
 
 from django.core.exceptions import ValidationError
 
@@ -122,3 +122,45 @@ def registrar_asistencia_manual(reserva_id):
     reserva.save()
 
     return reserva
+
+
+HORIZONTE_DIAS = 28  # horizonte rodante: 4 semanas
+
+
+def _proxima_fecha(dia_semana, desde):
+    """Primera fecha >= desde que cae en dia_semana (weekday(): 0=Lunes)."""
+    delta = (dia_semana - desde.weekday()) % 7
+    return desde + timedelta(days=delta)
+
+
+def generar_clases_fijas():
+    """Garantiza que cada ClaseFija activa tenga sus Clase generadas
+    para las próximas 4 semanas. Idempotente: no duplica fechas ya
+    generadas (incluidas las canceladas, que no se resucitan) y saltea
+    silenciosamente las ocurrencias en conflicto de salón/profesor."""
+    hoy = timezone.localdate()
+    limite = hoy + timedelta(days=HORIZONTE_DIAS)
+
+    for regla in ClaseFija.objects.filter(activa=True).select_related(
+            'actividad', 'profesor', 'salon'):
+        if regla.actividad_id is None or regla.profesor_id is None:
+            continue  # regla huérfana (actividad/profesor borrados): no generar
+        inicio = max(regla.fecha_inicio, hoy)
+        fecha = _proxima_fecha(regla.dia_semana, inicio)
+
+        existentes = set(Clase.objects.filter(
+            clase_fija=regla, fecha__gte=inicio, fecha__lte=limite,
+        ).values_list('fecha', flat=True))
+
+        while fecha <= limite:
+            if fecha not in existentes:
+                try:
+                    Clase.objects.create(
+                        actividad=regla.actividad, profesor=regla.profesor,
+                        salon=regla.salon, fecha=fecha,
+                        hora_inicio=regla.hora_inicio, hora_fin=regla.hora_fin,
+                        cupo_maximo=regla.cupo_maximo, clase_fija=regla,
+                    )
+                except ValidationError:
+                    pass  # ocurrencia puntual en conflicto: se saltea solo esa fecha
+            fecha += timedelta(days=7)

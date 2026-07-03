@@ -237,3 +237,353 @@ class ValidarQRTestCase(TestCase):
 
         self.assertFalse(resultado.exito)
         self.assertIn('no existe', resultado.mensaje.lower())
+
+
+# ─── Additional imports for ClaseFija tests ───────────────────────────────────
+
+from decimal import Decimal as _Decimal
+from django.contrib.messages import get_messages as _get_messages
+from django.urls import reverse as _reverse
+
+from turno.models import ClaseFija, Salon
+from turno.services import generar_clases_fijas
+
+
+# ─── Shared base ──────────────────────────────────────────────────────────────
+
+class _ClaseFijaBase(TestCase):
+    """Shared setUp for the three ClaseFija test suites."""
+
+    def setUp(self):
+        # Admin user — es_admin() accepts 'secretario' or 'dueno'
+        self.admin = User.objects.create_user(
+            username='admin_cf',
+            email='admin_cf@test.com',
+            password='test1234',
+            dni='CF00001',
+            telefono='1100001',
+            rol='secretario',
+        )
+
+        # Active Actividad
+        self.actividad = Actividad.objects.create(
+            nombre='Act CF Test',
+            descripcion='Actividad de prueba para clase fija',
+            duracion_min=60,
+            precio=_Decimal('5000'),
+            activa=True,
+        )
+
+        # Two active Profesores (needed for conflict tests)
+        self.profesor = Profesor.objects.create(
+            nombre='Profe',
+            apellido='TestCF',
+            dni=99001,
+            telefono='1100001',
+            email='prof_cf@test.com',
+            especialidad='Testing',
+            activo=True,
+        )
+        self.profesor2 = Profesor.objects.create(
+            nombre='Profe2',
+            apellido='TestCF2',
+            dni=99002,
+            telefono='1100002',
+            email='prof_cf2@test.com',
+            especialidad='Testing2',
+            activo=True,
+        )
+
+        # Two Salones
+        self.salon = Salon.objects.create(nombre='Salon CF Test')
+        self.salon2 = Salon.objects.create(nombre='Salon CF Test 2')
+
+        # Base date for fixtures — always 7 days in the future (safely past today)
+        self.hoy = timezone.localdate()
+        self.fecha_inicio = self.hoy + timedelta(days=7)
+        self.dia_semana = self.fecha_inicio.weekday()
+
+        self.client.force_login(self.admin)
+
+
+# ─── 1. View tests: crear_clase with es_recurrente ────────────────────────────
+
+class CrearClaseFijaTests(_ClaseFijaBase):
+    """POST to crear_clase with es_recurrente='on'."""
+
+    def _post_data(self, **overrides):
+        data = {
+            'actividad': self.actividad.pk,
+            'profesor': self.profesor.pk,
+            'fecha': self.fecha_inicio.strftime('%Y-%m-%d'),
+            'hora_inicio': '15:00',
+            'cupo_maximo': 10,
+            'salon': self.salon.pk,
+            'es_recurrente': 'on',
+        }
+        data.update(overrides)
+        return data
+
+    def test_creacion_exitosa(self):
+        """POST crea exactamente 1 ClaseFija y las Clase para el horizonte de 4 semanas."""
+        url = _reverse('crear_clase')
+        # Don't follow the redirect: messages are readable before template consumption.
+        response = self.client.post(url, self._post_data())
+
+        # Exactly one rule created
+        self.assertEqual(ClaseFija.objects.count(), 1)
+        regla = ClaseFija.objects.first()
+
+        # Expected occurrence dates: fecha_inicio, +7, +14, +21 (all ≤ hoy+28)
+        limite = self.hoy + timedelta(days=28)
+        expected = []
+        f = self.fecha_inicio
+        while f <= limite:
+            expected.append(f)
+            f += timedelta(days=7)
+
+        generated = sorted(
+            Clase.objects.filter(clase_fija=regla).values_list('fecha', flat=True)
+        )
+        self.assertEqual(generated, expected, "Las fechas generadas no coinciden con las esperadas")
+
+        # Success message must be present on the (unconsumed) redirect response
+        msgs = [str(m) for m in _get_messages(response.wsgi_request)]
+        self.assertTrue(
+            any('Clase fija creada con éxito' in m for m in msgs),
+            f"Mensajes encontrados: {msgs}",
+        )
+
+    def test_conflicto_salon_todo_o_nada(self):
+        """Un conflicto de salón en cualquier fecha bloquea toda la creación de la regla."""
+        # Pre-create a plain Clase on the 3rd occurrence (fecha_inicio+14), same salon,
+        # different profesor so only the salon conflicts.
+        fecha_conflicto = self.fecha_inicio + timedelta(days=14)
+        Clase.objects.create(
+            actividad=self.actividad,
+            profesor=self.profesor2,   # different profesor
+            salon=self.salon,           # same salon — triggers conflict
+            fecha=fecha_conflicto,
+            hora_inicio=time(15, 0),
+            hora_fin=time(16, 0),
+            cupo_maximo=10,
+        )
+
+        url = _reverse('crear_clase')
+        response = self.client.post(url, self._post_data())
+
+        # No ClaseFija should have been created
+        self.assertEqual(ClaseFija.objects.count(), 0)
+        # No clase_fija-linked Clase rows beyond the pre-created plain one
+        self.assertEqual(Clase.objects.filter(clase_fija__isnull=False).count(), 0)
+
+        # The view renders the form again (200) with error messages
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'no está disponible')
+        self.assertContains(response, 'No se creó la clase fija')
+
+    def test_conflicto_profesor_todo_o_nada(self):
+        """Un conflicto de profesor en cualquier fecha bloquea toda la creación de la regla."""
+        fecha_conflicto = self.fecha_inicio + timedelta(days=14)
+        Clase.objects.create(
+            actividad=self.actividad,
+            profesor=self.profesor,    # same profesor — triggers conflict
+            salon=self.salon2,          # different salon
+            fecha=fecha_conflicto,
+            hora_inicio=time(15, 0),
+            hora_fin=time(16, 0),
+            cupo_maximo=10,
+        )
+
+        url = _reverse('crear_clase')
+        response = self.client.post(url, self._post_data())
+
+        self.assertEqual(ClaseFija.objects.count(), 0)
+        self.assertEqual(Clase.objects.filter(clase_fija__isnull=False).count(), 0)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'no está disponible')
+        self.assertContains(response, 'No se creó la clase fija')
+
+    def test_conflicto_con_otra_clase_fija(self):
+        """Solapamiento con otra ClaseFija activa bloquea la nueva creación."""
+        # Pre-create a conflicting active ClaseFija (same dia_semana + time window + salon)
+        ClaseFija.objects.create(
+            actividad=self.actividad,
+            profesor=self.profesor2,
+            salon=self.salon,
+            dia_semana=self.dia_semana,
+            hora_inicio=time(15, 0),
+            hora_fin=time(16, 0),
+            cupo_maximo=10,
+            activa=True,
+            fecha_inicio=self.fecha_inicio,
+        )
+
+        url = _reverse('crear_clase')
+        response = self.client.post(url, self._post_data())
+
+        # Count must still be 1 (only the pre-created rule)
+        self.assertEqual(ClaseFija.objects.count(), 1)
+        self.assertEqual(response.status_code, 200)
+
+
+# ─── 2. Service tests: generar_clases_fijas() ─────────────────────────────────
+
+class GenerarClasesFijasTests(_ClaseFijaBase):
+    """Direct calls to the generar_clases_fijas() service."""
+
+    def _crear_regla(self):
+        return ClaseFija.objects.create(
+            actividad=self.actividad,
+            profesor=self.profesor,
+            salon=self.salon,
+            dia_semana=self.dia_semana,
+            hora_inicio=time(15, 0),
+            hora_fin=time(16, 0),
+            cupo_maximo=10,
+            activa=True,
+            fecha_inicio=self.fecha_inicio,
+        )
+
+    def test_idempotente(self):
+        """Llamar dos veces a generar_clases_fijas() no duplica las Clase generadas."""
+        regla = self._crear_regla()
+
+        generar_clases_fijas()
+        count_first = Clase.objects.filter(clase_fija=regla).count()
+
+        generar_clases_fijas()
+        count_second = Clase.objects.filter(clase_fija=regla).count()
+
+        self.assertEqual(count_first, count_second, "Segunda llamada duplicó filas")
+        self.assertGreater(count_first, 0, "No se generó ninguna Clase")
+
+        limite = self.hoy + timedelta(days=28)
+        for c in Clase.objects.filter(clase_fija=regla):
+            self.assertLessEqual(
+                c.fecha, limite,
+                f"Clase generada en {c.fecha} supera el horizonte {limite}",
+            )
+
+    def test_conflicto_saltea_ocurrencia(self):
+        """Una ocurrencia en conflicto se saltea; el resto se genera normalmente."""
+        # 2nd occurrence = fecha_inicio + 7 days
+        fecha_2da = self.fecha_inicio + timedelta(days=7)
+
+        # Blocking plain Clase: same salon + same hora_inicio → Clase.clean() raises
+        # ValidationError when the service tries to create the 2nd occurrence.
+        Clase.objects.create(
+            actividad=self.actividad,
+            profesor=self.profesor2,   # different profesor so the 1st/3rd/4th won't block
+            salon=self.salon,
+            fecha=fecha_2da,
+            hora_inicio=time(15, 0),
+            hora_fin=time(16, 0),
+            cupo_maximo=10,
+        )
+
+        regla = self._crear_regla()
+        # Must not raise even though 1 date conflicts
+        generar_clases_fijas()
+
+        # The 2nd occurrence should NOT have a clase_fija-linked Clase
+        self.assertFalse(
+            Clase.objects.filter(clase_fija=regla, fecha=fecha_2da).exists(),
+            f"La fecha {fecha_2da} debería haber sido salteada por conflicto de salón",
+        )
+
+        # The other 3 occurrences (dates 0, +14, +21 from fecha_inicio) SHOULD exist
+        limite = self.hoy + timedelta(days=28)
+        for days_offset in (0, 14, 21):
+            f = self.fecha_inicio + timedelta(days=days_offset)
+            if f <= limite:
+                self.assertTrue(
+                    Clase.objects.filter(clase_fija=regla, fecha=f).exists(),
+                    f"La fecha {f} debería haber sido generada pero no existe",
+                )
+
+
+# ─── 3. View tests: terminar_clase_fija ───────────────────────────────────────
+
+class TerminarClaseFijaTests(_ClaseFijaBase):
+    """POST to terminar_clase_fija terminates the rule and cancels future occurrences."""
+
+    def setUp(self):
+        super().setUp()
+
+        # Regular client user for reservas
+        self.cliente = User.objects.create_user(
+            username='cliente_cf',
+            email='cliente_cf@test.com',
+            password='test1234',
+            dni='CF00002',
+            telefono='1100099',
+            rol='cliente',
+        )
+
+        # Create rule and generate the first wave of classes
+        self.regla = ClaseFija.objects.create(
+            actividad=self.actividad,
+            profesor=self.profesor,
+            salon=self.salon,
+            dia_semana=self.dia_semana,
+            hora_inicio=time(15, 0),
+            hora_fin=time(16, 0),
+            cupo_maximo=10,
+            activa=True,
+            fecha_inicio=self.fecha_inicio,
+        )
+        generar_clases_fijas()
+
+    def test_terminar_clase_fija(self):
+        """POST desactiva la regla, cancela clases futuras con motivo y cancela sus reservas."""
+        # Pick a future generated class for the reserva
+        clase_futura = (
+            Clase.objects.filter(clase_fija=self.regla, cancelada=False)
+            .order_by('fecha')
+            .first()
+        )
+        self.assertIsNotNone(clase_futura, "Debe haber al menos una Clase generada")
+
+        # Create a Reserva on that class
+        reserva = Reserva.objects.create(
+            usuario=self.cliente,
+            clase=clase_futura,
+            estado='confirmada',
+        )
+
+        url = _reverse('terminar_clase_fija', args=[self.regla.id])
+        self.client.post(url)
+
+        # The rule must be inactive
+        self.regla.refresh_from_db()
+        self.assertFalse(self.regla.activa, "La regla debe quedar con activa=False")
+
+        # All generated instances must be cancelled with the correct motivo
+        clases_generadas = Clase.objects.filter(clase_fija=self.regla)
+        self.assertGreater(clases_generadas.count(), 0)
+        for clase in clases_generadas:
+            clase.refresh_from_db()
+            self.assertTrue(
+                clase.cancelada,
+                f"Clase del {clase.fecha} debería estar cancelada",
+            )
+            self.assertEqual(
+                clase.motivo_cancelacion,
+                "Clase fija terminada por administración",
+                f"Motivo incorrecto en clase del {clase.fecha}: {clase.motivo_cancelacion!r}",
+            )
+
+        # The reserva must be cancelled
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'cancelada', "La reserva debe quedar en estado 'cancelada'")
+
+        # generar_clases_fijas() must NOT create new Clase rows (rule is inactive)
+        count_before = Clase.objects.filter(clase_fija=self.regla).count()
+        generar_clases_fijas()
+        count_after = Clase.objects.filter(clase_fija=self.regla).count()
+        self.assertEqual(
+            count_before, count_after,
+            "generar_clases_fijas() creó nuevas clases para una regla terminada",
+        )

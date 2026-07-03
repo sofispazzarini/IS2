@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 import io
 import base64
+import logging
 
 import mercadopago
 from django.shortcuts import render, get_object_or_404, redirect
@@ -15,8 +16,8 @@ from django.views.decorators.http import require_http_methods
 import calendar
 import qrcode
 
-from .models import Clase, Reserva, ListaEspera, Asistencia, TurnoFijo, Abono, Salon
-from .services import validar_qr
+from .models import Clase, Reserva, ListaEspera, Asistencia, TurnoFijo, Abono, Salon, ClaseFija
+from .services import validar_qr, generar_clases_fijas
 from .forms import ClaseForm
 from pago.models import Pago
 from actividad.models import Actividad
@@ -31,6 +32,8 @@ from django.db import transaction
 
 from decimal import Decimal
 from django.http import HttpResponse
+
+logger = logging.getLogger(__name__)
 
 def registrar_asistencia(request, qr_uuid):
     resultado = validar_qr(str(qr_uuid), registrado_por=request.user if request.user.is_authenticated else None)
@@ -142,6 +145,10 @@ def mis_turnos(request):
 @login_required
 def lista_clases(request):
     """Vista de calendario para reservar clases."""
+    try:
+        generar_clases_fijas()
+    except Exception:
+        logger.exception("Error generando clases fijas")
     hoy = timezone.localdate()
     year = int(request.GET.get('year', hoy.year))
     month = int(request.GET.get('month', hoy.month))
@@ -477,6 +484,11 @@ def admin_clases(request):
         messages.error(request, "No tienes permisos para acceder a esta sección.")
         return redirect('core:home')
 
+    try:
+        generar_clases_fijas()
+    except Exception:
+        logger.exception("Error generando clases fijas")
+
     actividad_id = request.GET.get('actividad', '')
     profesor_id = request.GET.get('profesor', '')
     estado = request.GET.get('estado', '')
@@ -516,6 +528,7 @@ def admin_clases(request):
         'filtro_fecha_hasta': fecha_hasta,
         'filtro_salon': salon_id,
         'hay_filtros': any([actividad_id, profesor_id, estado, fecha_desde, fecha_hasta, salon_id]),
+        'clases_fijas': ClaseFija.objects.filter(activa=True).select_related('actividad', 'profesor', 'salon'),
     })
 
 
@@ -536,7 +549,7 @@ def crear_clase(request):
                 messages.success(request, "Clase creada con éxito.")
                 return redirect('admin_clases')
 
-            # Modo recurrente: crear clases hasta fin de mes
+            # Modo recurrente: crear clase fija (ClaseFija + generación automática)
             fecha_inicio = form.cleaned_data['fecha']
             hora_inicio = form.cleaned_data['hora_inicio']
             hora_fin = form.cleaned_data['hora_fin']
@@ -544,78 +557,71 @@ def crear_clase(request):
             profesor = form.cleaned_data['profesor']
             actividad = form.cleaned_data['actividad']
             cupo_maximo = form.cleaned_data['cupo_maximo']
+            dia_semana = fecha_inicio.weekday()
 
-            # Generar fechas desde fecha_inicio hasta fin de mes (mismo día de semana)
-            fechas = _fechas_recurrentes_hasta_fin_mes(fecha_inicio)
-
-            # Validar disponibilidad para TODAS las fechas
             errores = []
-            for fecha in fechas:
-                # Validar salón
-                conflicto_salon = Clase.objects.filter(
-                    fecha=fecha,
-                    salon=salon,
-                    cancelada=False,
-                    hora_inicio__lt=hora_fin,
-                    hora_fin__gt=hora_inicio
-                ).exists()
-                if conflicto_salon:
-                    errores.append(f"Salón {salon.nombre} no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs.")
 
-                # Validar profesor
-                conflicto_profesor = Clase.objects.filter(
-                    fecha=fecha,
-                    profesor=profesor,
-                    cancelada=False,
-                    hora_inicio__lt=hora_fin,
-                    hora_fin__gt=hora_inicio
-                ).exists()
-                if conflicto_profesor:
-                    errores.append(f"Profesor {profesor.nombre} {profesor.apellido} no disponible para el {fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs.")
+            # Conflictos con clases futuras ya agendadas ese día de semana/horario
+            # weekday() lunes=0 → __week_day de Django domingo=1
+            week_day_lookup = (dia_semana + 1) % 7 + 1
+            conflictos = Clase.objects.filter(
+                fecha__gte=fecha_inicio,
+                fecha__week_day=week_day_lookup,
+                cancelada=False,
+                hora_inicio__lt=hora_fin,
+                hora_fin__gt=hora_inicio,
+            ).filter(Q(salon=salon) | Q(profesor=profesor)).order_by('fecha')
 
-            if errores:
-                for error in errores:
-                    messages.error(request, error)
-                messages.error(request, "No se creó ninguna clase.")
-                return render(request, 'turno/crear_clase.html', {'form': form})
-
-            # Crear todas las clases en una transacción
-            with transaction.atomic():
-                for fecha in fechas:
-                    Clase.objects.create(
-                        actividad=actividad,
-                        profesor=profesor,
-                        fecha=fecha,
-                        hora_inicio=hora_inicio,
-                        hora_fin=hora_fin,
-                        cupo_maximo=cupo_maximo,
-                        salon=salon,
+            for c in conflictos:
+                if c.salon_id == salon.id:
+                    errores.append(
+                        f"El salón {salon.nombre} no está disponible para el "
+                        f"{c.fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
+                    )
+                else:
+                    errores.append(
+                        f"El profesor {profesor.nombre} {profesor.apellido} no está disponible para el "
+                        f"{c.fecha.strftime('%d/%m/%Y')} a las {hora_inicio.strftime('%H:%M')} hs."
                     )
 
-            fechas_str = ", ".join(f.strftime('%d/%m') for f in fechas)
-            messages.success(request, f"Se crearon {len(fechas)} clases exitosamente: {fechas_str}")
+            # Conflicto con otra clase fija activa (mismo día, horario solapado, mismo salón o profesor)
+            fija_conflicto = ClaseFija.objects.filter(
+                activa=True,
+                dia_semana=dia_semana,
+                hora_inicio__lt=hora_fin,
+                hora_fin__gt=hora_inicio,
+            ).filter(Q(salon=salon) | Q(profesor=profesor)).first()
+            if fija_conflicto:
+                errores.append(
+                    f"Ya existe una clase fija ({fija_conflicto}) que se superpone en ese salón o con ese profesor."
+                )
+
+            if errores:
+                for e in errores:
+                    messages.error(request, e)
+                messages.error(request, "No se creó la clase fija.")
+                return render(request, 'turno/crear_clase.html', {'form': form})
+
+            with transaction.atomic():
+                regla = ClaseFija.objects.create(
+                    actividad=actividad, profesor=profesor, salon=salon,
+                    dia_semana=dia_semana, hora_inicio=hora_inicio, hora_fin=hora_fin,
+                    cupo_maximo=cupo_maximo, fecha_inicio=fecha_inicio,
+                )
+            generar_clases_fijas()
+
+            messages.success(
+                request,
+                f"Clase fija creada con éxito: {actividad.nombre} todos los "
+                f"{regla.get_dia_semana_display()} a las {hora_inicio.strftime('%H:%M')}hs "
+                f"a partir del {fecha_inicio.strftime('%d/%m/%Y')}"
+            )
             return redirect('admin_clases')
     else:
         form = ClaseForm()
 
     return render(request, 'turno/crear_clase.html', {'form': form})
 
-
-def _fechas_recurrentes_hasta_fin_mes(fecha_inicio):
-    """Retorna todas las fechas desde fecha_inicio hasta fin de mes con el mismo día de semana."""
-    from datetime import date
-    dia_semana = fecha_inicio.weekday()
-    mes = fecha_inicio.month
-    anio = fecha_inicio.year
-    total_dias = calendar.monthrange(anio, mes)[1]
-
-    fechas = []
-    fecha_actual = fecha_inicio
-    while fecha_actual.month == mes:
-        fechas.append(fecha_actual)
-        fecha_actual = fecha_actual + timedelta(days=7)
-
-    return fechas
 
 
 @login_required
@@ -702,6 +708,35 @@ def cancelar_clase(request, clase_id):
         'clase': clase,
         'reservas_count': reservas_count,
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def terminar_clase_fija(request, clase_fija_id):
+    """Terminar una clase fija activa y cancelar todas sus clases futuras."""
+    if not es_admin(request.user):
+        messages.error(request, "No tienes permisos para realizar esta acción.")
+        return redirect('core:home')
+
+    regla = get_object_or_404(ClaseFija, id=clase_fija_id, activa=True)
+
+    ahora = timezone.localtime(timezone.now())
+    with transaction.atomic():
+        regla.activa = False
+        regla.save()
+        futuras = Clase.objects.filter(clase_fija=regla, cancelada=False).filter(
+            Q(fecha__gt=ahora.date()) |
+            Q(fecha=ahora.date(), hora_inicio__gt=ahora.time())
+        )
+        Reserva.objects.filter(clase__in=futuras).exclude(
+            estado='cancelada').update(estado='cancelada')
+        n = futuras.update(
+            cancelada=True,
+            motivo_cancelacion="Clase fija terminada por administración",
+        )
+    messages.success(request, f"Clase fija terminada. Se cancelaron {n} clase(s) futuras.")
+    return redirect('admin_clases')
+
 
 @login_required
 def detalle_clase(request, clase_id):

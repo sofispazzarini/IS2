@@ -15,6 +15,31 @@ class Salon(models.Model):
     def __str__(self):
         return f"{self.nombre} (Capacidad 50 cupos)"
 
+class ClaseFija(models.Model):
+    """Regla recurrente semanal que genera instancias de Clase automáticamente."""
+
+    DIAS = (
+        (0, 'Lunes'), (1, 'Martes'), (2, 'Miércoles'), (3, 'Jueves'),
+        (4, 'Viernes'), (5, 'Sábado'), (6, 'Domingo'),
+    )
+
+    actividad = models.ForeignKey('actividad.Actividad', on_delete=models.SET_NULL,
+                                  null=True, blank=True, related_name='clases_fijas')
+    profesor = models.ForeignKey('user.Profesor', on_delete=models.SET_NULL,
+                                 null=True, blank=True, related_name='clases_fijas')
+    salon = models.ForeignKey(Salon, on_delete=models.PROTECT, related_name='clases_fijas')
+    dia_semana = models.IntegerField(choices=DIAS)
+    hora_inicio = models.TimeField()
+    hora_fin = models.TimeField()
+    cupo_maximo = models.IntegerField()
+    activa = models.BooleanField(default=True)
+    fecha_inicio = models.DateField()
+
+    def __str__(self):
+        nombre = self.actividad.nombre if self.actividad else "Sin actividad"
+        return f"{nombre} todos los {self.get_dia_semana_display()} a las {self.hora_inicio.strftime('%H:%M')}hs"
+
+
 class Clase(models.Model):
 
     actividad = models.ForeignKey(
@@ -47,6 +72,13 @@ class Clase(models.Model):
         blank=True,
         null=True
     )
+    clase_fija = models.ForeignKey(
+        ClaseFija,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='clases_generadas'
+    )
 
     @property
     def ya_paso(self):
@@ -78,10 +110,12 @@ class Clase(models.Model):
                 raise ValidationError('No puedes modificar ni cancelar una clase que ya ha finalizado.')
 
         # 2. ACTUALIZADO AQUÍ: Django ahora comparará usando la instancia o el ID del salón de manera automática
+        # Las clases canceladas no bloquean el salón ni al profesor
         salon_ocupado = Clase.objects.filter(
             fecha=self.fecha,
             hora_inicio=self.hora_inicio,
-            salon=self.salon
+            salon=self.salon,
+            cancelada=False,
         ).exclude(pk=self.pk)
 
         if salon_ocupado.exists():
@@ -90,7 +124,8 @@ class Clase(models.Model):
         profesor_ocupado = Clase.objects.filter(
             fecha=self.fecha,
             hora_inicio=self.hora_inicio,
-            profesor=self.profesor
+            profesor=self.profesor,
+            cancelada=False,
         ).exclude(pk=self.pk)
 
         if profesor_ocupado.exists():

@@ -22,6 +22,7 @@ urlpatterns = [
     path('admin/clases/<int:clase_id>/modificar/', views.modificar_clase, name='modificar_clase'),
     path('admin/clases/<int:clase_id>/cancelar/', views.cancelar_clase, name='cancelar_clase'),
     path('admin/clases/<int:clase_id>/detalle/', views.detalle_clase, name='detalle_clase'),
+    path('admin/clases-fijas/<int:clase_fija_id>/terminar/', views.terminar_clase_fija, name='terminar_clase_fija'),
 
     path('admin/clases/<int:clase_id>/presentes/', views.lista_presentes_clase, name='lista_presentes_clase'),
 

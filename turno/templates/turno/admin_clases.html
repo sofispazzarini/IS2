@@ -120,6 +120,47 @@
             </form>
         </div>
 
+        {% if clases_fijas %}
+        <div class="bg-white shadow-lg rounded-2xl p-6 mb-6 border border-gray-100">
+            <h3 class="font-heading text-lg font-semibold text-gray-900 mb-4">Clases fijas activas</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-100">
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actividad</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Día</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Horario</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Salón</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Profesor</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for cf in clases_fijas %}
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4 font-medium text-gray-900">{{ cf.actividad.nombre|default:"Sin actividad" }}</td>
+                                <td class="px-6 py-4 text-gray-600">todos los {{ cf.get_dia_semana_display }}</td>
+                                <td class="px-6 py-4 text-gray-600">{{ cf.hora_inicio|time:"H:i" }}–{{ cf.hora_fin|time:"H:i" }} hs</td>
+                                <td class="px-6 py-4 text-gray-600">{{ cf.salon.nombre }}</td>
+                                <td class="px-6 py-4 text-gray-600">{{ cf.profesor }}</td>
+                                <td class="px-6 py-4 min-w-[120px]">
+                                    <form method="post" action="{% url 'terminar_clase_fija' cf.id %}"
+                                          onsubmit="return confirm('¿Terminar esta clase fija? Se cancelarán todas las clases futuras de la serie.');"
+                                          style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-red-600 hover:text-red-700 font-medium text-sm">
+                                            Terminar clase fija
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         {% if clases %}
         <div class="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
             <div class="overflow-x-auto">
