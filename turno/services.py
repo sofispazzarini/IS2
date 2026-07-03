@@ -2,6 +2,8 @@ import uuid
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db import transaction
+from django.core.mail import send_mail
+from django.conf import settings
 
 from .models import Reserva, Asistencia, Clase, ClaseFija
 
@@ -122,6 +124,67 @@ def registrar_asistencia_manual(reserva_id):
     reserva.save()
 
     return reserva
+
+
+def cancelar_clase_y_notificar(clase, motivo=None):
+    """
+    Cancela una clase, cancela sus reservas y notifica por email a los usuarios
+    con reserva confirmada que tengan notificaciones activas.
+
+    - Marca reservas confirmadas como 'cancelada' y envía email con link de reembolso
+      ANTES del bulk update (la página de reembolso requiere estado='cancelada').
+    - Hace bulk update del resto de reservas no canceladas.
+    - Marca la Clase como cancelada=True (nunca usa .save() para evitar full_clean).
+    - Si se provee motivo, lo guarda en motivo_cancelacion.
+
+    Retorna la cantidad de emails enviados.
+    """
+    nombre_actividad = clase.actividad.nombre if clase.actividad else "Sin actividad"
+
+    todas_las_reservas = Reserva.objects.filter(
+        clase=clase
+    ).exclude(estado='cancelada').select_related('usuario')
+
+    reservas_confirmadas = todas_las_reservas.filter(estado='confirmada')
+    emails_enviados = 0
+    for reserva in reservas_confirmadas:
+        usuario = reserva.usuario
+        reserva.estado = 'cancelada'
+        reserva.save()
+
+        if usuario.notificaciones_activas and usuario.email:
+            link = f"{settings.NGROK_URL}/turno/reservas/{reserva.id}/opciones-reembolso/"
+            try:
+                send_mail(
+                    subject=f"Clase cancelada: {nombre_actividad}",
+                    message=(
+                        f"Hola {usuario.first_name or usuario.username},\n\n"
+                        f"La clase fue cancelada.\n\n"
+                        f"Detalles de la clase:\n"
+                        f"- Actividad: {nombre_actividad}\n"
+                        f"- Fecha: {clase.fecha.strftime('%d/%m/%Y')}\n"
+                        f"- Horario: {clase.hora_inicio.strftime('%H:%M')} hs\n\n"
+                        f"Hacé clic aquí para gestionar tu devolución:\n"
+                        f"{link}\n\n"
+                        f"Disculpá las molestias.\n\n"
+                        f"Saludos,\nEquipo SIRCA"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[usuario.email],
+                    fail_silently=True,
+                )
+                emails_enviados += 1
+            except Exception:
+                pass
+
+    todas_las_reservas.update(estado='cancelada')
+
+    update_fields = {'cancelada': True}
+    if motivo is not None:
+        update_fields['motivo_cancelacion'] = motivo
+    Clase.objects.filter(pk=clase.pk).update(**update_fields)
+
+    return emails_enviados
 
 
 HORIZONTE_DIAS = 28  # horizonte rodante: 4 semanas

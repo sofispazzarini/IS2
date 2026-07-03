@@ -243,6 +243,7 @@ class ValidarQRTestCase(TestCase):
 
 from decimal import Decimal as _Decimal
 from django.contrib.messages import get_messages as _get_messages
+from django.core import mail as _mail
 from django.urls import reverse as _reverse
 
 from turno.models import ClaseFija, Salon
@@ -586,4 +587,141 @@ class TerminarClaseFijaTests(_ClaseFijaBase):
         self.assertEqual(
             count_before, count_after,
             "generar_clases_fijas() creó nuevas clases para una regla terminada",
+        )
+
+    def test_terminar_notifica_solo_reservas_confirmadas(self):
+        """Al terminar la regla: email solo a reservas confirmadas con notificaciones
+        activas; las pendiente_pago se cancelan pero NO reciben email."""
+        clases = list(
+            Clase.objects.filter(clase_fija=self.regla, cancelada=False).order_by('fecha')
+        )
+        self.assertGreaterEqual(len(clases), 2, "Se necesitan al menos 2 clases generadas")
+
+        # Usuario con notificaciones activas + email → reserva CONFIRMADA
+        # (self.cliente ya tiene email y notificaciones_activas=True por default)
+        self.assertTrue(self.cliente.notificaciones_activas)
+        reserva_confirmada = Reserva.objects.create(
+            usuario=self.cliente,
+            clase=clases[0],
+            estado='confirmada',
+        )
+
+        # Segundo usuario → reserva PENDIENTE_PAGO (se cancela pero sin email)
+        cliente2 = User.objects.create_user(
+            username='cliente_cf2',
+            email='cliente_cf2@test.com',
+            password='test1234',
+            dni='CF00003',
+            telefono='1100098',
+            rol='cliente',
+        )
+        reserva_pendiente = Reserva.objects.create(
+            usuario=cliente2,
+            clase=clases[1],
+            estado='pendiente_pago',
+        )
+
+        url = _reverse('terminar_clase_fija', args=[self.regla.id])
+        self.client.post(url)
+
+        # Exactamente 1 email: solo para la reserva confirmada
+        self.assertEqual(
+            len(_mail.outbox), 1,
+            f"Se esperaba 1 email, hay {len(_mail.outbox)}: "
+            f"{[(m.to, m.subject) for m in _mail.outbox]}",
+        )
+        email = _mail.outbox[0]
+        self.assertEqual(email.to, [self.cliente.email])
+        self.assertIn('Clase cancelada', email.subject)
+        self.assertIn('La clase fue cancelada', email.body)
+        self.assertIn(self.actividad.nombre, email.body)
+        self.assertIn('opciones-reembolso', email.body)
+        self.assertIn(f'/turno/reservas/{reserva_confirmada.id}/opciones-reembolso/', email.body)
+
+        # Ambas reservas quedan canceladas
+        reserva_confirmada.refresh_from_db()
+        reserva_pendiente.refresh_from_db()
+        self.assertEqual(reserva_confirmada.estado, 'cancelada')
+        self.assertEqual(
+            reserva_pendiente.estado, 'cancelada',
+            "La reserva pendiente_pago también debe cancelarse (aunque sin email)",
+        )
+
+
+# ─── 4. View tests: cancelar_clase (refactor regression) ──────────────────────
+
+class CancelarClaseTests(_ClaseFijaBase):
+    """Regression del refactor de cancelar_clase → cancelar_clase_y_notificar."""
+
+    def setUp(self):
+        super().setUp()
+
+        # cancelar_clase es solo-dueño (es_dueno): necesitamos rol 'dueno'
+        self.dueno = User.objects.create_user(
+            username='dueno_cf',
+            email='dueno_cf@test.com',
+            password='test1234',
+            dni='CF00010',
+            telefono='1100010',
+            rol='dueno',
+        )
+        self.client.force_login(self.dueno)
+
+        self.cliente = User.objects.create_user(
+            username='cliente_cc',
+            email='cliente_cc@test.com',
+            password='test1234',
+            dni='CF00011',
+            telefono='1100011',
+            rol='cliente',
+        )
+
+        self.clase = Clase.objects.create(
+            actividad=self.actividad,
+            profesor=self.profesor,
+            salon=self.salon,
+            fecha=self.fecha_inicio,
+            hora_inicio=time(15, 0),
+            hora_fin=time(16, 0),
+            cupo_maximo=10,
+        )
+        self.reserva = Reserva.objects.create(
+            usuario=self.cliente,
+            clase=self.clase,
+            estado='confirmada',
+        )
+
+    def test_cancelar_clase_notifica_y_cancela(self):
+        """POST del dueño cancela la clase, la reserva confirmada y envía 1 email con link."""
+        url = _reverse('cancelar_clase', args=[self.clase.id])
+        response = self.client.post(url)
+
+        # Redirige al panel de administración
+        self.assertEqual(response.status_code, 302)
+
+        # Clase cancelada
+        self.clase.refresh_from_db()
+        self.assertTrue(self.clase.cancelada, "La clase debe quedar cancelada")
+
+        # Reserva cancelada
+        self.reserva.refresh_from_db()
+        self.assertEqual(self.reserva.estado, 'cancelada')
+
+        # 1 email con el link de reembolso
+        self.assertEqual(
+            len(_mail.outbox), 1,
+            f"Se esperaba 1 email, hay {len(_mail.outbox)}",
+        )
+        email = _mail.outbox[0]
+        self.assertEqual(email.to, [self.cliente.email])
+        self.assertIn('Clase cancelada', email.subject)
+        self.assertIn(
+            f'/turno/reservas/{self.reserva.id}/opciones-reembolso/', email.body
+        )
+
+        # Mensaje de éxito
+        msgs = [str(m) for m in _get_messages(response.wsgi_request)]
+        self.assertTrue(
+            any('Clase cancelada' in m for m in msgs),
+            f"Mensajes encontrados: {msgs}",
         )

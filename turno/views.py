@@ -9,7 +9,6 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.contrib import messages
-from django.core.mail import send_mail
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -17,7 +16,7 @@ import calendar
 import qrcode
 
 from .models import Clase, Reserva, ListaEspera, Asistencia, TurnoFijo, Abono, Salon, ClaseFija
-from .services import validar_qr, generar_clases_fijas
+from .services import validar_qr, generar_clases_fijas, cancelar_clase_y_notificar
 from .forms import ClaseForm
 from pago.models import Pago
 from actividad.models import Actividad
@@ -655,45 +654,7 @@ def cancelar_clase(request, clase_id):
     clase = get_object_or_404(Clase, id=clase_id)
 
     if request.method == 'POST':
-        todas_las_reservas = Reserva.objects.filter(
-            clase=clase
-        ).exclude(estado='cancelada').select_related('usuario')
-
-        reservas_confirmadas = todas_las_reservas.filter(estado='confirmada')
-        emails_enviados = 0
-        for reserva in reservas_confirmadas:
-            usuario = reserva.usuario
-            reserva.estado = 'cancelada'
-            reserva.save()
-
-            if usuario.notificaciones_activas and usuario.email:
-                link = f"{settings.NGROK_URL}/turno/reservas/{reserva.id}/opciones-reembolso/"
-                try:
-                    send_mail(
-                        subject=f"Clase cancelada: {clase.actividad.nombre}",
-                        message=(
-                            f"Hola {usuario.first_name or usuario.username},\n\n"
-                            f"La clase fue cancelada.\n\n"
-                            f"Detalles de la clase:\n"
-                            f"- Actividad: {clase.actividad.nombre}\n"
-                            f"- Fecha: {clase.fecha.strftime('%d/%m/%Y')}\n"
-                            f"- Horario: {clase.hora_inicio.strftime('%H:%M')} hs\n\n"
-                            f"Hacé clic aquí para gestionar tu devolución:\n"
-                            f"{link}\n\n"
-                            f"Disculpá las molestias.\n\n"
-                            f"Saludos,\nEquipo SIRCA"
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[usuario.email],
-                        fail_silently=True,
-                    )
-                    emails_enviados += 1
-                except Exception:
-                    pass
-
-        todas_las_reservas.update(estado='cancelada')
-        Clase.objects.filter(pk=clase.pk).update(cancelada=True)
-
+        emails_enviados = cancelar_clase_y_notificar(clase)
         messages.success(
             request,
             f"Clase cancelada. Se notificó a {emails_enviados} usuario(s) con reserva confirmada."
@@ -724,17 +685,15 @@ def terminar_clase_fija(request, clase_fija_id):
     with transaction.atomic():
         regla.activa = False
         regla.save()
-        futuras = Clase.objects.filter(clase_fija=regla, cancelada=False).filter(
+        futuras = list(Clase.objects.filter(clase_fija=regla, cancelada=False).filter(
             Q(fecha__gt=ahora.date()) |
             Q(fecha=ahora.date(), hora_inicio__gt=ahora.time())
-        )
-        Reserva.objects.filter(clase__in=futuras).exclude(
-            estado='cancelada').update(estado='cancelada')
-        n = futuras.update(
-            cancelada=True,
-            motivo_cancelacion="Clase fija terminada por administración",
-        )
-    messages.success(request, f"Clase fija terminada. Se cancelaron {n} clase(s) futuras.")
+        ))
+        emails = 0
+        for clase in futuras:
+            emails += cancelar_clase_y_notificar(clase, motivo="Clase fija terminada por administración")
+        n = len(futuras)
+    messages.success(request, f"Clase fija terminada. Se cancelaron {n} clase(s) futuras y se notificó a {emails} usuario(s).")
     return redirect('admin_clases')
 
 
