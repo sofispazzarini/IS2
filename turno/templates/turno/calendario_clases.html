@@ -345,8 +345,24 @@ function cambiarMes(delta) {
     cargarCalendario();
 }
 
+function mesDeFiltro(inputId) {
+    const val = document.getElementById(inputId).value;
+    if (!val) return null;
+    const partes = val.split('-').map(Number);
+    return { year: partes[0], month: partes[1] };
+}
+
 function aplicarFiltros() {
     actualizarBotonLimpiar();
+    const desde = mesDeFiltro('filtro-fecha-desde');
+    const hasta = mesDeFiltro('filtro-fecha-hasta');
+    if (desde) {
+        currentYear = desde.year;
+        currentMonth = desde.month;
+    } else if (hasta) {
+        currentYear = hasta.year;
+        currentMonth = hasta.month;
+    }
     cargarCalendario();
 }
 
@@ -377,22 +393,29 @@ function actualizarBotonLimpiar() {
 }
 
 function actualizarEstadoNavegacion() {
-    const fechaDesde = document.getElementById('filtro-fecha-desde').value;
-    const fechaHasta = document.getElementById('filtro-fecha-hasta').value;
-    const hayFiltroFechas = fechaDesde || fechaHasta;
+    const desde = mesDeFiltro('filtro-fecha-desde');
+    const hasta = mesDeFiltro('filtro-fecha-hasta');
 
     const btnAnterior = document.getElementById('btn-mes-anterior');
     const btnSiguiente = document.getElementById('btn-mes-siguiente');
 
-    if (hayFiltroFechas) {
-        btnAnterior.disabled = true;
-        btnSiguiente.disabled = true;
+    const mesActual = currentYear * 12 + currentMonth;
+
+    const anteriorDeshabilitado = desde ? mesActual <= desde.year * 12 + desde.month : false;
+    const siguienteDeshabilitado = hasta ? mesActual >= hasta.year * 12 + hasta.month : false;
+
+    btnAnterior.disabled = anteriorDeshabilitado;
+    btnSiguiente.disabled = siguienteDeshabilitado;
+
+    if (anteriorDeshabilitado) {
         btnAnterior.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+        btnAnterior.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    if (siguienteDeshabilitado) {
         btnSiguiente.classList.add('opacity-50', 'cursor-not-allowed');
     } else {
-        btnAnterior.disabled = false;
-        btnSiguiente.disabled = false;
-        btnAnterior.classList.remove('opacity-50', 'cursor-not-allowed');
         btnSiguiente.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }

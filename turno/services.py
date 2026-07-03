@@ -188,6 +188,12 @@ def cancelar_clase_y_notificar(clase, motivo=None):
 
 
 HORIZONTE_DIAS = 28  # horizonte rodante: 4 semanas
+DIA_LIMITE_ABONO = 10
+
+
+def es_ventana_pago_abono(fecha):
+    """True si `fecha` cae en la ventana de pago del abono (día 1 al DIA_LIMITE_ABONO)."""
+    return 1 <= fecha.day <= DIA_LIMITE_ABONO
 
 
 def _proxima_fecha(dia_semana, desde):

@@ -16,7 +16,7 @@ import calendar
 import qrcode
 
 from .models import Clase, Reserva, ListaEspera, Asistencia, TurnoFijo, Abono, Salon, ClaseFija
-from .services import validar_qr, generar_clases_fijas, cancelar_clase_y_notificar
+from .services import validar_qr, generar_clases_fijas, cancelar_clase_y_notificar, es_ventana_pago_abono, DIA_LIMITE_ABONO
 from .forms import ClaseForm
 from pago.models import Pago
 from actividad.models import Actividad
@@ -1116,7 +1116,7 @@ def _fechas_del_mes_para_dia(dia_semana, mes, anio):
 
 def _limpiar_turnos_fijos_no_pagados(usuario, hoy):
     """Elimina TurnoFijo sin Abono aprobado del mes actual. Ejecutar a partir del día 11."""
-    if hoy.day < 11:
+    if hoy.day <= DIA_LIMITE_ABONO:
         return
 
     turnos_activos = TurnoFijo.objects.filter(usuario=usuario, activo=True)
@@ -1201,7 +1201,7 @@ def _calcular_info_abono_para_turnos(usuario, turno_fijo_ids, mes, anio):
         clases_extra = list(Clase.objects.filter(
             actividad=turno.actividad,
             hora_inicio=turno.hora_inicio,
-            fecha__in=[f for f in fechas_sig if f.day <= 30],
+            fecha__in=[f for f in fechas_sig if f.day <= DIA_LIMITE_ABONO],
             cancelada=False,
         ))
         todas = clases_mes + clases_extra
@@ -1257,7 +1257,7 @@ def _calcular_info_abono(usuario, mes, anio):
 
         # Clases del 1 al 10 del mes siguiente
         fechas_sig = _fechas_del_mes_para_dia(turno.dia_semana, next_month, next_year)
-        fechas_sig_1_10 = [f for f in fechas_sig if f.day <= 30]
+        fechas_sig_1_10 = [f for f in fechas_sig if f.day <= DIA_LIMITE_ABONO]
         clases_extra = list(Clase.objects.filter(
             actividad=turno.actividad,
             hora_inicio=turno.hora_inicio,
@@ -1292,20 +1292,21 @@ def _calcular_info_abono(usuario, mes, anio):
 
 
 def _crear_reservas_abono(usuario, abono, info):
-    """Crea una Reserva confirmada por cada clase del abono, sin duplicar."""
+    """Crea una Reserva confirmada por cada clase del abono, sin duplicar.
+    Si existe una reserva pendiente de pago para la clase, la confirma."""
     for turno in info['turnos_fijos']:
         monto_pagado = info['monto_por_clase_por_turno'][turno.id]
         for clase in info['clases_por_turno'][turno.id]:
-            ya_existe = Reserva.objects.filter(
+            existentes = Reserva.objects.filter(
                 usuario=usuario, clase=clase
-            ).exclude(estado='cancelada').exists()
-            if not ya_existe:
+            ).exclude(estado='cancelada')
+            actualizadas = existentes.filter(estado='pendiente_pago').update(
+                estado='confirmada', abono=abono, monto_pagado=monto_pagado,
+            )
+            if not actualizadas and not existentes.exists():
                 Reserva.objects.create(
-                    usuario=usuario,
-                    clase=clase,
-                    estado='confirmada',
-                    monto_pagado=monto_pagado,
-                    abono=abono,
+                    usuario=usuario, clase=clase, estado='confirmada',
+                    monto_pagado=monto_pagado, abono=abono,
                 )
 
 
@@ -1315,7 +1316,7 @@ def abonar_mes(request):
     """Cliente abonado selecciona qué turnos fijos pagar este mes con MercadoPago (1-10)."""
     hoy = timezone.localdate()
 
-    if not (1 <= hoy.day <= 30):
+    if not es_ventana_pago_abono(hoy):
         messages.error(request, "El período de pago del abono es del 1 al 10 de cada mes.")
         return redirect('user:perfil')
 
@@ -1331,12 +1332,9 @@ def abonar_mes(request):
 
     ids_ya_abonados = set()
     if abono_aprobado:
-        if abono_aprobado.turnos_fijos_ids:
-            ids_ya_abonados = {int(x) for x in abono_aprobado.turnos_fijos_ids.split(',') if x}
-        else:
-            ids_ya_abonados = set(
-                TurnoFijo.objects.filter(usuario=usuario, activo=True).values_list('id', flat=True)
-            )
+        ids_ya_abonados = set(
+            TurnoFijo.objects.filter(usuario=usuario, activo=True).values_list('id', flat=True)
+        )
 
     turnos_pendientes = TurnoFijo.objects.filter(
         usuario=usuario, activo=True
@@ -1368,9 +1366,14 @@ def abonar_mes(request):
             messages.info(request, "Ya pagaste el abono de este mes.")
             return redirect('user:perfil')
 
+        turnos_info = 'TURNOS:' + ','.join(
+            f"{tf.actividad_id}:{tf.dia_semana}:{tf.hora_inicio.strftime('%H%M')}"
+            for tf in info['turnos_fijos']
+        )
+
         if abono_existente:
             abono = abono_existente
-            abono.turnos_fijos_ids = ','.join(str(t) for t in turno_ids)
+            abono.reservas_origen_ids = turnos_info
             abono.cantidad_turnos_fijos = len(info['turnos_fijos'])
             abono.descuento_porcentaje = info['descuento_porcentaje']
             abono.monto_total = info['monto_total']
@@ -1389,7 +1392,7 @@ def abonar_mes(request):
                 monto_final=info['monto_final'],
                 metodo_pago='mercado_pago',
                 estado_pago='pendiente',
-                turnos_fijos_ids=','.join(str(t) for t in turno_ids),
+                reservas_origen_ids=turnos_info,
             )
 
         sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
@@ -1431,7 +1434,7 @@ def hacerse_abonado(request):
 
     hoy = timezone.localdate()
 
-    if not (1 <= hoy.day <= 30):
+    if not es_ventana_pago_abono(hoy):
         messages.error(request, "Solo podés hacerte abonado del 1 al 10 de cada mes.")
         return redirect('user:perfil')
 
@@ -1624,7 +1627,7 @@ def abonar_nuevo_turno_fijo(request):
     """Cualquier cliente convierte reservas pendientes en nuevos TF y paga con MercadoPago (1-10)."""
     hoy = timezone.localdate()
 
-    if not (1 <= hoy.day <= 30):
+    if not es_ventana_pago_abono(hoy):
         messages.error(request, "Solo podés abonar un nuevo turno fijo del 1 al 10 de cada mes.")
         return redirect('user:perfil')
 
